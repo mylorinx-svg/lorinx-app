@@ -2,12 +2,31 @@
 (function(){
   var CFG=window.LORINX_CFG||{};
   var SHEET_KEY="lorinx_local_";
+  var IDEMP={get:1,update:1,appset:1,appdel:1,orders:1,gmail:1};
+  function friendly(m){
+    m=String(m||"");
+    if(/unauthorized/.test(m))return "קוד הגישה לא תקף. התחבר מחדש עם קוד חדש.";
+    if(/^locked/.test(m))return "נחסם זמנית אחרי ניסיונות כושלים. נסה שוב בעוד כמה דקות.";
+    if(/^busy/.test(m))return "המערכת עסוקה, נסה שוב בעוד רגע.";
+    if(/^conflict/.test(m))return m.replace(/^conflict:\s*/,"");
+    if(/not allowed|not writable|header is read-only/.test(m))return "הפעולה לא מותרת בשרת.";
+    return "הגיליון החזיר שגיאה: "+m;
+  }
+  function setNet(off){if(window.LX_OFFLINE===off)return;window.LX_OFFLINE=off;try{window.dispatchEvent(new Event("lx-net"))}catch(e){}}
+  function once(body,ms){
+    var ctl=window.AbortController?new AbortController():null,t=ctl?setTimeout(function(){ctl.abort()},ms||20000):null;
+    return fetch(CFG.url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(Object.assign({token:CFG.token},body)),redirect:"follow",signal:ctl?ctl.signal:undefined})
+      .then(function(r){if(t)clearTimeout(t);return r.json()},function(e){if(t)clearTimeout(t);throw {net:true}});
+  }
   function api(body){
     if(!CFG.url)return Promise.reject({code:"local_unavailable",message:"צריך להדביק את כתובת ה-Web App ב-config.js (ראה הוראות ההתקנה)."});
-    return fetch(CFG.url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(Object.assign({token:CFG.token},body)),redirect:"follow"})
-      .then(function(r){return r.json()})
-      .then(function(j){if(j&&j.error)throw {code:"upstream_error",message:"הגיליון החזיר שגיאה: "+j.error};return j},
-            function(){throw {code:"upstream_error",message:"אין חיבור לגיליון. בדוק אינטרנט."}});
+    var tries=IDEMP[body.action]?3:1,delay=[0,700,1800];
+    function go(i){
+      return once(body).then(function(j){setNet(false);if(j&&j.error)throw {code:/^conflict/.test(j.error)?"conflict":"upstream_error",message:friendly(j.error)};return j},function(e){
+        if(e&&e.net){if(i+1<tries)return new Promise(function(r){setTimeout(r,delay[i+1])}).then(function(){return go(i+1)});setNet(true);throw {code:"offline",message:"אין חיבור לגיליון. בדוק אינטרנט."}}
+        throw e});
+    }
+    return go(0);
   }
   function lsGet(k,d){try{var v=localStorage.getItem(SHEET_KEY+k);return v?JSON.parse(v):d}catch(e){return d}}
   function lsSet(k,v){try{localStorage.setItem(SHEET_KEY+k,JSON.stringify(v))}catch(e){}}
@@ -29,20 +48,13 @@
     });
   }
   function snapOf(list){return {empty:!list.length,docs:list.map(function(d){return {id:d.id,data:function(){return d.data}}})}}
-  var LOCAL={depts:null,todos:null};
-  function localCol(name){
-    return {orderBy:function(){return this},onSnapshot:function(cb){
-      var saved=lsGet(name,null);
-      if(saved)cb(snapOf(saved));else cb({empty:true,docs:[]});
-    }};
-  }
   var db={
     collection:function(name){
       if(name==="clips"){return {orderBy:function(){return this},onSnapshot:function(cb,err){
         function fire(){cb(snapOf(rowsCache.slice().sort(function(a,b){return (a.id+a.data.time).localeCompare(b.id+b.data.time)})))}
         clipListeners.push(fire);loadClips().catch(function(e){if(err)err(e)});
       }}}
-      return localCol(name);
+      return {orderBy:function(){return this},onSnapshot:function(cb){cb({empty:true,docs:[]})}};
     },
     doc:function(path){
       var p=path.split("/");
@@ -63,18 +75,73 @@
       };
     }
   };
-  /* depts/todos are saved per-doc under "depts/<id>" / "todos/<id>"; the collection snapshot assembles them */
-  var origCollection=db.collection;
-  db.collection=function(name){
-    if(name==="depts"||name==="todos"){
-      return {orderBy:function(){return this},onSnapshot:function(cb){
-        var out=[];
-        try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf(SHEET_KEY+name+"/")===0){out.push({id:k.slice((SHEET_KEY+name+"/").length),data:JSON.parse(localStorage.getItem(k))})}}}catch(e){}
+  /* ---- appdata tab = single source of truth for depts / todos / cfg. All writes are atomic on the server (appset/appdel under a lock). ---- */
+  var APP={map:{},loaded:false},appLs=[],appChain=Promise.resolve(),pend=0,loadingP=null,CACHE_KEY="lorinx_cache_app";
+  function legacyKeys(){var o=[];try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf(SHEET_KEY)===0){var n=k.slice(SHEET_KEY.length);if(/^(depts|todos|cfg)(\/|$)/.test(n))o.push(n)}}}catch(e){}return o}
+  function parseApp(v){
+    var m={};
+    for(var i=1;i<v.length;i++){var r=v[i]||[];if(!r[0])continue;try{m[r[0]]=JSON.parse(r[1])}catch(e){}}
+    APP.map=m;APP.loaded=true;
+    try{localStorage.setItem(CACHE_KEY,JSON.stringify(m))}catch(e){}   /* read-only fallback while offline; overwritten on every successful load */
+  }
+  function fireApp(){appLs.forEach(function(f){try{f()}catch(e){}})}
+  function fetchApp(){return api({action:"get",range:"appdata!A1:C2000"}).then(function(j){var v=j.values||[];if(v.length>1900&&window.LX_WARN)window.LX_WARN("טבלת הנתונים כמעט מלאה ("+v.length+" מתוך 2000 שורות)");parseApp(v)})}
+  function loadApp(){
+    if(loadingP)return loadingP;
+    loadingP=fetchApp().then(migrateLegacy).then(function(){loadingP=null;fireApp()},function(e){
+      loadingP=null;
+      if(!APP.loaded&&e&&e.code==="offline"){   /* first load failed: show the last known state, read-only */
+        try{var c=JSON.parse(localStorage.getItem(CACHE_KEY)||"null");if(c){APP.map=c;APP.loaded=true;fireApp();return}}catch(x){}
+      }
+      throw e});
+    return loadingP;
+  }
+  function migrateLegacy(){
+    var ks=legacyKeys();if(!ks.length)return Promise.resolve();
+    var moved=[],chain=Promise.resolve();
+    ks.forEach(function(n){var v=lsGet(n,null);if(v==null)return;
+      if(APP.map[n]!==undefined){moved.push(n);return}
+      chain=chain.then(function(){return api({action:"appset",key:n,json:JSON.stringify(v)})}).then(function(){moved.push(n)});});
+    return chain.then(fetchApp).then(function(){
+      /* delete a legacy copy only after the sheet read-back proves it is there */
+      moved.forEach(function(n){if(APP.map[n]!==undefined){try{localStorage.removeItem(SHEET_KEY+n)}catch(e){}}});
+    });
+  }
+  function appOp(fn){
+    if(window.LX_OFFLINE)return Promise.reject({code:"offline",message:"אין חיבור לגיליון. השינוי לא נשמר."});
+    pend++;
+    var p=appChain.catch(function(){}).then(fn);
+    appChain=p.catch(function(){});
+    return p.then(function(r){pend--;fireApp();return r},function(e){pend--;throw e});
+  }
+  function appCol(name){
+    return {orderBy:function(){return this},onSnapshot:function(cb,err){
+      function fire(){
+        var out=[];Object.keys(APP.map).forEach(function(k){if(k.indexOf(name+"/")===0)out.push({id:k.slice(name.length+1),data:APP.map[k]})});
         cb(snapOf(out));
-      }};
-    }
-    return origCollection(name);
+      }
+      appLs.push(fire);
+      if(APP.loaded)fire();else loadApp().catch(function(e){if(err)err(e)});
+    }};
+  }
+  var origCollection=db.collection;
+  db.collection=function(name){return (name==="depts"||name==="todos")?appCol(name):origCollection(name)};
+  var origDoc=db.doc;
+  db.doc=function(path){
+    var p=path.split("/");
+    if(p[0]==="clips")return origDoc(path);
+    return {
+      onSnapshot:function(cb,err){
+        function fire(){var e=APP.map[path];cb({exists:e!==undefined,data:function(){return e}})}
+        appLs.push(fire);
+        if(APP.loaded)fire();else loadApp().catch(function(e){if(err)err(e)});
+      },
+      set:function(data){return appOp(function(){return api({action:"appset",key:path,json:JSON.stringify(data)}).then(function(){APP.map[path]=data})})},
+      delete:function(){return appOp(function(){return api({action:"appdel",keys:[path]}).then(function(){delete APP.map[path]})})}
+    };
   };
+  db.deleteMany=function(paths){return appOp(function(){return api({action:"appdel",keys:paths}).then(function(){paths.forEach(function(k){delete APP.map[k]})})})};
+  db.refresh=function(){return loadApp().then(function(){return loadClips()})};
   function ordersFromShopify(){
     return api({action:"orders"}).then(function(j){return {payload:{orders:j.orders||[],totalCount:j.totalCount||0}}});
   }
@@ -83,8 +150,9 @@
     callTool:function(server,tool,input){
       if(server==="Google Sheets"&&tool==="get_values")return api({action:"get",range:input.range}).then(function(j){return {payload:{values:j.values}}});
       if(server==="Google Sheets"&&tool==="update_values")return api({action:"update",range:input.range,values:input.values}).then(function(){
-        if(/^content!/.test(input.range))setTimeout(function(){loadClips().catch(function(){})},800);
+        if(/^content!/.test(input.range))return loadClips().then(null,function(){}).then(function(){return {payload:{}}});
         return {payload:{}}});
+      if(server==="Google Sheets"&&tool==="exp_ops")return api({action:"expops",ops:input.ops}).then(function(){return {payload:{}}});
       if(server==="Shopify"&&tool==="list-orders")return ordersFromShopify();
       if(server==="Gmail"&&tool==="search_threads")return api({action:"gmail"}).then(function(j){if(j.error)throw {code:"upstream_error",message:j.error};return {payload:{threads:[],resultCountEstimate:j.count||0}}});
       return Promise.reject({code:"local_unavailable",message:"לא זמין באפליקציה המקומית ("+server+")."});
@@ -96,5 +164,15 @@
     if(name==="user")return Promise.resolve({can:function(){return true}});
     return Promise.resolve(null);
   }};
-  setInterval(function(){if(!document.hidden&&CFG.url)loadClips().catch(function(){})},60000);
+var nextOk=0,fails=0;
+  function tick(force){
+    if(document.hidden||!CFG.url||pend)return;
+    var n=Date.now();if(!force&&n<nextOk)return;
+    nextOk=n+15000;
+    Promise.all([loadClips(),loadApp()]).then(function(){fails=0},function(){fails=Math.min(fails+1,5);nextOk=Date.now()+15000*Math.pow(2,fails)});
+  }
+  setInterval(function(){tick()},60000);
+  document.addEventListener("visibilitychange",function(){if(!document.hidden)tick()});
+  window.addEventListener("online",function(){tick(true)});
+  window.LX_TICK=function(){tick(true)};
 })();

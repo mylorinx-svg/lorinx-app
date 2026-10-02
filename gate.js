@@ -2,9 +2,10 @@
 (function(){
   var KEY="lorinx_access";
   function dec(code){try{var o=JSON.parse(decodeURIComponent(escape(atob(String(code).trim()))));if(o&&o.u&&o.t&&/^https:\/\/script\.google\.com\//.test(o.u))return o}catch(e){}return null}
-  try{var m=/[#&]k=([^&]+)/.exec(location.hash);if(m){var o=dec(decodeURIComponent(m[1]));if(o)localStorage.setItem(KEY,JSON.stringify(o));history.replaceState(null,"",location.pathname+location.search)}}catch(e){}
+  /* the access code is accepted only by pasting it below; it is never read from the URL (URLs end up in history and screenshots) */
+  try{if(/[#&]k=/.test(location.hash))history.replaceState(null,"",location.pathname+location.search)}catch(e){}
   var cfg=null;try{cfg=JSON.parse(localStorage.getItem(KEY)||"null")}catch(e){}
-  if(cfg&&cfg.u&&cfg.t){window.LORINX_CFG={url:cfg.u,token:cfg.t};window.LORINX_LOGOUT=function(){localStorage.removeItem(KEY);location.reload()};return}
+  if(cfg&&cfg.u&&cfg.t){window.LORINX_CFG={url:cfg.u,token:cfg.t};window.LORINX_LOGOUT=function(){try{Object.keys(localStorage).filter(function(k){return k===KEY||k==="lorinx_cache_app"||k.indexOf("lorinx_local_")===0}).forEach(function(k){localStorage.removeItem(k)})}catch(e){}location.reload()};return}
   window.LORINX_CFG={};window.LORINX_NEEDS_CODE=true;
   document.addEventListener("DOMContentLoaded",function(){
     var d=document.createElement("div");

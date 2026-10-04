@@ -348,7 +348,7 @@ body{padding-top:env(safe-area-inset-top)}
   /* ---------- state ---------- */
   var db=null, canWrite=false, storeEmpty=false, seeded=false, editMode=false, view="overview";
   var M={depts:clone(D_DEPTS),todos:D_TODOS.map(clone),clips:[],biz:{netPerOrder:296}};
-  var LIVE={orders:null,sheet:null,drafts:null,conn:null,log:null};   /* each: {data, at, err} */
+  var LIVE={orders:null,sheet:null,drafts:null,conn:null,log:null,fin:null};   /* each: {data, at, err} */
   var mcp=null;
   function dept(id){return M.depts.filter(function(d){return d.id===id})[0]}
 
@@ -520,6 +520,7 @@ body{padding-top:env(safe-area-inset-top)}
     });
   }
   function loadSheet(){return call("sheet","Google Sheets","get_values",{spreadsheetId:SHEET,range:"settings!A1:C26"})}
+  function loadFin(){return call("fin","Google Sheets","get_values",{spreadsheetId:SHEET,range:"finance!L3:N18"})}
   function loadLog(){return call("log","Google Sheets","get_values",{spreadsheetId:SHEET,range:"log!A1:E1000"})}
   function loadDrafts(){return call("drafts","Gmail","search_threads",{query:"label:LORINX-לאישור"}).then(function(){var s=LIVE.drafts;if(s&&!s.err){var d=s.data;if(d==null||typeof d!=="object")d={};if(d.resultCountEstimate==null)d.resultCountEstimate=d.threads?d.threads.length:0;s.data=d}})}
   function loadConn(){
@@ -530,7 +531,7 @@ body{padding-top:env(safe-area-inset-top)}
   var lastRef=0;
   function refreshAll(auto){
     if(loading)return;if(auto===true&&Date.now()-lastRef<20000)return;lastRef=Date.now();loading=true;if(db&&db.refresh)db.refresh().then(null,function(){});var b=document.getElementById("refbtn");b.disabled=true;b.textContent="מרענן…";
-    Promise.all([loadConn(),loadOrders(),loadSheet(),loadDrafts(),loadExp(),loadContent(),loadLog()]).then(function(){
+    Promise.all([loadConn(),loadOrders(),loadSheet(),loadDrafts(),loadExp(),loadContent(),loadLog(),loadFin()]).then(function(){
       loading=false;b.disabled=false;b.textContent="רענן נתונים";render();
     });
   }
@@ -574,6 +575,10 @@ body{padding-top:env(safe-area-inset-top)}
     r.goal=goal!=null?goal:10000;r.fixed=fixed;r.net=(r.k?r.netSum/r.k:(M.biz.netPerOrder||296));
     if(r.n30!=null){r.gross=(r.netSum||0)+(r.n30-(r.k||0))*r.net;r.after=fixed!=null?r.gross-fixed:null}
     if(fixed!=null)r.need=Math.ceil((r.goal+fixed)/r.net);
+    /* the sheet's live summary (finance!L3:N18) is computed from the orders ledger with the real supplier costs.
+       When it is available, its "orders needed" and average profit win over the price-list estimate, so the dashboard and the sheet agree. */
+    var fv=LIVE.fin&&LIVE.fin.data&&LIVE.fin.data.values;
+    if(fv&&fv.length>=15){var fn=num((fv[12]||[])[1]),fa=num((fv[14]||[])[1]);if(fn!=null&&fn>0&&fa!=null&&fa>0){r.need=fn;r.netActual=fa;r.needSrc="sheet"}}
     return r;
   }
 
@@ -660,7 +665,7 @@ body{padding-top:env(safe-area-inset-top)}
   }
   function kpiRow(){
     var c=calc(),g=el("div","kpis");
-    g.appendChild(kpi("הזמנות, 30 יום",c.n30!=null?String(c.n30):"–",c.need!=null?"נדרשות "+c.need+" בחודש":"נדרשות: ממתין לנתוני הגיליון"));
+    g.appendChild(kpi("הזמנות, 30 יום",c.n30!=null?String(c.n30):"–",c.need!=null?"נדרשות "+c.need+" בחודש"+(c.needSrc==="sheet"?", לפי עלויות בפועל":""):"נדרשות: ממתין לנתוני הגיליון"));
     g.appendChild(kpi("הכנסה, 30 יום",c.rev30!=null?sh(c.rev30):"–",c.avg?"ממוצע להזמנה "+sh(c.avg):""));
     g.appendChild(kpi("רווח משוער לפני קבועות",c.gross!=null?sh(c.gross):"–",(c.k===c.n30?"מחושב מכל הזמנה לפי מחיר ועלות בגיליון, ממוצע "+fmt(c.net)+" ₪":"הערכה חלקית: "+(c.n30-c.k)+" הזמנות לא תואמות מחיר מוצר, ממוצע "+fmt(c.net)+" ₪")));
     var aft=c.after;g.appendChild(kpi("אחרי הוצאות קבועות",aft!=null?sh(aft):"–",c.fixed!=null?"הוצאות קבועות "+sh(c.fixed):"",aft!=null&&aft<0?"bad":(aft!=null?"ok":"")));

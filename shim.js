@@ -2,7 +2,10 @@
 (function(){
   var CFG=window.LORINX_CFG||{};
   var SHEET_KEY="lorinx_local_";
-  var IDEMP={get:1,update:1,appset:1,appdel:1,orders:1,gmail:1};
+  var IDEMP={get:1,update:1,appset:1,appdel:1,orders:1,gmail:1,health:1};
+  /* append / expops are not naturally idempotent: they carry an opId, so the server applies a retried request only once */
+  var OPID={append:1,expops:1};
+  function opId(){var a="";try{var u=new Uint8Array(12);crypto.getRandomValues(u);for(var i=0;i<u.length;i++)a+=("0"+u[i].toString(16)).slice(-2)}catch(e){a=String(Date.now())+String(Math.random()).slice(2,12)}return "op_"+a}
   function friendly(m){
     m=String(m||"");
     if(/unauthorized/.test(m))return "קוד הגישה לא תקף. התחבר מחדש עם קוד חדש.";
@@ -20,7 +23,8 @@
   }
   function api(body){
     if(!CFG.url)return Promise.reject({code:"local_unavailable",message:"צריך להדביק את כתובת ה-Web App ב-config.js (ראה הוראות ההתקנה)."});
-    var tries=IDEMP[body.action]?3:1,delay=[0,700,1800];
+    if(OPID[body.action]&&!body.opId)body=Object.assign({opId:opId()},body);
+    var tries=(IDEMP[body.action]||body.opId)?3:1,delay=[0,700,1800];
     function go(i){
       return once(body).then(function(j){setNet(false);if(j&&j.error)throw {code:/^conflict/.test(j.error)?"conflict":"upstream_error",message:friendly(j.error)};return j},function(e){
         if(e&&e.net){if(i+1<tries)return new Promise(function(r){setTimeout(r,delay[i+1])}).then(function(){return go(i+1)});setNet(true);throw {code:"offline",message:"אין חיבור לגיליון. בדוק אינטרנט."}}
@@ -143,7 +147,10 @@
   db.deleteMany=function(paths){return appOp(function(){return api({action:"appdel",keys:paths}).then(function(){paths.forEach(function(k){delete APP.map[k]})})})};
   db.refresh=function(){return loadApp().then(function(){return loadClips()})};
   function ordersFromShopify(){
-    return api({action:"orders"}).then(function(j){return {payload:{orders:j.orders||[],totalCount:j.totalCount||0}}});
+    /* never turn a malformed answer into "0 orders": a missing list is an error, shown as an error */
+    return api({action:"orders"}).then(function(j){
+      if(!j||!Array.isArray(j.orders))throw {code:"invalid_response",message:"Shopify החזיר תשובה לא תקינה. מוצג הנתון האחרון שאומת, אם יש."};
+      return {payload:Object.assign({},j,{totalCount:typeof j.totalCount==="number"?j.totalCount:j.orders.length})}});
   }
   var mcp={
     listTools:function(){return Promise.resolve({servers:[{server:"Google Sheets",authStatus:CFG.url?"connected":"needs_reauth"},{server:"Shopify",authStatus:CFG.url?"connected":"needs_reauth"},{server:"Gmail",authStatus:CFG.url?"connected":"needs_reauth"}]})},
@@ -154,7 +161,8 @@
         return {payload:{}}});
       if(server==="Google Sheets"&&tool==="exp_ops")return api({action:"expops",ops:input.ops}).then(function(){return {payload:{}}});
       if(server==="Shopify"&&tool==="list-orders")return ordersFromShopify();
-      if(server==="Gmail"&&tool==="search_threads")return api({action:"gmail"}).then(function(j){if(j.error)throw {code:"upstream_error",message:j.error};return {payload:{threads:[],resultCountEstimate:j.count||0}}});
+      if(server==="LORINX"&&tool==="health")return api({action:"health"}).then(function(j){if(!j||!Array.isArray(j.checks))throw {code:"old_server",message:"השרת עדיין בגרסה ישנה, בלי בדיקת תקינות."};return {payload:j}},function(e){if(e&&/unknown action/.test(String(e.message||"")))throw {code:"old_server",message:"השרת עדיין בגרסה ישנה, בלי בדיקת תקינות."};throw e});
+      if(server==="Gmail"&&tool==="search_threads")return api({action:"gmail"}).then(function(j){if(j.error)throw {code:"upstream_error",message:j.error};if(typeof j.count!=="number")throw {code:"invalid_response",message:"Gmail החזיר תשובה לא תקינה."};return {payload:{threads:[],resultCountEstimate:j.count}}});
       return Promise.reject({code:"local_unavailable",message:"לא זמין באפליקציה המקומית ("+server+")."});
     }
   };

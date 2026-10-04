@@ -130,6 +130,10 @@ input[type=checkbox]{width:18px;height:18px;padding:0;accent-color:var(--accent)
 .note{font-size:var(--t-small);color:var(--muted);margin:var(--s3) 0 0}
 .err{font-size:var(--t-small);color:var(--bad);margin:0}
 .stale{font-size:var(--t-cap);color:var(--muted)}
+.stale.old{color:var(--bad);font-weight:600}
+.hrow{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:10px 0;border-bottom:1px solid var(--line,rgba(128,128,128,.18))}
+.hrow:last-child{border-bottom:0}
+.hrow .d{grid-column:1/-1;font-size:var(--t-small);color:var(--muted);overflow-wrap:anywhere}
 a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
 .nav a{color:var(--sidefg)}.nav a:hover{text-decoration:none}
 .tbl{overflow-x:auto}
@@ -317,7 +321,7 @@ body{padding-top:env(safe-area-inset-top)}
   function clone(x){return JSON.parse(J(x))}
   function fmt(n,d){if(n==null||isNaN(n))return "–";return Number(n).toLocaleString("he-IL",{maximumFractionDigits:d==null?0:d})}
   function sh(n){return fmt(n)+" ₪"}
-  var SHEET="1ZrjEi4OMtCI61dSTGy3j_oplQ5yHTAJiHahyz3CHEZg";
+  var SHEET="server";
 
   /* ---------- defaults (used only until the store answers / on first run) ---------- */
   var D_STRIP=[];
@@ -344,7 +348,7 @@ body{padding-top:env(safe-area-inset-top)}
   /* ---------- state ---------- */
   var db=null, canWrite=false, storeEmpty=false, seeded=false, editMode=false, view="overview";
   var M={depts:clone(D_DEPTS),todos:D_TODOS.map(clone),clips:[],biz:{netPerOrder:296}};
-  var LIVE={orders:null,sheet:null,drafts:null,conn:null};   /* each: {data, at, err} */
+  var LIVE={orders:null,sheet:null,drafts:null,conn:null,log:null};   /* each: {data, at, err} */
   var mcp=null;
   function dept(id){return M.depts.filter(function(d){return d.id===id})[0]}
 
@@ -499,8 +503,24 @@ body{padding-top:env(safe-area-inset-top)}
   }
   function loadExp(){return call("exp","Google Sheets","get_values",{spreadsheetId:SHEET,range:"expenses!A1:D61"})}
   function loadContent(){return call("content","Google Sheets","get_values",{spreadsheetId:SHEET,range:"content!A1:G200"})}
-  function loadOrders(){return call("orders","Shopify","list-orders",{})}
+  function loadOrders(){
+    if(LOCAL)return call("orders","Shopify","list-orders",{});
+    /* claude.ai build: the connector does not say which orders are cancelled, so they are fetched as a second list and flagged.
+       If that second list cannot be fetched, the order feed is not presented as verified. */
+    var q="created_at:>="+ymd(new Date(Date.now()-45*864e5)),prev=LIVE.orders;
+    return call("orders","Shopify","list-orders",{first:50,query:q}).then(function(){
+      var s=LIVE.orders;if(!s||s.err||!s.data||!Array.isArray(s.data.orders))return;
+      return mcp.callTool("Shopify","list-orders",{first:50,query:q+" status:cancelled"},{cache:false}).then(function(r){
+        var p=r&&r.payload!==undefined?r.payload:r;if(!p||!Array.isArray(p.orders))throw {message:"bad"};
+        var names={};p.orders.forEach(function(x){names[x.name]=1});
+        s.data.orders.forEach(function(x){if(names[x.name])x.cancelled=true});
+      }).then(null,function(){
+        LIVE.orders={data:prev&&prev.data||null,at:prev&&prev.at||null,err:"לא התקבלה מ-Shopify רשימת ההזמנות המבוטלות, ולכן אי אפשר לאמת את ההכנסה. נסה לרענן."};
+      });
+    });
+  }
   function loadSheet(){return call("sheet","Google Sheets","get_values",{spreadsheetId:SHEET,range:"settings!A1:C26"})}
+  function loadLog(){return call("log","Google Sheets","get_values",{spreadsheetId:SHEET,range:"log!A1:E1000"})}
   function loadDrafts(){return call("drafts","Gmail","search_threads",{query:"label:LORINX-לאישור"}).then(function(){var s=LIVE.drafts;if(s&&!s.err){var d=s.data;if(d==null||typeof d!=="object")d={};if(d.resultCountEstimate==null)d.resultCountEstimate=d.threads?d.threads.length:0;s.data=d}})}
   function loadConn(){
     if(!mcp){LIVE.conn={err:(LOCAL?"החיבור לגיליון לא הוגדר.":"החיבורים לשירותים זמינים רק כשהעמוד נפתח מתוך claude.ai."),data:null};return Promise.resolve()}
@@ -510,13 +530,23 @@ body{padding-top:env(safe-area-inset-top)}
   var lastRef=0;
   function refreshAll(auto){
     if(loading)return;if(auto===true&&Date.now()-lastRef<20000)return;lastRef=Date.now();loading=true;if(db&&db.refresh)db.refresh().then(null,function(){});var b=document.getElementById("refbtn");b.disabled=true;b.textContent="מרענן…";
-    Promise.all([loadConn(),loadOrders(),loadSheet(),loadDrafts(),loadExp(),loadContent()]).then(function(){
+    Promise.all([loadConn(),loadOrders(),loadSheet(),loadDrafts(),loadExp(),loadContent(),loadLog()]).then(function(){
       loading=false;b.disabled=false;b.textContent="רענן נתונים";render();
     });
   }
 
   /* ---------- derived numbers ---------- */
-  function orders(){var d=LIVE.orders&&LIVE.orders.data;return d&&d.orders?d.orders:null}
+  /* canonical order feed: every screen reads orders through orders() and money through ag()/paidAmt(), so the numbers cannot drift between cards */
+  function testNames(){return String(M.biz.testOrders||"").split(/[\s,]+/).filter(Boolean)}
+  function ag(x){var n=Math.round(parseFloat(x)*100);return isFinite(n)?n:0}   /* money in agorot (integers), never float sums */
+  function paidAmt(x){return ag(x.currentTotalPrice!=null?x.currentTotalPrice:x.totalPrice)}   /* after refunds */
+  var NO_REV={VOIDED:1,REFUNDED:1,PENDING:1,AUTHORIZED:1,EXPIRED:1};
+  /* one revenue rule (same as the server and the ledger tab): an order counts when its money was actually taken and not fully returned.
+     A cancelled order whose money was kept therefore counts and is flagged; a cancelled order that was refunded does not appear at all. */
+  function counts(x){return !NO_REV[x.financialStatus]&&paidAmt(x)>0}
+  function orders(){var d=LIVE.orders&&LIVE.orders.data;if(!d||!d.orders)return null;var t=testNames();return d.orders.filter(function(x){return t.indexOf(x.name)<0&&!(x.cancelled&&!counts(x))})}
+  function mny(a){return (a/100).toLocaleString("he-IL",{minimumFractionDigits:2,maximumFractionDigits:2})+" ₪"}
+  var STALE_MS=15*60000;
   function sheetVals(){var d=LIVE.sheet&&LIVE.sheet.data;return d&&d.values?d.values:null}
   function cell(r,c){var v=sheetVals();return v&&v[r-1]?v[r-1][c-1]:undefined}
   function num(x){var n=parseFloat(String(x==null?"":x).replace(/,/g,""));return isNaN(n)?null:n}
@@ -529,12 +559,14 @@ body{padding-top:env(safe-area-inset-top)}
     var o=orders(),now=new Date(),r={};
     if(o){
       var cut=now.getTime()-30*864e5;
-      var m=o.filter(function(x){return new Date(x.createdAt).getTime()>=cut&&x.financialStatus!=="VOIDED"});
-      r.n30=m.length;r.rev30=m.reduce(function(s,x){return s+parseFloat(x.totalPrice||0)},0);
+      var m=o.filter(function(x){return new Date(x.createdAt).getTime()>=cut&&counts(x)});
+      r.n30=m.length;r.rev30=m.reduce(function(s,x){return s+paidAmt(x)},0)/100;
+      r.unpaid=o.filter(function(x){return new Date(x.createdAt).getTime()>=cut&&(x.financialStatus==="PENDING"||x.financialStatus==="AUTHORIZED")}).length;
       r.avg=r.n30?r.rev30/r.n30:null;
       var pr=prodRows()||[];r.k=0;r.netSum=0;
-      m.forEach(function(x){var p=parseFloat(x.totalPrice||0),h=pr.filter(function(q){return Math.abs(q.price-p)<0.011})[0];if(h){r.k++;r.netSum+=h.net}});
-      r.open=o.filter(function(x){return x.fulfillmentStatus==="UNFULFILLED"&&x.financialStatus==="PAID"}).map(function(x){var d=new Date(x.createdAt);return {o:x,days:Math.floor((now-d)/864e5),biz:bizDays(d,now)}});
+      /* match on the original price; a partial refund comes off that order's net */
+      m.forEach(function(x){var p=ag(x.totalPrice),h=pr.filter(function(q){return Math.abs(Math.round(q.price*100)-p)<=1})[0];if(h){r.k++;r.netSum+=h.net-Math.max(0,p-paidAmt(x))/100}});
+      r.open=o.filter(function(x){return x.fulfillmentStatus==="UNFULFILLED"&&x.financialStatus==="PAID"&&!x.cancelled}).map(function(x){var d=new Date(x.createdAt);return {o:x,days:Math.floor((now-d)/864e5),biz:bizDays(d,now)}});
       r.late=r.open.filter(function(x){return x.biz>14}).length;
       r.total=(LIVE.orders.data&&LIVE.orders.data.totalCount)||o.length;
     }
@@ -560,7 +592,8 @@ body{padding-top:env(safe-area-inset-top)}
   function addBtn(label,fn){var b=el("button","ghost sm","+ "+label);b.type="button";b.addEventListener("click",fn);return b}
   function selSt(v,fn){var s=document.createElement("select");[["ok","תקין"],["warn","דורש תשומת לב"],["off","כבוי"]].forEach(function(o){var op=el("option",null,o[1]);op.value=o[0];if(o[0]===v)op.selected=true;s.appendChild(op)});s.addEventListener("change",function(){fn(s.value)});return s}
   function stamp(slot){var s=LIVE[slot];var n=el("div");if(s&&s.err){n.appendChild(el("p","err",s.err))}
-    if(s&&s.at){n.appendChild(el("div","stale","עודכן "+new Date(s.at).toLocaleTimeString("he-IL",{hour:"2-digit",minute:"2-digit"})))}
+    if(s&&s.at){var age=Date.now()-s.at,old=age>STALE_MS||!!s.err;
+      n.appendChild(el("div","stale"+(old?" old":""),(s.err?"מוצג הנתון האחרון שאומת, ":"")+"עודכן "+new Date(s.at).toLocaleTimeString("he-IL",{hour:"2-digit",minute:"2-digit"})+(age>STALE_MS?" · לפני "+Math.round(age/60000)+" דקות, ייתכן שהנתון לא עדכני":"")))}
     else if(!s){(function(){var k=el("div","skel");k.style.height="56px";return n.appendChild(k)})()}
     return n}
   function rowsView(list){
@@ -584,17 +617,36 @@ body{padding-top:env(safe-area-inset-top)}
       tr.appendChild(el("td",null,o.name));
       tr.appendChild(el("td",null,d.toLocaleDateString("he-IL",{day:"numeric",month:"numeric"})));
       tr.appendChild(el("td",null,o.customerName||""));
-      tr.appendChild(el("td","num",fmt(parseFloat(o.totalPrice),0)+" ₪"));
-      var st=el("td"),full=o.fulfillmentStatus==="FULFILLED";
-      var late=!full&&biz>14;
-      st.appendChild(el("span","pill "+(full?"ok":(late?"bad":"warn")),full?"נשלחה":(late?"באיחור":"לא נשלחה")));
+      tr.appendChild(el("td","num",mny(paidAmt(o))));
+      var st=el("td"),full=o.fulfillmentStatus==="FULFILLED",canc=!!o.cancelled;
+      var late=!full&&!canc&&biz>14;
+      st.appendChild(el("span","pill "+(canc?"off":(full?"ok":(late?"bad":"warn"))),canc?"בוטלה":(full?"נשלחה":(late?"באיחור":"לא נשלחה"))));
       tr.appendChild(st);
-      tr.appendChild(el("td","num",full?"–":String(biz)));
+      tr.appendChild(el("td","num",full||canc?"–":String(biz)));
       body.appendChild(tr);
     });
     tb.appendChild(body);t.appendChild(tb);wrap.appendChild(t);
     if(!list.length)wrap.appendChild(el("div","empty",onlyOpen?"אין הזמנות פתוחות.":"אין הזמנות."));
     return wrap;
+  }
+  /* reconciliation line: what Shopify holds vs what is counted, and why anything was left out */
+  function reconNote(){
+    var d=LIVE.orders&&LIVE.orders.data,n=el("div");if(!d||!d.orders)return n;
+    if(d.sourceCount!=null){
+      var ex=d.excluded||[],t=ex.filter(function(x){return x.reason==="test"}).length,c=ex.filter(function(x){return x.reason==="cancelled"}).length;
+      n.appendChild(el("p","note","התאמה מול Shopify, "+(d.windowDays||45)+" יום: "+d.sourceCount+" הזמנות במקור, "+d.totalCount+" נספרות. הוחרגו "+t+" בדיקה ו-"+c+" מבוטלות"+(d.duplicates?", "+d.duplicates+" כפולות סוננו":"")+"."));
+      if(d.ledger&&d.ledger.error)n.appendChild(el("p","err","יומן ההזמנות בגיליון לא התעדכן: "+d.ledger.error));
+      if(d.ledger&&d.ledger.noCost&&d.ledger.noCost.length)n.appendChild(el("p","err","עלות יחידה לא ידועה להזמנות: "+d.ledger.noCost.join(", ")+". הרווח שלהן לא חושב."));
+      if(d.truncated)n.appendChild(el("p","err","רשימת ההזמנות נקטעה, הסכומים חלקיים."));
+      if((d.currencies||[]).some(function(k){return k!=="ILS"}))n.appendChild(el("p","err","יש הזמנות במטבע שאינו ₪. הסכומים לא הומרו."));
+    }else if(!LOCAL){
+      n.appendChild(el("p","note","בגרסת claude.ai ההזמנות מגיעות ממחבר Shopify: עד 50 האחרונות ב-45 יום. הזמנות בדיקה מוחרגות רק לפי הרשימה בהגדרות."));
+      if(d.totalCount>d.orders.length)n.appendChild(el("p","err","יש "+d.totalCount+" הזמנות ומוצגות "+d.orders.length+". הסכומים חלקיים."));
+    }
+    (orders()||[]).filter(function(x){return x.cancelled}).forEach(function(x){n.appendChild(el("p","err",x.name+" בוטלה והכסף לא הוחזר ("+mny(paidAmt(x))+"). היא נספרת בהכנסה."))});
+    var tn=testNames();if(tn.length)n.appendChild(el("p","note","הוחרגו לפי ההגדרות: "+tn.join(", ")));
+    var u=calc().unpaid;if(u)n.appendChild(el("p","note",u+" הזמנות ממתינות לתשלום ולא נספרות בהכנסה."));
+    return n;
   }
   function ordersCard(onlyOpen){
     var box=el("div"),o=orders();
@@ -603,12 +655,12 @@ body{padding-top:env(safe-area-inset-top)}
       box.appendChild(ordersTable(list,null,onlyOpen));
       box.appendChild(el("p","note",onlyOpen?"ימי עסקים נספרים א׳–ה׳ מיום ההזמנה. ההבטחה ללקוח: 7–14. הזמנה שעברה 14 מסומנת כבאיחור.":"10 ההזמנות האחרונות מ-Shopify."));
     }
-    box.appendChild(stamp("orders"));
+    box.appendChild(reconNote());box.appendChild(stamp("orders"));
     return card(onlyOpen?"הזמנות פתוחות (מ-Shopify, חי)":"הזמנות אחרונות (מ-Shopify, חי)",box);
   }
   function kpiRow(){
     var c=calc(),g=el("div","kpis");
-    g.appendChild(kpi("הזמנות, 30 יום",c.n30!=null?String(c.n30):"–","נדרשות "+(c.need!=null?c.need:"~47")+" בחודש"));
+    g.appendChild(kpi("הזמנות, 30 יום",c.n30!=null?String(c.n30):"–",c.need!=null?"נדרשות "+c.need+" בחודש":"נדרשות: ממתין לנתוני הגיליון"));
     g.appendChild(kpi("הכנסה, 30 יום",c.rev30!=null?sh(c.rev30):"–",c.avg?"ממוצע להזמנה "+sh(c.avg):""));
     g.appendChild(kpi("רווח משוער לפני קבועות",c.gross!=null?sh(c.gross):"–",(c.k===c.n30?"מחושב מכל הזמנה לפי מחיר ועלות בגיליון, ממוצע "+fmt(c.net)+" ₪":"הערכה חלקית: "+(c.n30-c.k)+" הזמנות לא תואמות מחיר מוצר, ממוצע "+fmt(c.net)+" ₪")));
     var aft=c.after;g.appendChild(kpi("אחרי הוצאות קבועות",aft!=null?sh(aft):"–",c.fixed!=null?"הוצאות קבועות "+sh(c.fixed):"",aft!=null&&aft<0?"bad":(aft!=null?"ok":"")));
@@ -847,6 +899,7 @@ body{padding-top:env(safe-area-inset-top)}
         else{k.appendChild(el("span","l",x.l));k.appendChild(el("b",null,x.v));if(x.s)k.appendChild(el("span","s",x.s))}
         g.appendChild(k)});
       frag.appendChild(g);
+      if(d.id!=="content"&&ST.length&&!editMode)frag.appendChild(el("p","note","המדדים האלה הוזנו ידנית ואינם נמשכים ממקור חי."));
       if(editMode){var sb=el("div","bar");sb.appendChild(addBtn("הוסף מדד",function(){d.stats.push({l:"מדד",v:"0",s:""});saveDept(d);render()}));frag.appendChild(sb)}
     }
     var live=liveFor(d);
@@ -891,24 +944,32 @@ body{padding-top:env(safe-area-inset-top)}
     var r=el("div","ov");r.appendChild(el("b",null,n24!=null?String(n24):"–"));r.appendChild(el("span",null,"הזמנות ב-24 השעות האחרונות"));h.appendChild(r);
     return h;
   }
+  /* the agents' real last run, read from the log tab (date and status exactly as the agent wrote them). Nothing here is a fixed text. */
+  function lastRun(keys){
+    var s=LIVE.log;if(!s)return "טוען…";
+    var v=s.data&&s.data.values;if(!v)return "הלוג לא נטען";
+    for(var i=v.length-1;i>0;i--){var r=v[i]||[],who=String(r[1]||"").toLowerCase();if(!r[0]||!who)continue;
+      if(keys.some(function(k){return who.indexOf(k)>=0}))return String(r[0]).slice(0,16)+(r[3]?" · "+String(r[3]).slice(0,24):"")}
+    return "אין ריצה רשומה בלוג";
+  }
   function agentLines(){
     var c=calc(),L=[],dr=LIVE.drafts&&LIVE.drafts.data,dn=dr&&dr.resultCountEstimate!=null?dr.resultCountEstimate:null;
-    L.push(["מנכ\"ל","החלטה יומית, יעד "+sh(c.goal),"06:52"]);
-    L.push(["כספים",c.after!=null?("רווח משוער אחרי קבועות "+sh(c.after)):"ממתין לנתוני Shopify","06:58"]);
-    L.push(["תפעול",c.open?(c.open.length+" הזמנות פתוחות, "+c.late+" באיחור"):"ממתין לנתוני Shopify","09:27"]);
-    L.push(["תוכן",pendingClips()+" קליפים ממתינים לאישור","1.10 08:30"]);
-    L.push(["מכירות ושירות",dn!=null?(dn+" שרשורים בתווית LORINX-לאישור"):"ממתין לנתוני ג'ימייל","אוטומטי"]);
-    L.push(["מחקר ו-SEO","סריקה שבועית ומאמר בלוג אחד","שבת 09:47"]);
+    L.push(["מנכ\"ל","החלטה יומית, יעד "+sh(c.goal),lastRun(["מנכ"])]);
+    L.push(["כספים",c.after!=null?("רווח משוער אחרי קבועות "+sh(c.after)):"ממתין לנתוני Shopify",lastRun(["cfo","כספים"])]);
+    L.push(["תפעול",c.open?(c.open.length+" הזמנות פתוחות, "+c.late+" באיחור"):"ממתין לנתוני Shopify",lastRun(["תפעול"])]);
+    L.push(["תוכן",pendingClips()+" קליפים ממתינים לאישור",lastRun(["תוכן","ugc"])]);
+    L.push(["מכירות ושירות",dn!=null?(dn+" שרשורים בתווית LORINX-לאישור"):"ממתין לנתוני ג'ימייל",lastRun(["מכירות","שירות","dm"])]);
+    L.push(["מחקר ו-SEO","סריקה שבועית ומאמר בלוג אחד",lastRun(["מחקר","seo"])]);
     return L;
   }
   function termCard(){
     var box=el("div","term");agentLines().forEach(function(x){var r=el("div");r.appendChild(el("b",null,x[0]));r.appendChild(el("span",null,x[1]));r.appendChild(el("span","t",x[2]));box.appendChild(r)});
-    var c=el("div","card dark");c.appendChild(el("h2",null,"סוכנים: מצב נוכחי"));c.appendChild(box);return c;
+    var c=el("div","card dark");c.appendChild(el("h2",null,"סוכנים: ריצה אחרונה לפי הלוג"));c.appendChild(box);c.appendChild(stamp("log"));return c;
   }
   function briefCard(){
     var c=calc(),o=orders(),v=sheetVals(),box=el("div");
     var s1=el("div","sec");s1.appendChild(el("h3",null,"1 · מה נמכר"));
-    if(o){o.slice(0,5).forEach(function(x){var l=el("div","line");l.appendChild(el("span",null,x.name+" · "+(x.customerName||"")));l.appendChild(el("span",null,fmt(parseFloat(x.totalPrice),0)+" ₪"));s1.appendChild(l)});
+    if(o){o.slice(0,5).forEach(function(x){var l=el("div","line");l.appendChild(el("span",null,x.name+" · "+(x.customerName||"")));l.appendChild(el("span",null,mny(paidAmt(x))));s1.appendChild(l)});
       var tl=el("div","line");tl.style.fontWeight="700";tl.appendChild(el("span",null,"סה\"כ 30 יום ("+c.n30+" הזמנות)"));tl.appendChild(el("span",null,sh(c.rev30)));s1.appendChild(tl)}
     else s1.appendChild(el("div","empty","ממתין לנתוני Shopify."));
     box.appendChild(s1);
@@ -925,7 +986,7 @@ body{padding-top:env(safe-area-inset-top)}
     M.todos.filter(function(t){return !t.done}).slice(0,3).forEach(function(t){k++;var r=el("div","next");var l=el("span");l.appendChild(el("span","n",String(k)));l.appendChild(el("span",null,t.text));r.appendChild(l);var b=el("button","ghost sm","פתח");b.addEventListener("click",function(){go(t.dept||"overview")});r.appendChild(b);s3.appendChild(r)});
     if(!k)s3.appendChild(el("div","empty","אין פעולות פתוחות."));
     box.appendChild(s3);
-    box.appendChild(stamp("orders"));
+    box.appendChild(reconNote());box.appendChild(stamp("orders"));
     return card("דף רווח והפסד",box);
   }
   function overviewView(){
@@ -1197,13 +1258,42 @@ body{padding-top:env(safe-area-inset-top)}
     ni.addEventListener("change",function(){var n=parseFloat(ni.value);if(!isNaN(n)&&n>0){M.biz.netPerOrder=n;saveBiz();render()}else{msg("ערך לא תקין")}});
     if(!canWrite)ni.disabled=true;lg.appendChild(ni);lb.appendChild(lg);
     lb.appendChild(el("p","note","גיבוי בלבד: משמש רק להזמנה שמחירה לא תואם מוצר בגיליון. כל הזמנה אחרת מחושבת לפי המחיר והעלות שלה."));
+    var tg=el("div","setgrid");tg.appendChild(el("div","k","הזמנות בדיקה שלא נספרות"));
+    var ti=document.createElement("input");ti.type="text";ti.dir="ltr";ti.placeholder="#1012, #1020";ti.value=String(M.biz.testOrders||"");ti.id="set-test";
+    ti.addEventListener("change",function(){var v=ti.value.split(/[\s,]+/).filter(Boolean);if(v.some(function(x){return !/^#?\d{1,8}$/.test(x)})){msg("מספרי הזמנה בלבד, למשל #1012");return}M.biz.testOrders=v.map(function(x){return x.charAt(0)==="#"?x:"#"+x}).join(", ");saveBiz();render()});
+    if(!canWrite)ti.disabled=true;tg.appendChild(ti);lb.appendChild(tg);
+    lb.appendChild(el("p","note",LOCAL?"באפליקציה הזו השרת כבר מחריג הזמנות בדיקה לפי כתובת המייל. הרשימה כאן היא החרגה נוספת לפי מספר הזמנה.":"בגרסת claude.ai אין גישה למייל של ההזמנה, ולכן הזמנות בדיקה מוחרגות רק לפי הרשימה הזו."));
     f.appendChild(card("חיבורים",cb));
     f.appendChild(card("פרמטרים עסקיים (מהגיליון)",pb));
     f.appendChild(card("הנחות חישוב",lb));
+    if(LOCAL)f.appendChild(healthCard());
     var wrap=el("div","grid2");while(f.firstChild)wrap.appendChild(f.firstChild);
     var out=document.createDocumentFragment();out.appendChild(wrap);
     /* theme / access info */
     return out;
+  }
+  /* ---------- system health: live checks from the server, not decoration ---------- */
+  var HEALTH=null,healthBusy=false;
+  var HLBL={sheet:"גיליון הנתונים",tabs:"לשוניות",expenses_valid:"שורות הוצאה תקינות",fixed_total_match:"סך הקבועות תואם לסכום ההוצאות",settings_numeric:"הגדרות מספריות",appdata_unique:"מפתחות ללא כפילות",appdata_json:"נתוני האפליקציה תקינים",appdata_capacity:"מקום בטבלת הנתונים",content_unique_slot:"קליפ אחד לכל מועד",content_no_weekend:"אין פרסום בשישי ובשבת",timezone:"אזור זמן",shopify:"Shopify",shopify_api_version:"גרסת ה-API של Shopify",shopify_currency:"מטבע החנות",gmail:"Gmail",orders_complete:"רשימת ההזמנות מלאה",ledger:"יומן ההזמנות בגיליון"};
+  function runHealth(){
+    if(!mcp||healthBusy)return;healthBusy=true;render();
+    mcp.callTool("LORINX","health",{},{cache:false}).then(function(r){HEALTH={data:r.payload!==undefined?r.payload:r,at:Date.now(),err:null}},function(e){HEALTH={data:HEALTH&&HEALTH.data,at:HEALTH&&HEALTH.at,err:errText(e,"השרת")}}).then(function(){healthBusy=false;render()});
+  }
+  function healthCard(){
+    var box=el("div"),h=HEALTH&&HEALTH.data;
+    if(h){
+      box.appendChild(el("p",h.ok?"note":"err",h.ok?"כל הבדיקות עברו ("+h.checks.length+").":h.failing+" בדיקות נכשלו מתוך "+h.checks.length+"."));
+      h.checks.forEach(function(c){var r=el("div","hrow");r.appendChild(el("b",null,HLBL[c.id]||c.id));r.appendChild(el("span","pill "+(c.ok?"ok":"bad"),c.ok?"תקין":"נכשל"));if(c.detail)r.appendChild(el("div","d",c.detail));box.appendChild(r)});
+      var sy=h.sync||{};
+      if(sy.ordersLastOk)box.appendChild(el("p","note","סנכרון הזמנות אחרון שהצליח: "+new Date(sy.ordersLastOk.at).toLocaleString("he-IL",{timeZone:"Asia/Jerusalem",day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"})+"."));
+      if(sy.ordersLastError)box.appendChild(el("p","err","שגיאת הסנכרון האחרונה: "+sy.ordersLastError.error));
+      if(h.auth)box.appendChild(el("p","note","מכשירים מורשים: "+h.auth.devices+". ניסיונות גישה שגויים ב-10 הדקות האחרונות: "+h.auth.badTokenCount+"."));
+      if(h.notMonitored&&h.notMonitored.length)box.appendChild(el("p","note","לא נבדק אוטומטית, כי אין חיבור: "+h.notMonitored.join(", ")+"."));
+    }else box.appendChild(el("div","empty",healthBusy?"בודק…":"עדיין לא הורצה בדיקה."));
+    if(HEALTH&&HEALTH.err)box.appendChild(el("p","err",HEALTH.err));
+    if(HEALTH&&HEALTH.at)box.appendChild(el("div","stale","נבדק "+new Date(HEALTH.at).toLocaleTimeString("he-IL",{hour:"2-digit",minute:"2-digit"})));
+    var bar=el("div","bar"),b=el("button","ghost sm",healthBusy?"בודק…":"הרץ בדיקת תקינות");b.type="button";b.disabled=healthBusy;b.addEventListener("click",runHealth);bar.appendChild(b);box.appendChild(bar);
+    return card("תקינות המערכת",box);
   }
   function saveSheet(btn){
     if(!mcp){msg("השמירה לגיליון זמינה רק מתוך claude.ai");return}

@@ -732,9 +732,11 @@ body{padding-top:env(safe-area-inset-top)}
   function productStats(){
     var v=LIVE.ledger&&LIVE.ledger.data&&LIVE.ledger.data.values;if(!v||v.length<1)return null;
     var cut=new Date(Date.now()-30*864e5).toLocaleDateString("en-CA",{timeZone:"Asia/Jerusalem"});
-    var out={"30":{},all:{},unknown:0,rows:0};
+    var out={"30":{},all:{},unknown:0,rows:0,minN:null,minD:""};
     for(var i=1;i<v.length;i++){
       var r=v[i]||[];if(!r[2])continue;
+      var on=parseInt(String(r[2]).replace(/\D/g,""),10);if(isFinite(on)&&(out.minN==null||on<out.minN)){out.minN=on}
+      if(r[0]&&(!out.minD||String(r[0])<out.minD))out.minD=String(r[0]);
       var ct=r[14];if(!(ct===true||String(ct).toUpperCase()==="TRUE"))continue;
       var pr=num(r[10]),rv=num(r[7]);if(pr==null||rv==null){out.unknown++;continue}
       var parts=String(r[3]||"").split(/,\s*/).map(function(x){var m=/^(.*?)\s*×\s*(\d+)$/.exec(x.trim());return m?{n:m[1],u:parseInt(m[2],10)}:null}).filter(Boolean);
@@ -752,7 +754,7 @@ body{padding-top:env(safe-area-inset-top)}
     var box=el("div"),ps=productStats();
     if(!ps){box.appendChild(el("div","empty","ממתין ליומן ההזמנות מהגיליון."));box.appendChild(stamp("ledger"));return card("רווח לפי מוצר",box)}
     var seg=el("div","seg");
-    [["30","30 ימים"],["all","כל התקופה"]].forEach(function(o){var b=el("button","ghost sm"+(prodWin===o[0]?" on":""),o[1]);b.type="button";b.addEventListener("click",function(){prodWin=o[0];render()});seg.appendChild(b)});
+    [["30","30 ימים"],["all",ps.minD?"מאז "+ps.minD.slice(8,10)+"."+ps.minD.slice(5,7)+"."+ps.minD.slice(2,4):"כל התקופה"]].forEach(function(o){var b=el("button","ghost sm"+(prodWin===o[0]?" on":""),o[1]);b.type="button";b.addEventListener("click",function(){prodWin=o[0];render()});seg.appendChild(b)});
     box.appendChild(seg);
     var list=Object.keys(ps[prodWin]).map(function(k){return ps[prodWin][k]}).sort(function(a,b){return b.profit-a.profit});
     if(!list.length)box.appendChild(el("div","empty","אין הזמנות נספרות בתקופה הזאת."));
@@ -763,7 +765,7 @@ body{padding-top:env(safe-area-inset-top)}
       list.forEach(function(x){var tr=document.createElement("tr");tr.appendChild(el("td",null,x.n));tr.appendChild(el("td","num",String(x.orders)));tr.appendChild(el("td","num",String(x.units)));tr.appendChild(el("td","num",fmt(x.rev,0)+" ₪"));var tp=el("td","num",fmt(x.profit,0)+" ₪");tp.style.fontWeight="700";tr.appendChild(tp);tr.appendChild(el("td","num",fmt(x.units?x.profit/x.units:null,0)+" ₪"));body.appendChild(tr)});
       tb.appendChild(body);t.appendChild(tb);box.appendChild(t);
     }
-    box.appendChild(el("p","note","רווח נטו אחרי עלות סחורה בפועל ועמלות, לפני הוצאות קבועות ופרסום. בהזמנה עם כמה מוצרים ההכנסה והרווח מתחלקים לפי יחידות."+(ps.unknown?" "+ps.unknown+" הזמנות לא נספרו כי העלות שלהן לא ידועה.":"")+" רווח לפי ערוץ (פייסבוק, אינסטגרם, ישיר) עוד לא נשמר ביומן ההזמנות."));
+    box.appendChild(el("p","note","רווח נטו אחרי עלות סחורה בפועל ועמלות, לפני הוצאות קבועות ופרסום. בהזמנה עם כמה מוצרים ההכנסה והרווח מתחלקים לפי יחידות."+(ps.unknown?" "+ps.unknown+" הזמנות לא נספרו כי העלות שלהן לא ידועה.":"")+(ps.minN!=null&&ps.minN>1001?" יומן ההזמנות מתחיל מההזמנה #"+ps.minN+", ולכן הזמנות קודמות (#1001–#"+(ps.minN-1)+") עוד לא נכללות במספרים.":"")+" רווח לפי ערוץ (פייסבוק, אינסטגרם, ישיר) עוד לא נשמר ביומן ההזמנות."));
     box.appendChild(stamp("ledger"));
     return card("רווח לפי מוצר",box);
   }

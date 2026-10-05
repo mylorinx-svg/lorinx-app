@@ -358,7 +358,7 @@ body{padding-top:env(safe-area-inset-top)}
 
   /* ---------- state ---------- */
   var db=null, canWrite=false, storeEmpty=false, seeded=false, editMode=false, view="overview";
-  var M={depts:clone(D_DEPTS),todos:D_TODOS.map(clone),clips:[],biz:{netPerOrder:296}};
+  var M={depts:clone(D_DEPTS),todos:[],clips:[],biz:{netPerOrder:296}};
   var LIVE={orders:null,sheet:null,drafts:null,conn:null,log:null,fin:null};   /* each: {data, at, err} */
   var mcp=null;
   function dept(id){return M.depts.filter(function(d){return d.id===id})[0]}
@@ -1521,7 +1521,7 @@ body{padding-top:env(safe-area-inset-top)}
   /* ---------- store ---------- */
   function seed(){
     if(seeded||!canWrite)return;seeded=true;
-    D_DEPTS.forEach(function(d){saveDept(clone(d))});D_TODOS.forEach(function(t){saveTodo(clone(t))});
+    D_DEPTS.forEach(function(d){saveDept(clone(d))});D_TODOS.forEach(function(t){saveTodo(clone(t))});M.todos=D_TODOS.map(clone);render();
   }
   var gotD=false,gotB=false,adsPend=null;
   function ensureAdsD(arr){adsPend=arr;ensureAds()}
@@ -1546,7 +1546,6 @@ body{padding-top:env(safe-area-inset-top)}
     },function(){});
     db.doc("cfg/biz").onSnapshot(function(s){gotB=true;if(s.exists){var v=s.data();if(J(v)!==J(M.biz)){M.biz=clone(v);render()}}ensureAds()},function(){});
     db.collection("todos").onSnapshot(function(s){
-      if(s.empty&&!seeded)return;
       var arr=s.docs.map(function(x){var v=x.data();var tx=v.text||x.id;if(/החיוב הבא ב-30\.9/.test(tx))tx="לוודא שאמצעי התשלום ב-Shopify עודכן (החיוב ב-30.9 כבר עבר)";return {id:x.id,text:tx,dept:v.dept||"",done:!!v.done}});
       if(J(arr)===J(M.todos))return;M.todos=arr;render();
     },function(){});

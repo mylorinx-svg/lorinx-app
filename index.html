@@ -134,6 +134,7 @@ input[type=checkbox]{width:18px;height:18px;padding:0;accent-color:var(--accent)
 .stale.old{color:var(--bad);font-weight:600}
 .hrow{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:10px 0;border-bottom:1px solid var(--line,rgba(128,128,128,.18))}
 .hrow:last-child{border-bottom:0}
+.hrow .pill{align-self:start}
 .hrow .d{grid-column:1/-1;font-size:var(--t-small);color:var(--muted);overflow-wrap:anywhere}
 a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
 .nav a{color:var(--sidefg)}.nav a:hover{text-decoration:none}
@@ -649,7 +650,7 @@ body{padding-top:env(safe-area-inset-top)}
     k.addEventListener("click",tog);k.addEventListener("keydown",function(ev){if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();tog()}});
     return k;
   }
-  function eLines(list){var r=el("div","pl");list.forEach(function(x){var ln=el("div","line"+(x.sum?" sum":""));ln.appendChild(el("span",null,x.a));ln.appendChild(el("span",null,x.b));r.appendChild(ln)});return r}
+  function eLines(list){var r=el("div","pl");list.forEach(function(x){var ln=el("div","line"+(x.sum?" sum":""));ln.appendChild(el("span",null,x.a));var v=el("span",null,x.b);v.dir="ltr";ln.appendChild(v);r.appendChild(ln)});return r}
   function engineDetail(s){
     var box=el("div","edetail"),E=LorinxEngine;
     function comps(c){return c.components.map(function(x){return {a:x.name+(x.confidence?" · "+eConf(x.confidence):""),b:eAg(x.amountAgorot)}})}
@@ -682,6 +683,45 @@ body{padding-top:env(safe-area-inset-top)}
       box.appendChild(el("p","note","כל הוצאה מוקצית לפי ימים קלנדריים בתוך תקופת התוקף שלה. חודש מלא = בדיוק הסכום החודשי."));
     }
     return box;
+  }
+  /* ---------- why did profit change: exact decomposition between two equal periods ---------- */
+  function whyCard(){
+    var ed=engineData();if(ed.error||ed.missing)return null;
+    var E=LorinxEngine,cp=E.comparePeriods(eperiod,new Date()),box=el("div");
+    if(!cp){box.appendChild(el("div","empty","בחר 7 ימים, 30 יום או החודש כדי להשוות לתקופה הקודמת."));return card("למה הרווח השתנה",box)}
+    var x;try{x=E.explainChange(ed.data,cp.a,cp.b)}catch(e){box.appendChild(el("p","err","שגיאה בחישוב: "+String(e&&e.message||e)));return card("למה הרווח השתנה",box)}
+    function sg(v){return (v>0?"+":"")+eAg(v)}
+    box.appendChild(el("p","prange",periodText({from:cp.b.from,to:cp.b.to,days:E.periodDays(cp.b)})+" לעומת "+periodText({from:cp.a.from,to:cp.a.to,days:E.periodDays(cp.a)})));
+    if(!x.complete){box.appendChild(el("p","err","אי אפשר לפרק במדויק, חסר: "+x.missing.join(", ")));return card("למה הרווח השתנה",box)}
+    var up=x.deltaAgorot>0;
+    box.appendChild(el("p","note",x.deltaAgorot===0?"הרווח הנקי לא השתנה בין התקופות.":"הרווח הנקי "+(up?"עלה":"ירד")+" בין התקופות. כך זה מתפרק:"));
+    var L=[{a:"רווח נקי בתקופה הקודמת",b:eAg(x.fromNetAgorot)},{a:"רווח נקי בתקופה הנוכחית",b:eAg(x.toNetAgorot)}].concat(x.components.filter(function(c){return c.agorot!==0}).sort(function(a,b){return Math.abs(b.agorot)-Math.abs(a.agorot)}).map(function(c){return {a:c.label,b:sg(c.agorot)}}));
+    if(x.roundingAgorot)L.push({a:"עיגול באגורות",b:sg(x.roundingAgorot)});
+    L.push({a:"סך השינוי ברווח הנקי",b:sg(x.deltaAgorot),sum:true});
+    var lines=eLines(L);box.appendChild(lines);
+    box.appendChild(el("p","note","הרכיבים מסתכמים בדיוק לשינוי. כמות הזמנות: "+x.ordersFrom+" → "+x.ordersTo+" הזמנות ברווח. מחיר ותמהיל, הנחות, עלות ועמלות הם השינוי הממוצע להזמנה כפול מספר ההזמנות הנוכחי. הסבר לא קובע סיבה, רק מראה איזה רכיב הזיז את המספר."));
+    return card("למה הרווח השתנה",box);
+  }
+  /* ---------- anomalies (fixed visible rules) and the entry gate for advanced analytics ---------- */
+  function anomalyCard(){
+    var ed=engineData();if(ed.error||ed.missing)return null;
+    var E=LorinxEngine,box=el("div"),r;
+    try{r=E.anomalies(ed.data,new Date())}catch(e){box.appendChild(el("p","err","שגיאה: "+String(e&&e.message||e)));return card("חריגות",box)}
+    if(!r.items.length)box.appendChild(el("p","note","אין חריגות לפי הכללים למטה."));
+    r.items.forEach(function(i){var row=el("div","hrow");row.appendChild(el("b",null,i.text));row.appendChild(el("span","pill "+(i.level==="bad"?"bad":"warn"),i.level==="bad"?"דורש טיפול":"לתשומת לב"));row.appendChild(el("div","d","הכלל: "+i.rule));box.appendChild(row)});
+    var R=r.rules;box.appendChild(el("p","note","כללים קבועים ולא למידה: הזמנה עם רווח שלילי (בלי דוגמאות ליוצרים) · הזמנה שבוטלה בלי החזר · הזמנה שלא שולמה "+R.unpaidDays+" ימים · הוצאת פרסום יומית פי "+R.adSpikeFactor+" מממוצע 7 הימים שקדמו · קמפיין עם "+eAg(R.adNoPurchaseMinAgorot)+" ויותר בשבוע בלי רכישה לפי מטא."));
+    return card("חריגות",box);
+  }
+  function gateCard(){
+    var ed=engineData();if(ed.error||ed.missing)return null;
+    var g;try{g=LorinxEngine.advancedGate(ed.data,new Date())}catch(e){return null}
+    var box=el("div");
+    box.appendChild(el("p",g.met?"note":"err",g.met?"תנאי הכניסה התקיימו. ניתוח לפי קמפיין והמלצות עוד לא נבנו.":"ניתוח לפי קמפיין והמלצות הגדלה או עצירה סגורים עד שיהיו מספיק נתונים."));
+    var L=[{a:"הזמנות בטווח הפרסום (יש / נדרש)",b:g.orders+" / "+g.need.orders},{a:"ביטחון ברווח התרומה (יש / נדרש)",b:g.confidencePercent+"% / "+g.need.confidencePercent+"%"}];
+    box.appendChild(eLines(L));
+    g.reasons.forEach(function(x){box.appendChild(el("p","note",x))});
+    box.appendChild(el("p","note","הכלל קיים כדי שלא תוצג המלצה על קמפיין לפי כמה הזמנות בודדות. כל המלצה בעתיד תציג את המספרים ואת הכלל שהפעיל אותה."));
+    return card("מתי נפתח ניתוח מתקדם",box);
   }
   function engineKpiRow(){
     var wrap=el("div","card ecard"),head=el("div","tp");
@@ -1462,9 +1502,9 @@ body{padding-top:env(safe-area-inset-top)}
   }
   function liveFor(d){
     var out=[];
-    if(d.id==="exec"){out.push(kpiRow(),engineKpiRow(),goalCard())}
+    if(d.id==="exec"){out.push(kpiRow(),engineKpiRow());var an=anomalyCard();if(an)out.push(an);out.push(goalCard())}
     if(d.id==="ops"){out.push(opsKpis(),ordersCard(true),trouble())}
-    if(d.id==="fin"){var tk=tickerBar();if(tk)out.push(tk);out.push(engineKpiRow(),periodCard(),productCard(),portfolioCard(),financeCard())}
+    if(d.id==="fin"){var tk=tickerBar();if(tk)out.push(tk);out.push(engineKpiRow());var wy=whyCard();if(wy)out.push(wy);out.push(periodCard(),productCard(),portfolioCard(),financeCard());var gt=gateCard();if(gt)out.push(gt)}
     if(d.id==="sales"){
       var dr=LIVE.drafts&&LIVE.drafts.data,box=el("div"),n=dr&&dr.resultCountEstimate!=null?dr.resultCountEstimate:null;
       box.appendChild(el("div",null,n!=null?(n+" שרשורים בתווית LORINX-לאישור (הספירה כוללת גם כאלה שכבר טופלו)"):"אין נתון"));box.appendChild(stamp("drafts"));

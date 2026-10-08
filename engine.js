@@ -397,6 +397,118 @@ var LorinxEngine = (function () {
     return { checks: checks, bad: bad, warn: warn, ok: bad === 0 && warn === 0 };
   }
 
+  // ---------- למה הרווח השתנה ----------
+  // פירוק שינוי ברווח הנקי בין שתי תקופות (A קודמת, B נוכחית) לרכיבים שסכומם שווה לשינוי בדיוק.
+  // החלק שמושפע מההזמנות (מכירות פחות עלות, דוגמאות ועמלות) מתפרק לכמות הזמנות ולשינוי ממוצע להזמנה (מחיר/תמהיל, הנחות, עלות, עמלות);
+  // פרסום והוצאות קבועות נכנסים כשינוי שלהם. עיגול באגורות נרשם בשורה נפרדת (בדרך כלל 0 עד 3 אגורות), לא מוסתר.
+  function explainChange(data, pA, pB, opts) {
+    var A = summarize(data, pA, opts), B = summarize(data, pB, opts);
+    function parts(s) {
+      var r = s.revenueForProfit, n = r.orderCount;
+      return { n: n, rev: r.netAgorot, disc: r.discountAgorot || 0, cogs: s.cogs.cogsAgorot, samples: s.cogs.creatorSamplesAgorot || 0, fees: s.fees.feesAgorot,
+        ads: s.ads.adSpendAgorot, fixed: s.fixed.fixedAgorot, net: s.netProfit.agorot, missing: s.netProfit.missing };
+    }
+    var a = parts(A), b = parts(B);
+    var pa = a.rev - a.cogs - a.samples - a.fees, pb = b.rev - b.cogs - b.samples - b.fees; // רווח מהזמנות, לפני פרסום וקבועות
+    var comps = [];
+    function add(id, label, v, why) { comps.push({ id: id, label: label, agorot: v || 0, why: why }); }
+    var avg = function (x, n) { return n ? x / n : 0; };
+    if (a.n === 0 || b.n === 0) {
+      add('volume', 'כמות הזמנות', pb - pa, a.n === 0 ? 'בתקופה הקודמת לא היו הזמנות ברווח' : 'בתקופה הנוכחית אין הזמנות ברווח');
+    } else {
+      var vol = Math.round((b.n - a.n) * pa / a.n);
+      var dDisc = -Math.round(b.n * (avg(b.disc, b.n) - avg(a.disc, a.n)));
+      var dRev = Math.round(b.n * (avg(b.rev, b.n) - avg(a.rev, a.n)));
+      add('volume', 'כמות הזמנות', vol, a.n + ' → ' + b.n + ' הזמנות, ברווח ממוצע ' + Math.round(pa / a.n) + ' אגורות להזמנה בתקופה הקודמת');
+      add('price', 'מחיר ותמהיל מוצרים', dRev - dDisc, 'מכירות נטו ממוצעות להזמנה, לפני שינוי בהנחות');
+      add('discounts', 'הנחות', dDisc, 'הנחה ממוצעת להזמנה');
+      add('cogs', 'עלות מוצרים', -Math.round(b.n * (avg(b.cogs + b.samples, b.n) - avg(a.cogs + a.samples, a.n))), 'עלות מוצרים (כולל דוגמאות ליוצרים) ממוצעת להזמנה');
+      add('fees', 'עמלות סליקה', -Math.round(b.n * (avg(b.fees, b.n) - avg(a.fees, a.n))), 'עמלה ממוצעת להזמנה');
+    }
+    add('ads', 'פרסום', -(b.ads - a.ads), 'הוצאת פרסום בתקופה הנוכחית פחות הקודמת');
+    add('fixed', 'הוצאות קבועות מוקצות', -(b.fixed - a.fixed), 'קבועות לפי ימים בתקופה');
+    var delta = b.net - a.net, sum = comps.reduce(function (t, c) { return t + c.agorot; }, 0);
+    return { from: pA, to: pB, fromNetAgorot: a.net, toNetAgorot: b.net, deltaAgorot: delta, components: comps, roundingAgorot: delta - sum,
+      ordersFrom: a.n, ordersTo: b.n, missing: a.missing.concat(b.missing), complete: !a.missing.length && !b.missing.length };
+  }
+
+  // תקופות להשוואה: הנוכחית מסתיימת אתמול (כמו Shopify), והקודמת באותו אורך בדיוק
+  function comparePeriods(kind, today) {
+    var t = israelDate(today || new Date());
+    if (kind === '7d' || kind === '30d') {
+      var n = kind === '7d' ? 7 : 30, b = periodLastDays(n, today);
+      return { a: { from: addDays(b.from, -n), to: addDays(b.from, -1), label: 'prev-' + kind }, b: b };
+    }
+    if (kind === 'month') {
+      var y = addDays(t, -1), ym = y.slice(0, 7), day = Number(y.slice(8, 10));
+      var pm = addDays(ym + '-01', -1).slice(0, 7), len = Math.min(day, daysInMonth(pm));
+      return { a: { from: pm + '-01', to: pm + '-' + ('0' + len).slice(-2), label: pm }, b: { from: ym + '-01', to: y, label: ym } };
+    }
+    return null;
+  }
+
+  // ---------- חריגות לפי כללים מפורשים ----------
+  // כל חריגה מציגה את הכלל שהפעיל אותה ואת המספרים. אין למידה ואין תחזית, רק סף קבוע שנקבע כאן.
+  var ANOMALY_RULES = {
+    adSpikeFactor: 2, adSpikeMinAgorot: 5000, adNoPurchaseMinAgorot: 30000, adWindowDays: 7, unpaidDays: 3, lossOrderMinAgorot: 0
+  };
+  function anomalies(data, now, opts) {
+    var R = ANOMALY_RULES, today = israelDate(now || new Date()), out = [], orders = normalizeOrders(data.orders, data.flags);
+    var all = periodAll(now || new Date());
+    // 1) הזמנה הפסדית
+    orderRows(data, all, opts).forEach(function (r) {
+      if (r.inProfit && r.state !== 'CREATOR_SAMPLE' && r.profitAgorot != null && r.profitAgorot < R.lossOrderMinAgorot)
+        out.push({ id: 'loss-' + r.name, level: 'bad', text: r.name + ' הפסדית: ' + fmt(r.profitAgorot), rule: 'רווח הזמנה (נטו פחות עלות ועמלה) קטן מ-0', numbers: { net: r.netAgorot, cogs: r.cogsAgorot, fee: r.feeAgorot, profit: r.profitAgorot } });
+    });
+    // 2) הזמנה בוטלה בלי החזר, או לא שולמה כבר כמה ימים
+    orders.forEach(function (o) {
+      if (o.state === 'CANCELLED_NO_REFUND') out.push({ id: 'norefund-' + o.name, level: 'warn', text: o.name + ' בוטלה בלי החזר כספי (' + fmt(o.netAgorot) + ') ומוחרגת מהרווח עד שיוסדר', rule: 'הזמנה מבוטלת בלי רישום החזר', numbers: { net: o.netAgorot } });
+      if (o.state === 'UNPAID') {
+        var age = Math.round((Date.parse(today + 'T00:00:00Z') - Date.parse(o.date + 'T00:00:00Z')) / 864e5);
+        if (age >= R.unpaidDays) out.push({ id: 'unpaid-' + o.name, level: 'warn', text: o.name + ' לא שולמה כבר ' + age + ' ימים', rule: 'הזמנה לא שולמה ' + R.unpaidDays + ' ימים ומעלה', numbers: { ageDays: age } });
+      }
+    });
+    // 3) קפיצת הוצאת פרסום ביום לעומת ממוצע 7 הימים שקדמו לו (רק ימים עם נתון)
+    var byDay = {}; (data.adSpend || []).forEach(function (r) { byDay[r.date] = (byDay[r.date] || 0) + r.spendAgorot; });
+    for (var i = 1; i <= R.adWindowDays; i++) {
+      var d = addDays(today, -i), v = byDay[d];
+      if (v == null) continue;
+      var prev = [], k; for (k = 1; k <= 7; k++) { var pv = byDay[addDays(d, -k)]; if (pv != null) prev.push(pv); }
+      if (prev.length < 3) continue;
+      var base = prev.reduce(function (t, x) { return t + x; }, 0) / prev.length;
+      if (base > 0 && v >= R.adSpikeFactor * base && v - base >= R.adSpikeMinAgorot)
+        out.push({ id: 'adspike-' + d, level: 'warn', text: 'פרסום ב-' + d + ': ' + fmt(v) + ', פי ' + (v / base).toFixed(1) + ' מהממוצע (' + fmt(Math.round(base)) + ')', rule: 'הוצאה יומית לפחות פי ' + R.adSpikeFactor + ' מממוצע הימים שקדמו ובהפרש של לפחות ' + fmt(R.adSpikeMinAgorot), numbers: { day: v, baseline: Math.round(base), days: prev.length } });
+    }
+    // 4) קמפיין שהוציא הרבה בשבוע האחרון בלי רכישה אחת לפי מטא
+    var win = { from: addDays(today, -R.adWindowDays), to: addDays(today, -1) }, camp = {};
+    (data.adSpend || []).forEach(function (r) {
+      if (!inPeriod(r.date, win)) return;
+      var c = camp[r.campaignId] || (camp[r.campaignId] = { name: r.campaignName, spend: 0, purchases: 0 });
+      c.spend += r.spendAgorot; c.purchases += r.purchases || 0;
+    });
+    Object.keys(camp).forEach(function (id) {
+      var c = camp[id];
+      if (c.purchases === 0 && c.spend >= R.adNoPurchaseMinAgorot)
+        out.push({ id: 'nopurchase-' + id, level: 'warn', text: 'הקמפיין "' + c.name + '" הוציא ' + fmt(c.spend) + ' ב-' + R.adWindowDays + ' הימים האחרונים ללא רכישה לפי מטא', rule: 'הוצאה של לפחות ' + fmt(R.adNoPurchaseMinAgorot) + ' בשבוע בלי רכישה', numbers: { spend: c.spend } });
+    });
+    out.sort(function (a, b) { return (a.level === b.level ? 0 : a.level === 'bad' ? -1 : 1); });
+    return { items: out, rules: R, asOf: today };
+  }
+
+  // ---------- שער כניסה לניתוח מתקדם (רווח לפי קמפיין, המלצות) ----------
+  // נפתח רק עם לפחות 30 הזמנות בטווח שיש לו נתוני פרסום וביטחון של 80% ומעלה ברווח התרומה באותו טווח.
+  function dmyIL(ymd) { var p = ymd.split('-'); return Number(p[2]) + '.' + Number(p[1]) + '.' + p[0]; }
+  function advancedGate(data, now, opts) {
+    var need = { orders: 30, confidencePercent: 80 };
+    var cov = data.adSpendCoverage;
+    if (!cov) return { met: false, need: need, orders: 0, confidencePercent: 0, reasons: ['אין נתוני פרסום'] };
+    var s = summarize(data, { from: cov.from, to: cov.to, label: 'ads-coverage' }, opts);
+    var n = s.revenueForProfit.orderCount, c = s.contributionProfit.confidencePercent, reasons = [];
+    if (n < need.orders) reasons.push('יש ' + n + ' הזמנות בטווח שיש בו נתוני פרסום, נדרשות ' + need.orders + '. הטווח: ' + dmyIL(cov.from) + ' עד ' + dmyIL(cov.to));
+    if (c < need.confidencePercent) reasons.push('ביטחון ברווח התרומה ' + c + '%, נדרש ' + need.confidencePercent + '%');
+    return { met: reasons.length === 0, need: need, orders: n, confidencePercent: c, coverage: cov, reasons: reasons };
+  }
+
   // ---------- חבילה אחת לתקופה ----------
 
   function summarize(data, period, opts) {
@@ -552,7 +664,7 @@ var LorinxEngine = (function () {
     normalizeOrder: normalizeOrder, normalizeOrders: normalizeOrders, salesEligible: salesEligible, profitEligible: profitEligible,
     fxRate: fxRate, ilsFromUsd: ilsFromUsd, roundHalfUp: roundHalfUp,
     calculateNetRevenue: calculateNetRevenue, calculateCOGS: calculateCOGS, calculatePaymentFees: calculatePaymentFees, feeForOrder: feeForOrder,
-    calculateAdSpend: calculateAdSpend, calculateAdCredit: calculateAdCredit, dataHealth: dataHealth, calculateFixedCosts: calculateFixedCosts, allocateExpense: allocateExpense,
+    calculateAdSpend: calculateAdSpend, calculateAdCredit: calculateAdCredit, dataHealth: dataHealth, explainChange: explainChange, comparePeriods: comparePeriods, anomalies: anomalies, advancedGate: advancedGate, calculateFixedCosts: calculateFixedCosts, allocateExpense: allocateExpense,
     calculateGrossProfit: calculateGrossProfit, calculateContributionProfit: calculateContributionProfit, calculateNetProfit: calculateNetProfit,
     confidencePercent: confidencePercent, worst: worst, summarize: summarize, fmt: fmt,
     orderRows: orderRows, profitByProduct: profitByProduct, effectiveFeeRate: effectiveFeeRate, unitCosts: unitCosts, ordersNeeded: ordersNeeded, productName: productName, allocate: allocate

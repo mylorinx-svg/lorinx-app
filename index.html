@@ -1886,11 +1886,28 @@ body{padding-top:env(safe-area-inset-top)}
     f.appendChild(card("חיבורים",cb));
     f.appendChild(card("פרמטרים עסקיים (מהגיליון)",pb));
     f.appendChild(card("הנחות חישוב",lb));
+    f.appendChild(engineHealthCard());
     if(LOCAL)f.appendChild(healthCard());
     var wrap=el("div","grid2");while(f.firstChild)wrap.appendChild(f.firstChild);
     var out=document.createDocumentFragment();out.appendChild(wrap);
     /* theme / access info */
     return out;
+  }
+  /* ---------- data health of the calculation engine: computed from the sheet rows themselves ---------- */
+  function engineHealthCard(){
+    var box=el("div"),ed=engineData();
+    if(ed.error)box.appendChild(el("p","err",ed.error));
+    else if(ed.missing)box.appendChild(el("div","empty","טוען את הלשוניות החדשות…"));
+    else{
+      var ov=v2Vals("orders_v2")||[],syn="";for(var i=1;i<ov.length;i++){var t=String((ov[i]||[])[21]||"");if(t>syn)syn=t}
+      var h;try{h=LorinxEngine.dataHealth(ed.data,{now:new Date().toISOString(),syncedAt:syn||null})}catch(e){box.appendChild(el("p","err","שגיאה בבדיקה: "+String(e&&e.message||e)))}
+      if(h){
+        box.appendChild(el("p",h.bad?"err":"note",h.bad?h.bad+" בדיקות נכשלו":(h.warn?"אין תקלות. "+h.warn+" דברים לתשומת לב.":"כל הבדיקות עברו ("+h.checks.length+").")));
+        h.checks.forEach(function(c){var r=el("div","hrow");r.appendChild(el("b",null,c.label));r.appendChild(el("span","pill "+c.level,c.level==="ok"?"תקין":(c.level==="warn"?"לתשומת לב":"נכשל")));if(c.detail)r.appendChild(el("div","d",c.detail));box.appendChild(r)});
+        box.appendChild(el("p","note","נבדק עכשיו על הנתונים שבגיליון, בלי שרת: סכומי הזמנות מול שורותיהן, עלות ושער לכל הזמנה, תעריף עמלה, טריות הסנכרון והפרסום."));
+      }
+    }
+    return card("תקינות נתוני המנוע",box);
   }
   /* ---------- system health: live checks from the server, not decoration ---------- */
   var HEALTH=null,healthBusy=false;

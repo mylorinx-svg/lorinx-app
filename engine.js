@@ -1,0 +1,378 @@
+/*
+ * LORINX Control Center — calculation engine
+ * מנוע חישוב אחד לכל המדדים. רץ ב-Node (בדיקות), בדפדפן (האפליקציה) וב-Apps Script (השרת והבוטים).
+ *
+ * כללים:
+ *  - כל סכום כסף הוא מספר שלם של אגורות (ILS) או סנטים (USD). עיגול רק בתצוגה.
+ *  - תאריך "עסקי" הוא היום הקלנדרי לפי שעון ישראל (Asia/Jerusalem).
+ *  - כל תוצאה נושאת רכיבים (components) עם תווית אמינות: VERIFIED | MANUAL | ESTIMATED | STALE | MISSING.
+ *  - שום פונקציה לא קוראת מהרשת או מהגיליון; כל הנתונים מגיעים כפרמטרים.
+ */
+var LorinxEngine = (function () {
+  'use strict';
+
+  var FORMULA_VERSION = '1.0.0';
+  var VAT_RATE = 0.18;
+  var CONFIDENCE_WEIGHT = { VERIFIED: 1, MANUAL: 0.8, ESTIMATED: 0.5, STALE: 0.5, MISSING: 0 };
+  var TZ = 'Asia/Jerusalem';
+
+  // ---------- עזרים: כסף ותאריכים ----------
+
+  function roundHalfUp(x) { return x < 0 ? -Math.round(-x) : Math.round(x); }
+
+  function ilsFromUsd(usdCents, rate) { return roundHalfUp(usdCents * rate); }
+
+  var _fmt = null;
+  function israelDate(iso) {
+    // ISO timestamp (UTC) -> 'YYYY-MM-DD' לפי שעון ישראל
+    if (!iso) return null;
+    if (typeof iso === 'string' && iso.length === 10) return iso; // כבר תאריך
+    var d = iso instanceof Date ? iso : new Date(iso);
+    if (typeof Intl !== 'undefined' && Intl.DateTimeFormat) {
+      if (!_fmt) _fmt = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' });
+      return _fmt.format(d); // en-CA נותן YYYY-MM-DD
+    }
+    if (typeof Utilities !== 'undefined' && Utilities.formatDate) {
+      return Utilities.formatDate(d, TZ, 'yyyy-MM-dd'); // Apps Script
+    }
+    // גיבוי: +3 בקיץ, +2 בחורף (שעון קיץ ישראל: שישי שלפני יום ראשון האחרון של מרץ עד יום ראשון האחרון של אוקטובר)
+    var y = d.getUTCFullYear();
+    var lastSunOct = new Date(Date.UTC(y, 9, 31)); lastSunOct.setUTCDate(31 - lastSunOct.getUTCDay());
+    var lastSunMar = new Date(Date.UTC(y, 2, 31)); lastSunMar.setUTCDate(31 - lastSunMar.getUTCDay());
+    var dstStart = new Date(lastSunMar.getTime() - 2 * 864e5); dstStart.setUTCHours(0); // שישי 02:00 מקומי = 00:00 UTC
+    var dstEnd = new Date(lastSunOct.getTime()); dstEnd.setUTCHours(23); // ראשון 02:00 מקומי = שבת 23:00 UTC
+    var off = (d >= dstStart && d < dstEnd) ? 3 : 2;
+    return new Date(d.getTime() + off * 3600e3).toISOString().slice(0, 10);
+  }
+
+  function daysInMonth(ym) { // 'YYYY-MM'
+    var y = +ym.slice(0, 4), m = +ym.slice(5, 7);
+    return new Date(Date.UTC(y, m, 0)).getUTCDate();
+  }
+  function addDays(ymd, n) {
+    var d = new Date(ymd + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n);
+    return d.toISOString().slice(0, 10);
+  }
+  function inPeriod(ymd, period) { return !!ymd && ymd >= period.from && ymd <= period.to; }
+  function monthOf(ymd) { return ymd.slice(0, 7); }
+
+  // תקופות
+  function periodMonth(ym) { return { from: ym + '-01', to: ym + '-' + ('0' + daysInMonth(ym)).slice(-2), label: ym }; }
+  function periodLastDays(n, today) { // כמו Shopify ו-Ads Manager: n ימים קלנדריים שמסתיימים אתמול
+    var t = israelDate(today || new Date());
+    return { from: addDays(t, -n), to: addDays(t, -1), label: n + 'd' };
+  }
+  function periodToday(today) { var t = israelDate(today || new Date()); return { from: t, to: t, label: 'today' }; }
+  function periodAll(today, firstDate) { // מהיום הראשון של הנתונים עד היום
+    var t = israelDate(today || new Date());
+    return { from: firstDate || '2026-06-01', to: t, label: 'all' };
+  }
+  function periodDays(p) { return Math.round((Date.parse(p.to + 'T00:00:00Z') - Date.parse(p.from + 'T00:00:00Z')) / 864e5) + 1; }
+
+  // ---------- אמינות ----------
+
+  function worst(labels) {
+    var order = ['MISSING', 'STALE', 'ESTIMATED', 'MANUAL', 'VERIFIED'];
+    var w = 'VERIFIED';
+    for (var i = 0; i < labels.length; i++) if (order.indexOf(labels[i]) < order.indexOf(w)) w = labels[i];
+    return w;
+  }
+  function confidencePercent(components) {
+    // ממוצע משוקלל לפי הסכום המוחלט של כל רכיב. רכיב MISSING נספר במשקל 0 עם "סכום" משוער אם ניתן, אחרת 1 כדי להוריד את הציון.
+    var num = 0, den = 0;
+    for (var i = 0; i < components.length; i++) {
+      var c = components[i];
+      var amt = Math.abs(c.amountAgorot || 0);
+      if (c.confidence === 'MISSING') amt = Math.abs(c.estimatedAgorot || 0) || 1;
+      if (amt === 0) continue;
+      num += amt * (CONFIDENCE_WEIGHT[c.confidence] || 0);
+      den += amt;
+    }
+    return den ? Math.round(100 * num / den) : 0;
+  }
+  function missingOf(components) {
+    var m = [];
+    for (var i = 0; i < components.length; i++) if (components[i].confidence === 'MISSING') m.push(components[i].name);
+    return m;
+  }
+
+  // ---------- נורמליזציה של הזמנות ----------
+
+  function normalizeOrder(o, flags) {
+    var f = (flags && flags[o.name]) || {};
+    var refunded = 0;
+    (o.refunds || []).forEach(function (r) { refunded += r.amountAgorot || 0; });
+    var cancelled = !!o.cancelledAt && !f.cancelledInError;
+    var state = 'OK';
+    if (f.isTest) state = 'TEST';
+    else if (f.creatorSample) state = 'CREATOR_SAMPLE';
+    else if (cancelled && refunded === 0) state = 'CANCELLED_NO_REFUND';
+    else if (cancelled) state = 'CANCELLED';
+    else if (o.financialStatus !== 'PAID' && o.financialStatus !== 'PARTIALLY_REFUNDED' && o.financialStatus !== 'REFUNDED') state = 'UNPAID';
+    var units = 0;
+    (o.lines || []).forEach(function (l) { units += (l.qty || 0) * (l.unitsPerVariant || 1); });
+    return {
+      id: o.id, name: o.name,
+      date: israelDate(o.createdAt), createdAt: o.createdAt,
+      gateway: o.gateway, campaign: o.campaign || null,
+      grossAgorot: o.grossAgorot, discountAgorot: o.discountAgorot, netAgorot: o.netAgorot,
+      refundedAgorot: refunded, refunds: o.refunds || [],
+      units: units, lines: o.lines || [],
+      isTest: !!f.isTest, creatorSample: !!f.creatorSample, cancelledInError: !!f.cancelledInError,
+      cancelledAt: o.cancelledAt || null, state: state, note: f.note || ''
+    };
+  }
+  function normalizeOrders(orders, flags) { return orders.map(function (o) { return normalizeOrder(o, flags); }); }
+
+  // אילו הזמנות נכנסות למכירות ואילו לרווח
+  function salesEligible(o, opts) {
+    if (o.state === 'TEST' && !(opts && opts.includeTestOrders)) return false;
+    return true; // מכירות = כמו Shopify (כולל מבוטלות; ההחזר יורד בנפרד)
+  }
+  function profitEligible(o, opts) {
+    if (o.state === 'TEST' && !(opts && opts.includeTestOrders)) return false;
+    if (o.state === 'CANCELLED_NO_REFUND') return false; // עד שההחזר נרשם או שההזמנה מתוקנת
+    if (o.state === 'UNPAID') return false;
+    return true;
+  }
+
+  // ---------- מכירות ----------
+
+  function calculateNetRevenue(orders, period, opts) {
+    opts = opts || {};
+    var gross = 0, disc = 0, refund = 0, count = 0, countTest = 0, testNet = 0, list = [];
+    orders.forEach(function (o) {
+      if (!inPeriod(o.date, period)) return;
+      if (o.state === 'TEST') { countTest++; testNet += o.netAgorot; if (!opts.includeTestOrders) return; }
+      if (opts.profitOnly && !profitEligible(o, opts)) return;
+      count++; gross += o.grossAgorot; disc += o.discountAgorot; list.push(o.name);
+    });
+    // החזרים לפי תאריך ההחזר
+    orders.forEach(function (o) {
+      if (o.state === 'TEST' && !opts.includeTestOrders) return;
+      o.refunds.forEach(function (r) { if (inPeriod(israelDate(r.createdAt), period)) refund += r.amountAgorot; });
+    });
+    var net = gross - disc - refund;
+    return {
+      metric: 'netRevenue', period: period, netAgorot: net, grossAgorot: gross, discountAgorot: disc, refundAgorot: refund,
+      orderCount: count, orderNames: list, testOrderCount: countTest, testOrdersNetAgorot: testNet,
+      components: [
+        { name: 'מכירות ברוטו', amountAgorot: gross, confidence: 'VERIFIED', source: 'Shopify' },
+        { name: 'הנחות', amountAgorot: -disc, confidence: 'VERIFIED', source: 'Shopify' },
+        { name: 'החזרים', amountAgorot: -refund, confidence: 'VERIFIED', source: 'Shopify' }
+      ],
+      confidence: 'VERIFIED', confidencePercent: 100
+    };
+  }
+
+  // ---------- עלות מוצרים ----------
+
+  function fxRate(fx, ymd) {
+    // שער ליום; אם אין (סוף שבוע/חג) לוקחים את הקודם עד 3 ימים אחורה ומסמנים
+    var map = fx._map; if (!map) { map = {}; fx.forEach(function (r) { map[r.date] = r; }); fx._map = map; }
+    for (var i = 0; i <= 3; i++) {
+      var r = map[addDays(ymd, -i)];
+      if (r) return { rate: r.rate, date: r.date, exact: i === 0, confidence: r.confidence || 'VERIFIED' };
+    }
+    return null;
+  }
+
+  function calculateCOGS(orders, orderCosts, productCosts, fx, period, opts) {
+    opts = opts || {};
+    var byOrder = {};
+    (orderCosts || []).forEach(function (c) { (byOrder[c.orderName] = byOrder[c.orderName] || []).push(c); });
+    var total = 0, creatorAgorot = 0, perOrder = [], labels = [], missing = [];
+    orders.forEach(function (o) {
+      if (!inPeriod(o.date, period)) return;
+      if (!profitEligible(o, opts) && o.state !== 'CREATOR_SAMPLE') return;
+      var rows = byOrder[o.name] || [], amt = 0, conf = [], detail = [];
+      if (rows.length) {
+        rows.forEach(function (c) {
+          var r = fxRate(fx, c.purchaseDate);
+          if (!r) { conf.push('MISSING'); detail.push({ supplierOrder: c.supplierOrder, usdCents: c.amountUsdCents, agorot: null, reason: 'אין שער' }); return; }
+          var a = ilsFromUsd(c.amountUsdCents, r.rate);
+          amt += a;
+          conf.push(worst([c.confidence || 'MANUAL', r.exact ? r.confidence : 'ESTIMATED']));
+          detail.push({ supplierOrder: c.supplierOrder, usdCents: c.amountUsdCents, rate: r.rate, rateDate: r.date, agorot: a, status: c.status });
+        });
+      } else {
+        // אין רכישה רשומה: עלות לפי product_costs בתוקף
+        var est = 0, ok = true;
+        o.lines.forEach(function (l) {
+          var pc = null;
+          (productCosts || []).forEach(function (p) {
+            var key = l.sku || (l.unitsPerVariant === 3 ? '3units' : null);
+            if (p.sku === key && p.effectiveFrom <= o.date && (!p.effectiveTo || p.effectiveTo >= o.date)) pc = p;
+          });
+          if (!pc) { ok = false; return; }
+          var r = fxRate(fx, o.date);
+          if (!r) { ok = false; return; }
+          est += ilsFromUsd(pc.unitCostUsdCents * (l.qty * (l.unitsPerVariant || 1)), r.rate);
+        });
+        if (ok && o.lines.length) { amt = est; conf.push('ESTIMATED'); detail.push({ reason: 'לפי עלות מוצר בתוקף, אין רכישה רשומה' }); }
+        else { conf.push('MISSING'); missing.push(o.name); }
+      }
+      var c = worst(conf);
+      if (o.state === 'CREATOR_SAMPLE') creatorAgorot += amt; else total += amt;
+      perOrder.push({ name: o.name, agorot: amt, confidence: c, detail: detail, creatorSample: o.state === 'CREATOR_SAMPLE' });
+      labels.push(c);
+    });
+    var comps = [{ name: 'עלות מוצרים ומשלוח לספק', amountAgorot: total, confidence: worst(labels.length ? labels : ['VERIFIED']), source: 'AutoDS' }];
+    return { metric: 'cogs', period: period, cogsAgorot: total, creatorSamplesAgorot: creatorAgorot, perOrder: perOrder,
+      ordersMissingCost: missing, components: comps, confidence: comps[0].confidence, confidencePercent: confidencePercent(perOrder.map(function (p) { return { amountAgorot: p.agorot, confidence: p.confidence }; })) };
+  }
+
+  // ---------- עמלות סליקה ----------
+
+  function feeForOrder(o, feeRates) {
+    if (!o.gateway) return { agorot: 0, confidence: 'VERIFIED', detail: 'אין סליקה' };
+    var rule = null;
+    (feeRates || []).forEach(function (r) {
+      if (r.gateway === o.gateway && r.effectiveFrom <= o.date && (!r.effectiveTo || r.effectiveTo >= o.date)) rule = r;
+    });
+    if (!rule) return { agorot: 0, confidence: 'MISSING', detail: 'אין תעריף לשער ' + o.gateway };
+    if (rule.actualAgorot != null) return { agorot: rule.actualAgorot, confidence: 'VERIFIED', detail: 'עמלה בפועל' };
+    var base = o.netAgorot - o.refundedAgorot, sum = 0, parts = [];
+    rule.components.forEach(function (c) {
+      var a = base * (c.rate || 0) + (c.fixedAgorot || 0);
+      if (c.vat) a *= (1 + VAT_RATE);
+      a = roundHalfUp(a); sum += a; parts.push({ name: c.name, agorot: a });
+    });
+    return { agorot: sum, confidence: rule.confidence || 'ESTIMATED', detail: parts };
+  }
+
+  function calculatePaymentFees(orders, feeRates, period, opts) {
+    var total = 0, per = [], labels = [];
+    orders.forEach(function (o) {
+      if (!inPeriod(o.date, period) || !profitEligible(o, opts)) return;
+      var f = feeForOrder(o, feeRates);
+      total += f.agorot; per.push({ name: o.name, agorot: f.agorot, confidence: f.confidence, detail: f.detail }); labels.push(f.confidence);
+    });
+    var conf = worst(labels.length ? labels : ['VERIFIED']);
+    return { metric: 'paymentFees', period: period, feesAgorot: total, perOrder: per,
+      components: [{ name: 'עמלות סליקה', amountAgorot: total, confidence: conf, source: 'PayPlus/ישראכרט/Shopify' }], confidence: conf, confidencePercent: confidencePercent(per.map(function (p) { return { amountAgorot: p.agorot, confidence: p.confidence }; })) };
+  }
+
+  // ---------- פרסום ----------
+
+  function calculateAdSpend(adSpend, period, opts) {
+    // adSpend: [{date, campaignId, campaignName, adsetId, spendAgorot, purchases, purchaseValueAgorot, confidence}]
+    var total = 0, days = {}, byCampaign = {}, labels = [];
+    (adSpend || []).forEach(function (r) {
+      if (!inPeriod(r.date, period)) return;
+      total += r.spendAgorot; days[r.date] = 1; labels.push(r.confidence || 'VERIFIED');
+      var k = r.campaignId || '?';
+      byCampaign[k] = byCampaign[k] || { campaignId: k, campaignName: r.campaignName, spendAgorot: 0, purchases: 0 };
+      byCampaign[k].spendAgorot += r.spendAgorot; byCampaign[k].purchases += r.purchases || 0;
+    });
+    var coverage = (opts && opts.coverage) || null; // {from,to}: הטווח שיש לו נתונים בכלל
+    var hasData = Object.keys(days).length > 0;
+    var missing = !hasData && !(coverage && coverage.from <= period.from && coverage.to >= period.to);
+    var conf = missing ? 'MISSING' : worst(labels.length ? labels : ['VERIFIED']);
+    return { metric: 'adSpend', period: period, adSpendAgorot: total, daysWithData: Object.keys(days).length, byCampaign: byCampaign,
+      components: [{ name: 'פרסום', amountAgorot: total, confidence: conf, source: 'Meta', estimatedAgorot: 0 }], confidence: conf, confidencePercent: missing ? 0 : 100 };
+  }
+
+  // ---------- הוצאות קבועות ----------
+
+  function allocateExpense(e, period) {
+    // הקצאה לפי ימים קלנדריים: לכל חודש חופף, סכום חודשי × ימים בתוקף בתקופה ÷ ימי החודש, מעוגל לכל חודש
+    if (e.category === 'OneTime') return inPeriod(e.date, period) ? e.amountAgorot : 0;
+    var from = e.startDate > period.from ? e.startDate : period.from;
+    var to = (e.endDate && e.endDate < period.to) ? e.endDate : period.to;
+    if (from > to) return 0;
+    var total = 0, cur = from;
+    while (cur <= to) {
+      var ym = monthOf(cur), dim = daysInMonth(ym);
+      var mEnd = ym + '-' + ('0' + dim).slice(-2);
+      var segEnd = mEnd < to ? mEnd : to;
+      var days = Math.round((Date.parse(segEnd + 'T00:00:00Z') - Date.parse(cur + 'T00:00:00Z')) / 864e5) + 1;
+      total += roundHalfUp(e.monthlyAgorot * days / dim);
+      cur = addDays(segEnd, 1);
+    }
+    return total;
+  }
+
+  function calculateFixedCosts(expenses, period) {
+    var total = 0, per = [], labels = [];
+    (expenses || []).forEach(function (e) {
+      var a = allocateExpense(e, period);
+      if (a === 0) return;
+      total += a; per.push({ id: e.id, name: e.name, category: e.category, agorot: a, confidence: e.confidence || 'MANUAL' }); labels.push(e.confidence || 'MANUAL');
+    });
+    var conf = worst(labels.length ? labels : ['MANUAL']);
+    return { metric: 'fixedCosts', period: period, fixedAgorot: total, perExpense: per,
+      components: [{ name: 'הוצאות קבועות מוקצות', amountAgorot: total, confidence: conf, source: 'expenses' }], confidence: conf, confidencePercent: confidencePercent(per.map(function (p) { return { amountAgorot: p.agorot, confidence: p.confidence }; })) };
+  }
+
+  // ---------- רמות הרווח ----------
+
+  function calculateGrossProfit(rev, cogs) {
+    var comps = rev.components.concat(cogs.components.map(neg));
+    return { metric: 'grossProfit', period: rev.period, agorot: rev.netAgorot - cogs.cogsAgorot, components: comps, confidence: worst(comps.map(cf)), confidencePercent: confidencePercent(comps), missing: missingOf(comps) };
+  }
+  function calculateContributionProfit(rev, cogs, fees, ads) {
+    var comps = rev.components.concat(cogs.components.map(neg), fees.components.map(neg), ads.components.map(neg));
+    if (cogs.creatorSamplesAgorot) comps.push({ name: 'מוצרים ליוצרי תוכן', amountAgorot: -cogs.creatorSamplesAgorot, confidence: 'MANUAL', source: 'AutoDS' });
+    var a = rev.netAgorot - cogs.cogsAgorot - fees.feesAgorot - ads.adSpendAgorot - (cogs.creatorSamplesAgorot || 0);
+    return { metric: 'contributionProfit', period: rev.period, agorot: a, components: comps, confidence: worst(comps.map(cf)), confidencePercent: confidencePercent(comps), missing: missingOf(comps) };
+  }
+  function calculateNetProfit(contrib, fixed) {
+    var comps = contrib.components.concat(fixed.components.map(neg));
+    return { metric: 'netProfit', period: contrib.period, agorot: contrib.agorot - fixed.fixedAgorot, components: comps, confidence: worst(comps.map(cf)), confidencePercent: confidencePercent(comps), missing: missingOf(comps) };
+  }
+  function neg(c) { var d = {}; for (var k in c) d[k] = c[k]; d.amountAgorot = -(c.amountAgorot || 0); return d; }
+  function cf(c) { return c.confidence; }
+
+  // ---------- חבילה אחת לתקופה ----------
+
+  function summarize(data, period, opts) {
+    opts = opts || {};
+    var orders = normalizeOrders(data.orders, data.flags);
+    var sales = calculateNetRevenue(orders, period, Object.assign({}, opts, { includeTestOrders: true })); // כמו Shopify, עם שורת בדיקות
+    var rev = calculateNetRevenue(orders, period, Object.assign({}, opts, { profitOnly: true })); // בסיס לרווח
+    var cogs = calculateCOGS(orders, data.orderCosts, data.productCosts, data.fx, period, opts);
+    var fees = calculatePaymentFees(orders, data.feeRates, period, opts);
+    var ads = calculateAdSpend(data.adSpend, period, { coverage: data.adSpendCoverage });
+    var fixed = calculateFixedCosts(data.expenses, period);
+    var gross = calculateGrossProfit(rev, cogs);
+    var contrib = calculateContributionProfit(rev, cogs, fees, ads);
+    var net = calculateNetProfit(contrib, fixed);
+    var ordersInProfit = rev.orderCount;
+    var r = {
+      formulaVersion: FORMULA_VERSION, period: period, days: periodDays(period),
+      sales: sales, revenueForProfit: rev, cogs: cogs, fees: fees, ads: ads, fixed: fixed,
+      grossProfit: gross, contributionProfit: contrib, netProfit: net,
+      kpis: {
+        orders: sales.orderCount, aovAgorot: sales.orderCount ? roundHalfUp(sales.netAgorot / sales.orderCount) : null,
+        contributionMarginPct: rev.netAgorot ? +(100 * contrib.agorot / rev.netAgorot).toFixed(1) : null,
+        netMarginPct: rev.netAgorot ? +(100 * net.agorot / rev.netAgorot).toFixed(1) : null,
+        mer: ads.adSpendAgorot ? +(rev.netAgorot / ads.adSpendAgorot).toFixed(2) : null,
+        blendedCpaAgorot: ads.adSpendAgorot && ordersInProfit ? roundHalfUp(ads.adSpendAgorot / ordersInProfit) : null,
+        breakEvenCpaAgorot: ordersInProfit ? roundHalfUp((rev.netAgorot - cogs.cogsAgorot - fees.feesAgorot) / ordersInProfit) : null,
+        breakEvenRoas: (rev.netAgorot - cogs.cogsAgorot - fees.feesAgorot) > 0 ? +(rev.netAgorot / (rev.netAgorot - cogs.cogsAgorot - fees.feesAgorot)).toFixed(2) : null
+      }
+    };
+    return r;
+  }
+
+  // ---------- תצוגה ----------
+  function fmt(agorot) {
+    if (agorot == null) return '—';
+    var s = (Math.abs(agorot) / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return (agorot < 0 ? '-' : '') + s + ' ₪';
+  }
+
+  return {
+    FORMULA_VERSION: FORMULA_VERSION, VAT_RATE: VAT_RATE,
+    israelDate: israelDate, daysInMonth: daysInMonth, addDays: addDays, inPeriod: inPeriod,
+    periodMonth: periodMonth, periodLastDays: periodLastDays, periodToday: periodToday, periodAll: periodAll, periodDays: periodDays,
+    normalizeOrder: normalizeOrder, normalizeOrders: normalizeOrders, salesEligible: salesEligible, profitEligible: profitEligible,
+    fxRate: fxRate, ilsFromUsd: ilsFromUsd, roundHalfUp: roundHalfUp,
+    calculateNetRevenue: calculateNetRevenue, calculateCOGS: calculateCOGS, calculatePaymentFees: calculatePaymentFees, feeForOrder: feeForOrder,
+    calculateAdSpend: calculateAdSpend, calculateFixedCosts: calculateFixedCosts, allocateExpense: allocateExpense,
+    calculateGrossProfit: calculateGrossProfit, calculateContributionProfit: calculateContributionProfit, calculateNetProfit: calculateNetProfit,
+    confidencePercent: confidencePercent, worst: worst, summarize: summarize, fmt: fmt
+  };
+})();
+if (typeof module !== 'undefined' && module.exports) module.exports = LorinxEngine;

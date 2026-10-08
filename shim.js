@@ -37,12 +37,16 @@
   var clipListeners=[];
   var STATUS_IN={"מאושר לפרסום":"approved","פורסם":"approved","פורסם חלקית":"approved","נדחה":"rejected","ממתין לאישור":"pending"};
   var STATUS_OUT={approved:"מאושר לפרסום",rejected:"נדחה",pending:"ממתין לאישור"};
+  /* a status may carry a suffix ("מאושר לפרסום - תמונה", "בוטל - יוחלף בקליפ אחר"): it is read by its beginning. statusRaw keeps the exact approved wording last seen for the row, so a re-approval in the same session writes it back unchanged */
+  var approvedAs={};
+  function statusIn(st){if(STATUS_IN[st])return STATUS_IN[st];var k=["מאושר לפרסום","פורסם","נדחה","ממתין לאישור"];for(var i=0;i<k.length;i++)if(st.indexOf(k[i])===0)return STATUS_IN[k[i]];return "pending"}
   var rowsCache=[];
   function mapRow(r,i){
     var st=(r[6]||"").trim();
-    if(st==="בוטל"||!r[0])return null;
-    var file=r[4]||"",base=file.split("/").pop();
-    return {id:r[0],row:i+1,data:{date:r[0],product:r[1]||"",template:r[2]||"",hook:r[3]||"",file:file,status:STATUS_IN[st]||"pending",time:r[14]||"20:30",caption:r[15]||"",
+    if(st.indexOf("בוטל")===0||!r[0])return null;
+    var file=r[4]||"",base=file.split("/").pop(),ak=r[0]+"|"+file;
+    if(st.indexOf("מאושר לפרסום")===0)approvedAs[ak]=st;
+    return {id:r[0],row:i+1,data:{date:r[0],product:r[1]||"",template:r[2]||"",hook:r[3]||"",file:file,status:statusIn(st),statusRaw:approvedAs[ak]||st,time:r[14]||"20:30",caption:r[15]||"",
       video:file?encodeURI("../"+file):""}};
   }
   function loadClips(){

@@ -192,8 +192,9 @@ var LorinxEngine = (function () {
           if (!r) { conf.push('MISSING'); detail.push({ supplierOrder: c.supplierOrder, usdCents: c.amountUsdCents, agorot: null, reason: 'אין שער' }); return; }
           var a = ilsFromUsd(c.amountUsdCents, r.rate);
           amt += a;
-          conf.push(worst([c.confidence || 'MANUAL', r.exact ? r.confidence : 'ESTIMATED']));
-          detail.push({ supplierOrder: c.supplierOrder, usdCents: c.amountUsdCents, rate: r.rate, rateDate: r.date, agorot: a, status: c.status });
+          // שער יציג של בנק ישראל תקף עד הפרסום הבא: ביום בלי פרסום (סוף שבוע, חג) משתמשים בשער היום העסקי הקודם, וזה לא הערכה
+          conf.push(worst([c.confidence || 'MANUAL', r.confidence]));
+          detail.push({ supplierOrder: c.supplierOrder, usdCents: c.amountUsdCents, rate: r.rate, rateDate: r.date, rateCarried: !r.exact, agorot: a, status: c.status });
         });
       } else {
         // אין רכישה רשומה: עלות לפי product_costs בתוקף
@@ -340,6 +341,60 @@ var LorinxEngine = (function () {
     });
     return { creditAgorot: total, applies: total > 0, partial: partial, cashPaidAgorot: total > 0 ? ads.adSpendAgorot - total : null,
       confidence: labels.length ? worst(labels) : 'MANUAL', rows: rows };
+  }
+
+  // ---------- בדיקת תקינות נתוני המנוע (מבוצעת על הנתונים עצמם, בלי שרת) ----------
+  // opts: {now: ISO, syncedAt: ISO|null}. כל בדיקה: ok / warn (דורש תשומת לב, לא שבור) / bad (שבור).
+  function dataHealth(data, opts) {
+    opts = opts || {};
+    var now = opts.now || new Date().toISOString(), today = israelDate(now), checks = [];
+    function add(id, label, level, detail) { checks.push({ id: id, label: label, level: level, ok: level === 'ok', detail: detail || '' }); }
+    var orders = normalizeOrders(data.orders, data.flags), all = periodAll(now);
+
+    var seen = {}, dup = [];
+    (data.orders || []).forEach(function (o) { if (seen[o.name]) dup.push(o.name); seen[o.name] = 1; });
+    add('orders_unique', 'אין הזמנות כפולות', dup.length ? 'bad' : 'ok', dup.length ? 'כפולות: ' + dup.join(', ') : (data.orders || []).length + ' הזמנות');
+
+    var arith = [];
+    (data.orders || []).forEach(function (o) {
+      var sum = 0; (o.lines || []).forEach(function (l) { sum += l.unitPriceAgorot * l.qty; });
+      if (o.netAgorot !== o.grossAgorot - o.discountAgorot) arith.push(o.name + ' (נטו ≠ ברוטו פחות הנחה)');
+      else if ((o.lines || []).length && sum !== o.grossAgorot) arith.push(o.name + ' (ברוטו ≠ סכום השורות)');
+      else if (!(o.lines || []).length) arith.push(o.name + ' (אין שורות מוצר)');
+    });
+    add('orders_arith', 'סכומי ההזמנות מתאימים לשורות שלהן', arith.length ? 'bad' : 'ok', arith.join(', '));
+
+    var cogs = calculateCOGS(orders, data.orderCosts, data.productCosts, data.fx, all);
+    add('cost_coverage', 'לכל הזמנה ברווח יש עלות מוצר', cogs.ordersMissingCost.length ? 'bad' : 'ok', cogs.ordersMissingCost.length ? 'בלי עלות: ' + cogs.ordersMissingCost.join(', ') : '');
+    var est = cogs.perOrder.filter(function (p) { return p.confidence === 'ESTIMATED'; }).map(function (p) { return p.name; });
+    add('cost_actual', 'העלות מבוססת על רכישה בפועל', est.length ? 'warn' : 'ok', est.length ? 'מחיר ספק נוכחי במקום רכישה בפועל: ' + est.join(', ') : '');
+
+    var noFx = [];
+    orders.forEach(function (o) { if (profitEligible(o) && !fxRate(data.fx, o.date)) noFx.push(o.name); });
+    add('fx_coverage', 'יש שער בנק ישראל לכל תאריך הזמנה', noFx.length ? 'bad' : 'ok', noFx.length ? 'בלי שער: ' + noFx.join(', ') : '');
+
+    var fees = calculatePaymentFees(orders, data.feeRates, all);
+    var weak = fees.perOrder.filter(function (p) { return p.confidence === 'MISSING'; }).map(function (p) { return p.name; });
+    var estf = fees.perOrder.filter(function (p) { return p.confidence === 'ESTIMATED'; }).map(function (p) { return p.name; });
+    add('fee_coverage', 'לכל הזמנה ברווח יש תעריף עמלה', weak.length ? 'bad' : (estf.length ? 'warn' : 'ok'), weak.length ? 'בלי תעריף: ' + weak.join(', ') : (estf.length ? 'תעריף לא מאומת: ' + estf.join(', ') : ''));
+
+    var cov = data.adSpendCoverage, lagDays = cov ? Math.round((Date.parse(addDays(today, -1) + 'T00:00:00Z') - Date.parse(cov.to + 'T00:00:00Z')) / 864e5) : null;
+    add('ads_fresh', 'נתוני הפרסום מעודכנים עד אתמול', !cov ? 'bad' : (lagDays > 0 ? 'warn' : 'ok'), !cov ? 'אין נתוני פרסום' : (lagDays > 0 ? 'הנתון האחרון מ-' + cov.to + ', חסרים ' + lagDays + ' ימים (עד שהסנכרון היומי יעבוד, מעדכנים ידנית)' : 'עד ' + cov.to));
+
+    if (opts.syncedAt !== undefined) {
+      var ageH = opts.syncedAt ? (Date.parse(now) - Date.parse(opts.syncedAt)) / 36e5 : null;
+      add('orders_fresh', 'סנכרון ההזמנות מ-Shopify טרי', ageH == null ? 'bad' : (ageH > 3 ? 'warn' : 'ok'), ageH == null ? 'אין חותמת סנכרון' : 'לפני ' + (ageH < 1 ? Math.round(ageH * 60) + ' דקות' : ageH.toFixed(1) + ' שעות'));
+    }
+
+    var badExp = (data.expenses || []).filter(function (e) {
+      if (e.category === 'OneTime') return !(e.amountAgorot >= 0) || !e.date;
+      if (e.category === 'AdCredit') return !(e.amountAgorot >= 0) || !e.startDate || !e.endDate;
+      return !(e.monthlyAgorot >= 0) || !e.startDate;
+    }).map(function (e) { return e.id; });
+    add('expenses_valid', 'שורות ההוצאה תקינות', badExp.length ? 'bad' : 'ok', badExp.join(', '));
+
+    var bad = checks.filter(function (c) { return c.level === 'bad'; }).length, warn = checks.filter(function (c) { return c.level === 'warn'; }).length;
+    return { checks: checks, bad: bad, warn: warn, ok: bad === 0 && warn === 0 };
   }
 
   // ---------- חבילה אחת לתקופה ----------
@@ -497,7 +552,7 @@ var LorinxEngine = (function () {
     normalizeOrder: normalizeOrder, normalizeOrders: normalizeOrders, salesEligible: salesEligible, profitEligible: profitEligible,
     fxRate: fxRate, ilsFromUsd: ilsFromUsd, roundHalfUp: roundHalfUp,
     calculateNetRevenue: calculateNetRevenue, calculateCOGS: calculateCOGS, calculatePaymentFees: calculatePaymentFees, feeForOrder: feeForOrder,
-    calculateAdSpend: calculateAdSpend, calculateAdCredit: calculateAdCredit, calculateFixedCosts: calculateFixedCosts, allocateExpense: allocateExpense,
+    calculateAdSpend: calculateAdSpend, calculateAdCredit: calculateAdCredit, dataHealth: dataHealth, calculateFixedCosts: calculateFixedCosts, allocateExpense: allocateExpense,
     calculateGrossProfit: calculateGrossProfit, calculateContributionProfit: calculateContributionProfit, calculateNetProfit: calculateNetProfit,
     confidencePercent: confidencePercent, worst: worst, summarize: summarize, fmt: fmt,
     orderRows: orderRows, profitByProduct: profitByProduct, effectiveFeeRate: effectiveFeeRate, unitCosts: unitCosts, ordersNeeded: ordersNeeded, productName: productName, allocate: allocate

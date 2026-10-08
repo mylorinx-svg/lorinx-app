@@ -334,6 +334,13 @@ body{padding-top:env(safe-area-inset-top)}
 .vcount{position:absolute;inset-block-start:10px;inset-inline-start:10px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;padding:3px 10px;border-radius:999px;pointer-events:none;font-variant-numeric:tabular-nums}
 @media (max-width:820px){.mv{width:96px}}
 @media (max-width:720px){.viewer{grid-template-columns:minmax(0,1fr);max-height:calc(100vh - 24px);overflow-y:auto}.vstage{min-height:200px}.vstage video,.vstage img{max-height:62vh}.vside{max-height:none;overflow:visible;padding:var(--s4)}}
+.ecard .tp{display:flex;justify-content:space-between;gap:var(--s3);flex-wrap:wrap;align-items:center;margin-bottom:var(--s3)}
+.ecard .tp .seg{margin-bottom:0}
+.ecard .kpis{margin-top:var(--s3)}
+.ek{cursor:pointer}.ek:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.esel{outline:2px solid var(--ink)}
+.edetail{margin-top:var(--s4);border-top:1px solid var(--line2);padding-top:var(--s3)}
+.edetail h3{margin:0 0 var(--s2)}
 </style>
 
 <div class="app" dir="rtl" lang="he" id="app">
@@ -359,6 +366,8 @@ body{padding-top:env(safe-area-inset-top)}
 <div id="msg" aria-live="polite" role="status"></div>
 <div id="offl" role="alert" hidden>אין חיבור לגיליון. מוצג המצב האחרון הידוע, לקריאה בלבד.</div>
 <script src="gate.js"></script>
+<script src="engine.js"></script>
+<script src="sheet_adapter.js"></script>
 <script src="shim.js"></script>
 <script>
 (function(){
@@ -581,11 +590,107 @@ body{padding-top:env(safe-area-inset-top)}
   var lastRef=0;
   function refreshAll(auto){
     if(loading)return;if(auto===true&&Date.now()-lastRef<20000)return;lastRef=Date.now();loading=true;if(auto!==true)mediaForget();if(db&&db.refresh)db.refresh().then(null,function(){});var b=document.getElementById("refbtn");b.disabled=true;b.textContent="מרענן…";
-    Promise.all([loadConn(),loadOrders(),loadSheet(),loadDrafts(),loadExp(),loadContent(),loadLog(),loadFin(),loadLedger()]).then(function(){
+    Promise.all([loadConn(),loadOrders(),loadSheet(),loadDrafts(),loadExp(),loadContent(),loadLog(),loadFin(),loadLedger(),loadV2()]).then(function(){
       loading=false;b.disabled=false;b.textContent="רענן נתונים";render();
     });
   }
 
+  /* ---------- the calculation engine (engine.js + sheet_adapter.js), shown beside the old numbers ---------- */
+  var V2TABS=["orders_v2","order_lines","refunds","order_costs","product_costs","fx_rates","fee_rates","ad_spend","expenses_v2"];
+  function loadV2(){return Promise.all(V2TABS.map(function(t){return call("v2_"+t,"Google Sheets","get_values",{spreadsheetId:SHEET,range:t+"!A1:V2000"})}))}
+  var EPERIODS=[["7d","7 ימים"],["30d","30 יום"],["month","החודש"],["all","מקסימום"]];
+  var eperiod="30d",eSel=null;
+  try{var e0=localStorage.getItem("lx_eperiod");if(EPERIODS.some(function(x){return x[0]===e0}))eperiod=e0}catch(e){}
+  var CONF_HE={VERIFIED:"מאומת",MANUAL:"ידני",ESTIMATED:"מוערך",STALE:"ישן",MISSING:"חסר"};
+  function v2Vals(t){var s=LIVE["v2_"+t];return s&&s.data&&s.data.values?s.data.values:null}
+  function engineData(){
+    if(typeof LorinxEngine==="undefined"||typeof LorinxSheetAdapter==="undefined")return {error:"קובצי המנוע לא נטענו."};
+    var tabs={},miss=[];V2TABS.forEach(function(t){var v=v2Vals(t);if(!v)miss.push(t);tabs[t]=v||[]});
+    if(miss.length)return {missing:miss};
+    try{return {data:LorinxSheetAdapter.build(tabs)}}catch(e){return {error:String(e&&e.message||e)}}
+  }
+  function enginePeriod(){
+    var E=LorinxEngine,now=new Date();
+    if(eperiod==="7d")return E.periodLastDays(7,now);
+    if(eperiod==="month")return E.periodMonth(todayJ().slice(0,7));
+    if(eperiod==="all")return E.periodAll(now);
+    return E.periodLastDays(30,now);
+  }
+  function eAg(a){return m2(a/100)}
+  function eConf(c,pct){return CONF_HE[c]||c||""}
+  function engineSeg(){
+    var seg=el("div","seg");seg.setAttribute("role","group");seg.setAttribute("aria-label","תקופה למנוע");
+    EPERIODS.forEach(function(o){
+      var b=el("button","ghost sm"+(eperiod===o[0]?" on":""),o[1]);b.type="button";b.setAttribute("aria-pressed",eperiod===o[0]?"true":"false");
+      b.addEventListener("click",function(){if(eperiod===o[0])return;eperiod=o[0];try{localStorage.setItem("lx_eperiod",eperiod)}catch(e){}render()});
+      seg.appendChild(b);
+    });
+    return seg;
+  }
+  function ekpi(key,l,v,s,cls){
+    var k=kpi(l,v,s,cls+(eSel===key?" esel":""));k.classList.add("ek");k.setAttribute("role","button");k.tabIndex=0;k.setAttribute("aria-expanded",eSel===key?"true":"false");
+    function tog(){eSel=eSel===key?null:key;render()}
+    k.addEventListener("click",tog);k.addEventListener("keydown",function(ev){if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();tog()}});
+    return k;
+  }
+  function eLines(list){var r=el("div","pl");list.forEach(function(x){var ln=el("div","line"+(x.sum?" sum":""));ln.appendChild(el("span",null,x.a));ln.appendChild(el("span",null,x.b));r.appendChild(ln)});return r}
+  function engineDetail(s){
+    var box=el("div","edetail"),E=LorinxEngine;
+    function comps(c){return c.components.map(function(x){return {a:x.name+(x.confidence?" · "+eConf(x.confidence):""),b:eAg(x.amountAgorot)}})}
+    if(eSel==="orders"){
+      box.appendChild(el("h3",null,"הזמנות בתקופה, כמו Shopify"));
+      box.appendChild(eLines([{a:"נספרות במכירות",b:String(s.sales.orderCount)},{a:"מתוכן הזמנות בדיקה",b:String(s.sales.testOrderCount)+" · "+eAg(s.sales.testOrdersNetAgorot)},{a:"נספרות ברווח",b:String(s.revenueForProfit.orderCount)}]));
+      box.appendChild(el("p","note","ברווח: "+(s.revenueForProfit.orderNames.join(", ")||"אין")+". לא ברווח: בדיקות, הזמנות שלא שולמו, והזמנות שבוטלו בלי זיכוי."));
+    }else if(eSel==="rev"){
+      box.appendChild(el("h3",null,"מכירות נטו, הבסיס לרווח"));
+      box.appendChild(eLines(comps(s.revenueForProfit).concat([{a:"מכירות נטו",b:eAg(s.revenueForProfit.netAgorot),sum:true}])));
+    }else if(eSel==="gross"){
+      box.appendChild(el("h3",null,"רווח גולמי = מכירות נטו פחות עלות המוצרים"));
+      box.appendChild(eLines(s.cogs.perOrder.map(function(o){return {a:o.name+(o.creatorSample?" (יוצרת תוכן, לא ב-COGS)":"")+" · "+eConf(o.confidence),b:eAg(o.agorot)}}).concat([{a:"עלות מוצרים",b:eAg(s.cogs.cogsAgorot),sum:true},{a:"רווח גולמי",b:eAg(s.grossProfit.agorot),sum:true}])));
+      if(s.cogs.ordersMissingCost.length)box.appendChild(el("p","err","בלי עלות: "+s.cogs.ordersMissingCost.join(", ")));
+      box.appendChild(el("p","note","עלות = מחיר הרכישה ב-AutoDS בדולרים, לפי שער הדולר של יום הרכישה. 'מוערך' = השער מבנק אנגליה עד שיוחלף בשער היציג."));
+    }else if(eSel==="contrib"){
+      box.appendChild(el("h3",null,"רווח תרומה = רווח גולמי פחות עמלות ופרסום"));
+      var L=[{a:"רווח גולמי",b:eAg(s.grossProfit.agorot)}];
+      s.fees.perOrder.forEach(function(o){L.push({a:"עמלה "+o.name+" · "+eConf(o.confidence),b:eAg(-o.agorot)})});
+      var ck=Object.keys(s.ads.byCampaign).filter(function(k){return s.ads.byCampaign[k].spendAgorot>0});ck.forEach(function(k){var c=s.ads.byCampaign[k];L.push({a:"פרסום "+(c.campaignName||k)+" · "+c.purchases+" רכישות לפי מטא",b:eAg(-c.spendAgorot)})});
+      if(!ck.length)L.push({a:"פרסום · "+eConf(s.ads.confidence)+(s.ads.confidence==="MISSING"?" (אין נתוני Ads Manager לתקופה)":" (אין הוצאה בתקופה)"),b:eAg(0)});
+      if(s.cogs.creatorSamplesAgorot)L.push({a:"מוצרים ליוצרי תוכן",b:eAg(-s.cogs.creatorSamplesAgorot)});
+      L.push({a:"רווח תרומה · ביטחון "+s.contributionProfit.confidencePercent+"%",b:eAg(s.contributionProfit.agorot),sum:true});
+      box.appendChild(eLines(L));
+      box.appendChild(el("p","note","עמלה = 0.6% PayPlus + 1.2% ישראכרט (שניהם + מע\"מ) + 2% Shopify, לפי הצעת המחיר. מוערך עד שתהיה חשבונית. פרסום לפי Ads Manager, יום-יום."));
+    }else if(eSel==="net"){
+      box.appendChild(el("h3",null,"רווח נקי = רווח תרומה פחות הוצאות קבועות מוקצות"));
+      box.appendChild(eLines([{a:"רווח תרומה",b:eAg(s.contributionProfit.agorot)}].concat(s.fixed.perExpense.map(function(e){return {a:e.name,b:eAg(-e.agorot)}})).concat([{a:"רווח נקי · ביטחון "+s.netProfit.confidencePercent+"%",b:eAg(s.netProfit.agorot),sum:true}])));
+      box.appendChild(el("p","note","כל הוצאה מוקצית לפי ימים קלנדריים בתוך תקופת התוקף שלה. חודש מלא = בדיוק הסכום החודשי."));
+    }
+    return box;
+  }
+  function engineKpiRow(){
+    var wrap=el("div","card ecard"),head=el("div","tp");
+    head.appendChild(el("h2",null,"המנוע החדש, לצד החישוב הישן"));head.appendChild(engineSeg());wrap.appendChild(head);
+    var ed=engineData();
+    if(ed.error){wrap.appendChild(el("p","err",ed.error));return wrap}
+    if(ed.missing){var anyErr=ed.missing.map(function(t){var s=LIVE["v2_"+t];return s&&s.err}).filter(Boolean)[0];wrap.appendChild(el("div","empty",anyErr?"המנוע לא קיבל את הלשוניות החדשות: "+anyErr:"טוען את הלשוניות החדשות…"));return wrap}
+    var E=LorinxEngine,p=enginePeriod(),s;
+    try{s=E.summarize(ed.data,p)}catch(e){wrap.appendChild(el("p","err","שגיאה בחישוב: "+String(e&&e.message||e)));return wrap}
+    wrap.appendChild(el("p","prange",periodText({from:p.from,to:p.to,days:s.days})+(eperiod==="30d"||eperiod==="7d"?" · עד אתמול, כמו Shopify":"")));
+    var g=el("div","kpis");
+    g.appendChild(ekpi("orders","הזמנות, כמו Shopify",String(s.sales.orderCount),(s.sales.testOrderCount?"מתוכן בדיקות "+s.sales.testOrderCount+" · ":"")+s.revenueForProfit.orderCount+" ברווח",""));
+    g.appendChild(ekpi("rev","מכירות נטו",eAg(s.revenueForProfit.netAgorot),"ברוטו "+eAg(s.revenueForProfit.grossAgorot)+(s.revenueForProfit.discountAgorot?" · הנחות "+eAg(s.revenueForProfit.discountAgorot):""),""));
+    g.appendChild(ekpi("gross","רווח גולמי",eAg(s.grossProfit.agorot),"עלות מוצרים "+eAg(s.cogs.cogsAgorot)+" · "+eConf(s.cogs.confidence),""));
+    var cm=s.contributionProfit.missing.length?"חסר: "+s.contributionProfit.missing.join(", "):"פרסום "+eAg(s.ads.adSpendAgorot)+" · עמלות "+eAg(s.fees.feesAgorot)+" · ביטחון "+s.contributionProfit.confidencePercent+"%";
+    g.appendChild(ekpi("contrib","רווח תרומה",s.contributionProfit.missing.length?"–":eAg(s.contributionProfit.agorot),cm,s.contributionProfit.missing.length?"":(s.contributionProfit.agorot<0?"bad":"ok")));
+    g.appendChild(ekpi("net","רווח נקי",s.netProfit.missing.length?"–":eAg(s.netProfit.agorot),"קבועות מוקצות "+eAg(s.fixed.fixedAgorot)+(s.netProfit.missing.length?" · חסר: "+s.netProfit.missing.join(", "):""),s.netProfit.missing.length?"":(s.netProfit.agorot<0?"bad":"ok")));
+    wrap.appendChild(g);
+    if(eSel)wrap.appendChild(engineDetail(s));
+    /* freshness: when the orders were synced into the new tabs, and the last day of ad data */
+    var ov=v2Vals("orders_v2")||[],syn="";for(var i=1;i<ov.length;i++){var t=String((ov[i]||[])[21]||"");if(t>syn)syn=t}
+    var ad=ed.data.adSpendCoverage;
+    wrap.appendChild(el("p","note","לחיצה על מספר פותחת את הרכיבים שלו. הזמנות נכון ל-"+(syn?new Date(syn).toLocaleString("he-IL",{day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"}):"–")+(ad?" · פרסום עד "+dmy(ad.to):"")+" · נוסחה "+s.formulaVersion+". החישוב הישן למעלה נשאר עד שהמספרים מוסברים."));
+    var worst=null;V2TABS.forEach(function(t){var x=LIVE["v2_"+t];if(x&&x.err)worst=x.err});if(worst)wrap.appendChild(el("p","err",worst));
+    return wrap;
+  }
   /* ---------- derived numbers ---------- */
   /* canonical order feed: every screen reads orders through orders() and money through ag()/paidAmt(), so the numbers cannot drift between cards */
   function testNames(){return String(M.biz.testOrders||"").split(/[\s,]+/).filter(Boolean)}
@@ -1217,7 +1322,7 @@ body{padding-top:env(safe-area-inset-top)}
   }
   function liveFor(d){
     var out=[];
-    if(d.id==="exec"){out.push(kpiRow(),goalCard())}
+    if(d.id==="exec"){out.push(kpiRow(),engineKpiRow(),goalCard())}
     if(d.id==="ops"){out.push(opsKpis(),ordersCard(true),trouble())}
     if(d.id==="fin"){var tk=tickerBar();if(tk)out.push(tk);out.push(periodCard(),productCard(),portfolioCard(),financeCard())}
     if(d.id==="sales"){
@@ -1357,6 +1462,7 @@ body{padding-top:env(safe-area-inset-top)}
     var tk=tickerBar();if(tk)f.appendChild(tk);
     f.appendChild(heroCard());
     f.appendChild(kpiRow());
+    f.appendChild(engineKpiRow());
     var pg=el("div","grid2");pg.appendChild(periodCard());pg.appendChild(monthGauge());f.appendChild(pg);
     var sp=el("div","split"),left=el("div","stack"),right=el("div","stack");left.style.gap="16px";right.style.gap="16px";
     left.appendChild(mapCard());left.appendChild(termCard());

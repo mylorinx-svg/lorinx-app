@@ -765,7 +765,8 @@ body{padding-top:env(safe-area-inset-top)}
     return card("מד יעד חודשי",box);
   }
 
-  /* ---------- profit by period: today / 7 days / this month / everything (the orders ledger tab is the single source) ---------- */
+  /* ---------- profit by period: today / 7 days / this month / everything (the orders ledger tab is the single source).
+     Orders and sales are counted exactly like Shopify Analytics: every order in the ledger, the owner's test orders and 0-priced orders included. ---------- */
   var PERIODS=[["day","היום"],["week","7 ימים"],["month","החודש"],["max","מקסימום"]];
   var period="month",periodAll=false;
   try{var p0=localStorage.getItem("lx_period");if(PERIODS.some(function(x){return x[0]===p0}))period=p0}catch(e){}
@@ -786,7 +787,7 @@ body{padding-top:env(safe-area-inset-top)}
     for(var i=1;i<v.length;i++){
       var r=v[i]||[];if(!r[2])continue;
       var d=isoDay(r[0]),counted=(r[14]===true||String(r[14]).toUpperCase()==="TRUE");
-      if(!d){if(counted)out.bad++;continue}
+      if(!d){out.bad++;continue}
       out.push({d:d,name:String(r[2]),items:String(r[3]||""),units:num(r[4])||0,rev:num(r[7]),cogs:num(r[8]),fee:num(r[9]),profit:num(r[10]),counted:counted,note:String(r[15]||"")});
     }
     return out;
@@ -795,17 +796,16 @@ body{padding-top:env(safe-area-inset-top)}
     var t=todayJ(),from=t;
     if(period==="week")from=addDays(t,-6);
     else if(period==="month")from=t.slice(0,8)+"01";
-    else if(period==="max")(rows||[]).forEach(function(r){if(r.counted&&r.d<from)from=r.d});
+    else if(period==="max")(rows||[]).forEach(function(r){if(r.d<from)from=r.d});
     return {from:from,to:t,days:Math.round((Date.parse(t)-Date.parse(from))/864e5)+1};
   }
   function periodText(g){return (g.from===g.to?dmy(g.from):dmy(g.from)+" עד "+dmy(g.to))+(g.days>1?" · "+g.days+" ימים":"")}
   function periodStats(){
     var rows=ledgerRows();if(!rows)return null;
-    var g=periodRange(rows),s={range:g,n:0,units:0,rev:0,cogs:0,fee:0,profit:0,unknown:0,list:[],bad:rows.bad,fixed:null,net:null,fresh:[],shopN:0,shopRev:0,excl:[]};
+    var g=periodRange(rows),s={range:g,n:0,units:0,rev:0,cogs:0,fee:0,profit:0,unknown:0,list:[],bad:rows.bad,fixed:null,net:null,fresh:[],own:[]};
     rows.forEach(function(r){
       if(r.d<g.from||r.d>g.to||r.rev==null)return;
-      s.shopN++;s.shopRev+=r.rev;   /* what Shopify Analytics shows for the same days: every order, test orders included */
-      if(!r.counted){s.excl.push(r);return}
+      if(!r.counted)s.own.push(r);   /* rows the sheet marks as not counted (test orders): shown, and named in a note */
       s.n++;s.units+=r.units;s.rev+=r.rev;s.list.push(r);
       if(r.profit==null||r.cogs==null){s.unknown++;return}
       s.cogs+=r.cogs;s.fee+=r.fee||0;s.profit+=r.profit;
@@ -850,8 +850,8 @@ body{padding-top:env(safe-area-inset-top)}
     nb.appendChild(nl);var hb=el("b",head<-0.005?"neg":null,m2(head));hb.dir="ltr";nb.appendChild(hb);main.appendChild(nb);
     var sec=el("div","pl");
     function ln(label,val,strong){var l=el("div","line"+(strong?" sum":""));l.appendChild(el("span",null,label));var v=el("span",null,val);v.dir="ltr";l.appendChild(v);sec.appendChild(l)}
-    ln("הזמנות נספרות",s.n+(s.units?" · "+s.units+" יחידות":""));
-    ln("הכנסות, אחרי החזרים",m2(s.rev));
+    ln("הזמנות",s.n+(s.units?" · "+s.units+" יחידות":""));
+    ln("מכירות נטו",m2(s.rev));
     ln("עלות סחורה",m2(-s.cogs));
     ln("עמלות",m2(-s.fee));
     ln("רווח מהזמנות"+(s.rev>0?" ("+Math.round(s.profit/s.rev*100)+"% מההכנסות)":""),m2(s.profit),true);
@@ -868,12 +868,12 @@ body{padding-top:env(safe-area-inset-top)}
       });
       tb.appendChild(body);t.appendChild(tb);side.appendChild(t);
       if(s.list.length>8){var bar=el("div","bar"),mb=el("button","ghost sm",periodAll?"הצג פחות":"הצג את כל "+s.list.length+" ההזמנות");mb.type="button";mb.addEventListener("click",function(){periodAll=!periodAll;render()});bar.appendChild(mb);side.appendChild(bar)}
-    }else side.appendChild(el("div","empty","אין הזמנות נספרות בתקופה הזאת."));
+    }else side.appendChild(el("div","empty","אין הזמנות בתקופה הזאת."));
     if(s.fresh.length)box.appendChild(el("p","err",s.fresh.length+" הזמנות מ-Shopify עוד לא נכנסו ליומן ולא נספרו כאן: "+s.fresh.map(function(x){return x.name}).join(", ")+" ("+mny(s.fresh.reduce(function(a,x){return a+paidAmt(x)},0))+")."));
-    if(s.excl.length)box.appendChild(el("p","note","מול Shopify Analytics: שם אמורות להופיע בתקופה הזאת "+s.shopN+" הזמנות ומכירות נטו של "+m2(s.shopRev)+". כאן לא נספרות "+s.excl.length+": "+s.excl.map(function(r){return r.name+" ("+m2(r.rev)+(r.note?", "+r.note:(r.rev?"":", הזמנה בלי תשלום"))+")"}).join(", ")+"."));
+    if(s.own.length)box.appendChild(el("p","note","כולל "+s.own.length+" הזמנות שהגיליון מסמן כלא נספרות: "+s.own.map(function(r){return r.name+" ("+m2(r.rev)+(r.note?", "+r.note:(r.rev?"":", הזמנה בלי תשלום"))+")"}).join(", ")+". הן נספרות כאן כי כך הן מופיעות ב-Shopify."));
     if(s.unknown)box.appendChild(el("p","err",s.unknown+" הזמנות בלי עלות ידועה: ההכנסה שלהן נספרה, הרווח לא."));
     if(s.bad)box.appendChild(el("p","err",s.bad+" שורות ביומן בלי תאריך תקין לא נספרו."));
-    box.appendChild(el("p","note",(period==="max"?"בתצוגת מקסימום ההוצאות הקבועות לא מנוכות, כי בגיליון נשמר רק הסכום החודשי של היום ולא ההיסטוריה שלו. ":"")+"הוצאות פרסום נכללות רק אם נרשמו בעמוד ההוצאות."));
+    box.appendChild(el("p","note",(period==="max"?"בתצוגת מקסימום ההוצאות הקבועות לא מנוכות, כי בגיליון נשמר רק הסכום החודשי של היום ולא ההיסטוריה שלו. ":"")+"הזמנות ומכירות נספרות כמו ב-Shopify Analytics. הוצאות פרסום נכללות רק אם נרשמו בעמוד ההוצאות."));
     box.appendChild(stamp("ledger"));
     return card("רווחים לפי תקופה",box,"span");
   }
@@ -884,7 +884,7 @@ body{padding-top:env(safe-area-inset-top)}
     var g=periodRange(rows),out={range:g,by:{},unknown:0,minN:null};
     rows.forEach(function(r){
       var on=parseInt(r.name.replace(/\D/g,""),10);if(isFinite(on)&&(out.minN==null||on<out.minN))out.minN=on;
-      if(!r.counted||r.d<g.from||r.d>g.to)return;
+      if(r.d<g.from||r.d>g.to)return;
       if(r.profit==null||r.rev==null){out.unknown++;return}
       var parts=r.items.split(/,\s*/).map(function(x){var m=/^(.*?)\s*×\s*(\d+)$/.exec(x.trim());return m?{n:m[1],u:parseInt(m[2],10)}:null}).filter(Boolean);
       var tu=parts.reduce(function(a,x){return a+x.u},0);if(!tu)return;
@@ -898,7 +898,7 @@ body{padding-top:env(safe-area-inset-top)}
     if(!ps){box.appendChild(el("div","empty","ממתין ליומן ההזמנות מהגיליון."));box.appendChild(stamp("ledger"));return card("רווח לפי מוצר",box)}
     box.appendChild(el("p","prange",periodText(ps.range)));
     var list=Object.keys(ps.by).map(function(k){return ps.by[k]}).sort(function(a,b){return b.profit-a.profit});
-    if(!list.length)box.appendChild(el("div","empty","אין הזמנות נספרות בתקופה הזאת."));
+    if(!list.length)box.appendChild(el("div","empty","אין הזמנות בתקופה הזאת."));
     else{
       var t=el("div","tbl"),tb=document.createElement("table"),th=document.createElement("thead"),hr=document.createElement("tr");
       ["מוצר","הזמנות","יחידות","הכנסה","רווח","רווח ליחידה"].forEach(function(h,i){hr.appendChild(el("th",i?"num":null,h))});th.appendChild(hr);tb.appendChild(th);

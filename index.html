@@ -617,6 +617,12 @@ body{padding-top:env(safe-area-inset-top)}
     return E.periodLastDays(30,now);
   }
   function eAg(a){return m2(a/100)}
+  /* the same 30 days the old cards use, from the engine; null when the new tabs are not loaded yet (cards then fall back to the old calculation alone) */
+  function eng30(){
+    if(typeof LorinxEngine==="undefined"||typeof LorinxSheetAdapter==="undefined")return null;
+    var ed=engineData();if(!ed.data)return null;
+    try{return LorinxEngine.summarize(ed.data,LorinxEngine.periodLastDays(30,new Date()))}catch(e){return null}
+  }
   function eConf(c,pct){return CONF_HE[c]||c||""}
   function engineSeg(){
     var seg=el("div","seg");seg.setAttribute("role","group");seg.setAttribute("aria-label","תקופה למנוע");
@@ -819,25 +825,36 @@ body{padding-top:env(safe-area-inset-top)}
     return card(onlyOpen?"הזמנות פתוחות (מ-Shopify, חי)":"הזמנות אחרונות (מ-Shopify, חי)",box);
   }
   function kpiRow(){
-    var c=calc(),g=el("div","kpis");
-    g.appendChild(kpi("הזמנות, 30 יום",c.n30!=null?String(c.n30):"–",c.need!=null?"נדרשות "+c.need+" בחודש"+(c.needSrc==="sheet"?", לפי עלויות בפועל":""):"נדרשות: ממתין לנתוני הגיליון"));
+    var c=calc(),g=el("div","kpis"),s=eng30();
+    var oldOrders=c.n30!=null?String(c.n30):"–",need=c.need!=null?"נדרשות "+c.need+" בחודש"+(c.needSrc==="sheet"?", לפי עלויות בפועל":""):"נדרשות: ממתין לנתוני הגיליון";
+    if(s){
+      g.appendChild(kpi("הזמנות, 30 יום",String(s.sales.orderCount),"כמו Shopify"+(s.sales.testOrderCount?" · מתוכן בדיקות "+s.sales.testOrderCount:"")+" · "+need+" · בחישוב הישן: "+oldOrders));
+      g.appendChild(kpi("מכירות נטו, 30 יום",eAg(s.revenueForProfit.netAgorot),(s.revenueForProfit.orderCount?"ממוצע להזמנה "+eAg(Math.round(s.revenueForProfit.netAgorot/s.revenueForProfit.orderCount))+" · ":"")+"בחישוב הישן: "+(c.rev30!=null?sh(c.rev30):"–")));
+      var cm=s.contributionProfit;
+      g.appendChild(kpi("רווח תרומה (אחרי עלות, עמלות ופרסום)",cm.missing.length?"–":eAg(cm.agorot),(cm.missing.length?"חסר: "+cm.missing.join(", ")+" · ":"ביטחון "+cm.confidencePercent+"% · ")+"בחישוב הישן (הערכה): "+(c.gross!=null?sh(c.gross):"–"),cm.missing.length?"":(cm.agorot<0?"bad":"ok")));
+      var nt=s.netProfit;
+      g.appendChild(kpi("רווח נקי (קבועות מוקצות)",nt.missing.length?"–":eAg(nt.agorot),"קבועות לפי ימים "+eAg(s.fixed.fixedAgorot)+" · בחישוב הישן: "+(c.after!=null?sh(c.after):"–"),nt.missing.length?"":(nt.agorot<0?"bad":"ok")));
+    }else{
+    g.appendChild(kpi("הזמנות, 30 יום",oldOrders,need));
     g.appendChild(kpi("הכנסה, 30 יום",c.rev30!=null?sh(c.rev30):"–",c.avg?"ממוצע להזמנה "+sh(c.avg):""));
     g.appendChild(kpi("רווח משוער לפני קבועות",c.gross!=null?sh(c.gross):"–",(c.k===c.n30?"מחושב מכל הזמנה לפי מחיר ועלות בגיליון, ממוצע "+fmt(c.net)+" ₪":"הערכה חלקית: "+(c.n30-c.k)+" הזמנות לא תואמות מחיר מוצר, ממוצע "+fmt(c.net)+" ₪")));
     var aft=c.after;g.appendChild(kpi("אחרי הוצאות קבועות",aft!=null?sh(aft):"–",c.fixed!=null?"הוצאות קבועות "+sh(c.fixed):"",aft!=null&&aft<0?"bad":(aft!=null?"ok":"")));
+    }
     g.appendChild(kpi("הזמנות באיחור",c.late!=null?String(c.late):"–",c.open?(c.open.length+" הזמנות פתוחות"):"",c.late>0?"bad":(c.late===0?"ok":"")));
     var dr=LIVE.drafts&&LIVE.drafts.data;var dn=dr&&dr.resultCountEstimate!=null?dr.resultCountEstimate:(dr&&dr.threads?dr.threads.length:null);
     g.appendChild(kpi("שרשורים בתווית LORINX-לאישור",dn!=null?String(dn):"–","ספירה מ-Gmail, לא כולל בדיקה אם נשלחו",""));
     return g;
   }
   function goalCard(){
-    var c=calc(),box=el("div");
-    var have=c.after!=null?Math.max(0,c.after):0,pct=Math.min(100,Math.round(have/c.goal*100));
+    var c=calc(),box=el("div"),s=eng30(),eNet=s&&!s.netProfit.missing.length?s.netProfit.agorot/100:null;
+    var cur=eNet!=null?eNet:c.after;
+    var have=cur!=null?Math.max(0,cur):0,pct=Math.min(100,Math.round(have/c.goal*100));
     var t=el("div");t.style.display="flex";t.style.justifyContent="space-between";t.style.gap="12px";t.style.flexWrap="wrap";
-    t.appendChild(el("span",null,c.after!=null?("רווח נטו משוער: "+sh(c.after)):"רווח נטו משוער: –"));
+    t.appendChild(el("span",null,cur!=null?((eNet!=null?"רווח נקי (מנוע, 30 יום): ":"רווח נטו משוער: ")+sh(cur)):"רווח נטו משוער: –"));
     t.appendChild(el("span","stale","יעד "+sh(c.goal)));
     box.appendChild(t);
     var p=el("div","prog"),i=document.createElement("i");i.style.width=pct+"%";p.appendChild(i);box.appendChild(p);
-    box.appendChild(el("p","note","ההערכה מבוססת על ההזמנות ב-30 הימים האחרונים ורווח ממוצע להזמנה של "+fmt(c.net)+" ₪, מחושב לפי המחיר והעלות של כל הזמנה. אם הוא יוצאת שלילית, ההוצאות הקבועות גבוהות מהרווח מהמכירות."));
+    box.appendChild(el("p","note",eNet!=null?"הרווח הנקי מחושב במנוע מ-30 הימים האחרונים: מכירות פחות עלות מוצרים, עמלות, פרסום והוצאות קבועות מוקצות לפי ימים. החישוב הישן (הערכה לפי ממוצע של "+fmt(c.net)+" ₪ להזמנה): "+(c.after!=null?sh(c.after):"–")+". אם הרווח שלילי, ההוצאות גדולות מהרווח מהמכירות.":"ההערכה מבוססת על ההזמנות ב-30 הימים האחרונים ורווח ממוצע להזמנה של "+fmt(c.net)+" ₪, מחושב לפי המחיר והעלות של כל הזמנה. אם הוא יוצאת שלילית, ההוצאות הקבועות גבוהות מהרווח מהמכירות."));
     return card("התקדמות מול היעד החודשי",box);
   }
 
@@ -1305,7 +1322,8 @@ body{padding-top:env(safe-area-inset-top)}
   function opsKpis(){
     var c=calc(),o=orders(),g=el("div","kpis");
     var shipped=o?o.filter(function(x){return x.fulfillmentStatus==="FULFILLED"&&new Date(x.createdAt).getTime()>=Date.now()-30*864e5}).length:null;
-    g.appendChild(kpi("הזמנות, 30 יום",c.n30!=null?String(c.n30):"–",""));
+    var es=eng30();
+    g.appendChild(kpi("הזמנות, 30 יום",es?String(es.sales.orderCount):(c.n30!=null?String(c.n30):"–"),es?"כמו Shopify"+(es.sales.testOrderCount?" · מתוכן בדיקות "+es.sales.testOrderCount:"")+" · בחישוב הישן: "+(c.n30!=null?c.n30:"–"):""));
     g.appendChild(kpi("נשלחו",shipped!=null?String(shipped):"–","מתוכן, סטטוס נשלחה"));
     g.appendChild(kpi("ממתינות למשלוח",c.open?String(c.open.length):"–","שולמו, לא נשלחו",c.open&&c.open.length?"warn":""));
     g.appendChild(kpi("באיחור (מעל 14 ימי עסקים)",c.late!=null?String(c.late):"–","דורשות בדיקה ב-AutoDS",c.late>0?"bad":(c.late===0?"ok":"")));
@@ -1324,7 +1342,7 @@ body{padding-top:env(safe-area-inset-top)}
     var out=[];
     if(d.id==="exec"){out.push(kpiRow(),engineKpiRow(),goalCard())}
     if(d.id==="ops"){out.push(opsKpis(),ordersCard(true),trouble())}
-    if(d.id==="fin"){var tk=tickerBar();if(tk)out.push(tk);out.push(periodCard(),productCard(),portfolioCard(),financeCard())}
+    if(d.id==="fin"){var tk=tickerBar();if(tk)out.push(tk);out.push(engineKpiRow(),periodCard(),productCard(),portfolioCard(),financeCard())}
     if(d.id==="sales"){
       var dr=LIVE.drafts&&LIVE.drafts.data,box=el("div"),n=dr&&dr.resultCountEstimate!=null?dr.resultCountEstimate:null;
       box.appendChild(el("div",null,n!=null?(n+" שרשורים בתווית LORINX-לאישור (הספירה כוללת גם כאלה שכבר טופלו)"):"אין נתון"));box.appendChild(stamp("drafts"));
@@ -1435,10 +1453,11 @@ body{padding-top:env(safe-area-inset-top)}
     var c=el("div","card dark");c.appendChild(el("h2",null,"סוכנים: ריצה אחרונה לפי הלוג"));c.appendChild(box);c.appendChild(stamp("log"));return c;
   }
   function briefCard(){
-    var c=calc(),o=orders(),v=sheetVals(),box=el("div");
+    var c=calc(),o=orders(),v=sheetVals(),box=el("div"),es=eng30();
     var s1=el("div","sec");s1.appendChild(el("h3",null,"1 · מה נמכר"));
     if(o){o.slice(0,5).forEach(function(x){var l=el("div","line");l.appendChild(el("span",null,x.name+" · "+(x.customerName||"")));l.appendChild(el("span",null,mny(paidAmt(x))));s1.appendChild(l)});
-      var tl=el("div","line");tl.style.fontWeight="700";tl.appendChild(el("span",null,"סה\"כ 30 יום ("+c.n30+" הזמנות)"));tl.appendChild(el("span",null,sh(c.rev30)));s1.appendChild(tl)}
+      var tl=el("div","line");tl.style.fontWeight="700";tl.appendChild(el("span",null,es?"סה\"כ 30 יום, מנוע ("+es.sales.orderCount+" הזמנות, כמו Shopify)":"סה\"כ 30 יום ("+c.n30+" הזמנות)"));tl.appendChild(el("span",null,es?eAg(es.revenueForProfit.netAgorot):sh(c.rev30)));s1.appendChild(tl);
+      if(es)s1.appendChild(el("div","stale","בחישוב הישן: "+c.n30+" הזמנות, "+sh(c.rev30)))}
     else s1.appendChild(el("div","empty","ממתין לנתוני Shopify."));
     box.appendChild(s1);
     var s2=el("div","sec");s2.appendChild(el("h3",null,"2 · מה זה עלה"));
@@ -1447,7 +1466,7 @@ body{padding-top:env(safe-area-inset-top)}
     else if(v){[18,19,20,21,22,23,24].forEach(function(r){if(!v[r-1])return;var l=el("div","line");l.appendChild(el("span",null,String(v[r-1][0]||"").replace(/\s*\(.*?\)/,"")));l.appendChild(el("span",null,sh(num(v[r-1][1])||0)));s2.appendChild(l)})}
     else s2.appendChild(el("div","empty","ממתין לנתוני הגיליון."));
     box.appendChild(s2);
-    var nb=el("div","netbar");var nl=el("div");nl.appendChild(el("div",null,"רווח נטו משוער, 30 יום"));var ns=el("span","stale","רווח מחושב מההזמנות פחות קבועות (ממוצע "+fmt(c.net)+" ₪ להזמנה)");ns.style.color="var(--muted)";nl.appendChild(ns);nb.appendChild(nl);nb.appendChild(el("b",null,c.after!=null?sh(c.after):"–"));box.appendChild(nb);
+    var nb=el("div","netbar");var nl=el("div");var eN=es&&!es.netProfit.missing.length?es.netProfit.agorot:null;nl.appendChild(el("div",null,eN!=null?"רווח נקי, 30 יום (מנוע)":"רווח נטו משוער, 30 יום"));var ns=el("span","stale",eN!=null?"אחרי עלות מוצרים, עמלות, פרסום וקבועות מוקצות · בחישוב הישן: "+(c.after!=null?sh(c.after):"–"):"רווח מחושב מההזמנות פחות קבועות (ממוצע "+fmt(c.net)+" ₪ להזמנה)");ns.style.color="var(--muted)";nl.appendChild(ns);nb.appendChild(nl);nb.appendChild(el("b",null,eN!=null?eAg(eN):(c.after!=null?sh(c.after):"–")));box.appendChild(nb);
     var s3=el("div","sec");s3.appendChild(el("h3",null,"3 · מה לעשות עכשיו"));var k=0;
     pendingList().forEach(function(cl){k++;var r=el("div","next");var l=el("span");l.appendChild(el("span","n",String(k)));l.appendChild(el("span",null,"לאשר קליפ: "+(cl.hook||"")+" ("+(cl.date||"")+")"));r.appendChild(l);var b=el("button","go sm","אשר");b.disabled=!canWrite;b.addEventListener("click",function(){setClip(cl,"approved")});var bw=el("span","acts");bw.style.flex="none";bw.appendChild(mediaLink(cl,"sm"));bw.appendChild(b);r.appendChild(bw);s3.appendChild(r)});
     if(c.late>0){k++;var r=el("div","next");var l=el("span");l.appendChild(el("span","n",String(k)));l.appendChild(el("span",null,c.late+" הזמנות באיחור: לבדוק ב-AutoDS"));r.appendChild(l);var b=el("button","ghost sm","לתפעול");b.addEventListener("click",function(){go("ops")});r.appendChild(b);s3.appendChild(r)}

@@ -363,6 +363,114 @@ var LorinxEngine = (function () {
     return (agorot < 0 ? '-' : '') + s + ' ₪';
   }
 
+  // ---------- דוחות מפורטים לפי הזמנה / מוצר / יחידת מוצר (אותם כללים, אותם מספרים כמו summarize) ----------
+
+  function skuKey(l) { return l.sku || (l.unitsPerVariant === 3 ? '3units' : null); }
+  function productName(l, productCosts) {
+    var key = skuKey(l), name = null;
+    (productCosts || []).forEach(function (p) { if (key && p.sku === key && !name) name = p.name; });
+    return name || l.variantTitle || l.sku || 'מוצר לא מזוהה';
+  }
+  // חלוקה במספרים שלמים (אגורות) לפי משקלות; השארית לשורה האחרונה בעלת משקל
+  function allocate(total, weights) {
+    var sum = 0; weights.forEach(function (w) { sum += w; });
+    if (!sum) { var z = weights.map(function () { return 0; }); if (z.length) z[0] = total; return z; }
+    var out = [], used = 0, lastNz = -1;
+    weights.forEach(function (w, i) { if (w > 0) lastNz = i; });
+    weights.forEach(function (w, i) {
+      var a = i === lastNz ? total - used : Math.round(total * w / sum);
+      out.push(a); used += a;
+    });
+    return out;
+  }
+
+  // שורה לכל הזמנה בתקופה. profit = מכירות נטו (אחרי החזרים של ההזמנה) פחות עלות מוצרים, דוגמאות ליוצרים ועמלה; לפני פרסום והוצאות קבועות.
+  function orderRows(data, period, opts) {
+    opts = opts || {};
+    var orders = normalizeOrders(data.orders, data.flags);
+    var cogs = calculateCOGS(orders, data.orderCosts, data.productCosts, data.fx, period, opts);
+    var fees = calculatePaymentFees(orders, data.feeRates, period, opts);
+    var cBy = {}, fBy = {};
+    cogs.perOrder.forEach(function (c) { cBy[c.name] = c; });
+    fees.perOrder.forEach(function (f) { fBy[f.name] = f; });
+    var rows = [];
+    orders.forEach(function (o) {
+      if (!inPeriod(o.date, period)) return;
+      var inProfit = profitEligible(o, opts), c = cBy[o.name], f = fBy[o.name];
+      var net = o.netAgorot - o.refundedAgorot;
+      var cost = c ? (c.creatorSample ? 0 : c.agorot) : null, sample = c && c.creatorSample ? c.agorot : 0;
+      var known = inProfit && c && f && c.confidence !== 'MISSING' && f.confidence !== 'MISSING';
+      rows.push({
+        name: o.name, date: o.date, state: o.state, inProfit: inProfit, units: o.units,
+        items: o.lines.map(function (l) { return productName(l, data.productCosts) + (l.qty > 1 ? ' ×' + l.qty : ''); }).join(', '),
+        netAgorot: net, cogsAgorot: inProfit && c ? cost : null, sampleAgorot: sample, feeAgorot: inProfit && f ? f.agorot : null,
+        profitAgorot: known ? net - cost - sample - f.agorot : null,
+        confidence: known ? worst([c.confidence, f.confidence]) : (inProfit ? 'MISSING' : null),
+        note: o.note || '', _lines: o.lines
+      });
+    });
+    rows.sort(function (a, b) { return a.date === b.date ? (a.name < b.name ? 1 : -1) : (a.date < b.date ? 1 : -1); });
+    return rows;
+  }
+
+  // רווח לפי מוצר: הכנסה, עלות ועמלה של כל הזמנה מתחלקות בין שורותיה לפי ערך השורה (ואם אין ערך, לפי יחידות)
+  function profitByProduct(data, period, opts) {
+    var rows = orderRows(data, period, opts), by = {}, unknownOrders = [];
+    rows.forEach(function (r) {
+      if (!r.inProfit) return;
+      if (r.profitAgorot == null) { unknownOrders.push(r.name); return; }
+      var ls = r._lines, w = ls.map(function (l) { return Math.max(0, l.unitPriceAgorot * l.qty - (l.lineDiscountAgorot || 0)); });
+      if (!w.some(function (x) { return x > 0; })) w = ls.map(function (l) { return l.qty * (l.unitsPerVariant || 1); });
+      var aNet = allocate(r.netAgorot, w), aCogs = allocate(r.cogsAgorot, w), aSample = allocate(r.sampleAgorot, w), aFee = allocate(r.feeAgorot, w), seen = {};
+      ls.forEach(function (l, i) {
+        var n = productName(l, data.productCosts), o = by[n] || (by[n] = { name: n, orders: 0, units: 0, netAgorot: 0, cogsAgorot: 0, sampleAgorot: 0, feeAgorot: 0, profitAgorot: 0 });
+        if (!seen[n]) { o.orders++; seen[n] = 1; }
+        o.units += l.qty * (l.unitsPerVariant || 1);
+        o.netAgorot += aNet[i]; o.cogsAgorot += aCogs[i]; o.sampleAgorot += aSample[i]; o.feeAgorot += aFee[i];
+        o.profitAgorot += aNet[i] - aCogs[i] - aSample[i] - aFee[i];
+      });
+    });
+    var list = Object.keys(by).map(function (k) { return by[k]; }).sort(function (a, b) { return b.profitAgorot - a.profitAgorot; });
+    return { period: period, products: list, ordersWithoutKnownProfit: unknownOrders };
+  }
+
+  // אחוז העמלה האפקטיבי של שער תשלום בתאריך (כולל מע"מ היכן שצריך) + החלק הקבוע להזמנה
+  function effectiveFeeRate(feeRates, gateway, ymd) {
+    var rule = null;
+    (feeRates || []).forEach(function (r) { if (r.gateway === gateway && r.effectiveFrom <= ymd && (!r.effectiveTo || r.effectiveTo >= ymd)) rule = r; });
+    if (!rule) return null;
+    var pct = 0, fixed = 0;
+    rule.components.forEach(function (c) { var k = c.vat ? 1 + VAT_RATE : 1; pct += (c.rate || 0) * k; fixed += roundHalfUp((c.fixedAgorot || 0) * k); });
+    return { pct: pct, fixedAgorot: fixed, confidence: rule.confidence || 'ESTIMATED', actual: rule.actualAgorot != null };
+  }
+
+  // עלות יחידה נוכחית (בשקלים, באגורות שלמות) לכל מק"ט: השורה שבתוקף ביום asOf, ואם אין, האחרונה הידועה (מסומנת)
+  function unitCosts(data, asOf) {
+    var by = {};
+    (data.productCosts || []).forEach(function (p) { (by[p.sku] = by[p.sku] || []).push(p); });
+    var r = fxRate(data.fx, asOf), out = {};
+    Object.keys(by).forEach(function (sku) {
+      var rows = by[sku].slice().sort(function (a, b) { return a.effectiveFrom < b.effectiveFrom ? -1 : 1; }), cur = null, stale = false;
+      rows.forEach(function (p) { if (p.effectiveFrom <= asOf && (!p.effectiveTo || p.effectiveTo >= asOf)) cur = p; });
+      if (!cur) { cur = rows[rows.length - 1]; stale = true; }
+      out[sku] = { sku: sku, name: cur.name, usdCents: cur.unitCostUsdCents, agorot: r ? ilsFromUsd(cur.unitCostUsdCents, r.rate) : null,
+        rate: r ? r.rate : null, rateDate: r ? r.date : null, effectiveTo: cur.effectiveTo, stale: stale,
+        confidence: worst([cur.confidence || 'MANUAL', r ? (r.exact ? r.confidence : 'ESTIMATED') : 'MISSING']) };
+    });
+    return out;
+  }
+
+  // כמה הזמנות צריך בחודש כדי להגיע ליעד רווח נקי: (יעד + קבועות לחודש מלא) / רווח ממוצע להזמנה (אחרי עלות מוצרים ועמלות, לפני פרסום).
+  // הממוצע מהזמנות רגילות ששולמו בתקופת הבסיס (בלי בדיקות, דוגמאות ליוצרים, ביטולים בלי החזר).
+  function ordersNeeded(data, goalAgorot, monthPeriod, basisPeriod, opts) {
+    var rows = orderRows(data, basisPeriod, opts).filter(function (r) { return r.inProfit && r.state === 'OK' && r.profitAgorot != null && r.netAgorot > 0; });
+    var sum = 0; rows.forEach(function (r) { sum += r.profitAgorot; });
+    var avg = rows.length ? sum / rows.length : null, fixed = calculateFixedCosts(data.expenses, monthPeriod);
+    var need = avg && avg > 0 ? Math.ceil((goalAgorot + fixed.fixedAgorot) / avg) : null;
+    return { needed: need, avgProfitAgorot: avg == null ? null : roundHalfUp(avg), basisOrders: rows.length, fixedAgorot: fixed.fixedAgorot, goalAgorot: goalAgorot, beforeAds: true,
+      confidence: worst(rows.map(function (r) { return r.confidence; }).concat(fixed.confidence ? [fixed.confidence] : [])) };
+  }
+
   return {
     FORMULA_VERSION: FORMULA_VERSION, VAT_RATE: VAT_RATE,
     israelDate: israelDate, daysInMonth: daysInMonth, addDays: addDays, inPeriod: inPeriod,
@@ -372,7 +480,8 @@ var LorinxEngine = (function () {
     calculateNetRevenue: calculateNetRevenue, calculateCOGS: calculateCOGS, calculatePaymentFees: calculatePaymentFees, feeForOrder: feeForOrder,
     calculateAdSpend: calculateAdSpend, calculateFixedCosts: calculateFixedCosts, allocateExpense: allocateExpense,
     calculateGrossProfit: calculateGrossProfit, calculateContributionProfit: calculateContributionProfit, calculateNetProfit: calculateNetProfit,
-    confidencePercent: confidencePercent, worst: worst, summarize: summarize, fmt: fmt
+    confidencePercent: confidencePercent, worst: worst, summarize: summarize, fmt: fmt,
+    orderRows: orderRows, profitByProduct: profitByProduct, effectiveFeeRate: effectiveFeeRate, unitCosts: unitCosts, ordersNeeded: ordersNeeded, productName: productName, allocate: allocate
   };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = LorinxEngine;

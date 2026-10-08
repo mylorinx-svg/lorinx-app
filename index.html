@@ -618,6 +618,11 @@ body{padding-top:env(safe-area-inset-top)}
   }
   function eAg(a){return m2(a/100)}
   /* the same 30 days the old cards use, from the engine; null when the new tabs are not loaded yet (cards then fall back to the old calculation alone) */
+  function engMonth(){
+    if(typeof LorinxEngine==="undefined"||typeof LorinxSheetAdapter==="undefined")return null;
+    var ed=engineData();if(!ed.data)return null;
+    try{return LorinxEngine.summarize(ed.data,LorinxEngine.periodMonth(todayJ().slice(0,7)))}catch(e){return null}
+  }
   function eng30(){
     if(typeof LorinxEngine==="undefined"||typeof LorinxSheetAdapter==="undefined")return null;
     var ed=engineData();if(!ed.data)return null;
@@ -864,6 +869,8 @@ body{padding-top:env(safe-area-inset-top)}
     var box=el("div"),fv=LIVE.fin&&LIVE.fin.data&&LIVE.fin.data.values;
     if(!fv||fv.length<15){box.appendChild(el("div","empty","ממתין לסיכום החי של הגיליון."));box.appendChild(stamp("fin"));return card("מד יעד חודשי",box)}
     var ordersN=num((fv[1]||[])[1]),profit=num((fv[8]||[])[1]),goal=num((fv[9]||[])[1]);if(!goal)goal=10000;
+    var em=engMonth(),oldProfit=profit,oldOrders=ordersN;
+    if(em&&!em.netProfit.missing.length){profit=em.netProfit.agorot/100;ordersN=em.sales.orderCount}else em=null;
     var need=num((fv[12]||[])[1]),avg=num((fv[14]||[])[1]);
     var pct=profit==null?0:Math.max(0,Math.min(1,profit/goal));
     var g=el("div","gauge"),sv=svg("svg",{viewBox:"0 0 200 124",role:"img","aria-label":"התקדמות מול יעד הרווח החודשי"});
@@ -871,7 +878,7 @@ body{padding-top:env(safe-area-inset-top)}
     sv.appendChild(svg("path",{"class":"gt",d:d,pathLength:"100"}));
     var vp=svg("path",{"class":"gv",d:d,pathLength:"100","stroke-dasharray":"100","stroke-dashoffset":String(100-Math.round(pct*100))});if(pct===0)vp.setAttribute("opacity","0");sv.appendChild(vp);
     var t1=svg("text",{x:100,y:90,"text-anchor":"middle","class":"gnum"});t1.textContent=profit==null?"–":fmt(profit)+" ₪";sv.appendChild(t1);
-    var t2=svg("text",{x:100,y:118,"text-anchor":"middle","class":"gsub"});t2.textContent="רווח נטו החודש, מתוך יעד "+fmt(goal)+" ₪";sv.appendChild(t2);
+    var t2=svg("text",{x:100,y:118,"text-anchor":"middle","class":"gsub"});t2.textContent=(em?"רווח נקי החודש (מנוע), מתוך יעד ":"רווח נטו החודש, מתוך יעד ")+fmt(goal)+" ₪";sv.appendChild(t2);
     g.appendChild(sv);
     var n=jerNow(),dim=new Date(n.y,n.m,0).getDate(),left=dim-n.d+1;
     var rem=need!=null&&ordersN!=null?Math.max(0,need-ordersN):null;
@@ -882,6 +889,7 @@ body{padding-top:env(safe-area-inset-top)}
     cell3(rem==null?"–":(rem===0?"הושג":(Math.round(rem/left*10)/10).toLocaleString("he-IL")),rem===0?"היעד הושג":"הזמנות ביום עד סוף החודש");
     g.appendChild(st);box.appendChild(g);
     var why=profit!=null&&profit<0?"הרווח שלילי כי ההוצאות הקבועות כבר נספרות והזמנות עוד לא נכנסו החודש. ":"";
+    if(em){box.appendChild(el("p","note","הרווח מחושב במנוע: מכירות פחות עלות מוצרים, עמלות, פרסום והוצאות קבועות לחודש מלא ("+fmt(em.fixed.fixedAgorot/100)+" ₪), ביטחון "+em.netProfit.confidencePercent+"%. "+why+"בחישוב הישן (הסיכום החי בגיליון): רווח "+(oldProfit!=null?fmt(oldProfit)+" ₪":"–")+", "+(oldOrders!=null?oldOrders:"–")+" הזמנות."));box.appendChild(stamp("fin"));return card("מד יעד חודשי",box)}
     box.appendChild(el("p","note",why+"הרווח הוא אחרי הוצאות קבועות, מהסיכום החי בגיליון"+(avg!=null?", לפי רווח ממוצע של "+fmt(avg)+" ₪ להזמנה":"")+". הוצאות פרסום נכללות רק אם נרשמו בלשונית ההוצאות."));
     box.appendChild(stamp("fin"));
     return card("מד יעד חודשי",box);

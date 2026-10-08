@@ -296,6 +296,7 @@ var LorinxEngine = (function () {
   function calculateFixedCosts(expenses, period) {
     var total = 0, per = [], labels = [];
     (expenses || []).forEach(function (e) {
+      if (e.category === 'AdCredit') return; // קרדיט פרסום אינו הוצאה קבועה
       var a = allocateExpense(e, period);
       if (a === 0) return;
       total += a; per.push({ id: e.id, name: e.name, category: e.category, agorot: a, confidence: e.confidence || 'MANUAL' }); labels.push(e.confidence || 'MANUAL');
@@ -324,6 +325,23 @@ var LorinxEngine = (function () {
   function neg(c) { var d = {}; for (var k in c) d[k] = c[k]; d.amountAgorot = -(c.amountAgorot || 0); return d; }
   function cf(c) { return c.confidence; }
 
+  // ---------- קרדיט פרסום ----------
+  // הוצאת הפרסום נשארת מלאה (כמו שמטא מדווחת). קרדיט = החלק שלא נגבה מהכרטיס. מוצג כשורה נפרדת, לא מוריד את ההוצאה.
+  // קרדיט נרשם בלשונית expenses_v2 בקטגוריה AdCredit: amount_agorot = הקרדיט, start_date..end_date = טווח ההוצאה שהוא מכסה.
+  // מוצג רק כשהתקופה מכילה את כל הטווח; אחרת לא ידוע כמה ממנו נפל בתקופה.
+  function calculateAdCredit(expenses, ads, period) {
+    var cr = (expenses || []).filter(function (e) { return e.category === 'AdCredit'; });
+    if (!cr.length) return { creditAgorot: 0, applies: false, partial: false, cashProfitDeltaAgorot: 0, confidence: 'VERIFIED', rows: [] };
+    var total = 0, partial = false, rows = [], labels = [];
+    cr.forEach(function (e) {
+      if (e.endDate < period.from || e.startDate > period.to) return;
+      if (e.startDate >= period.from && e.endDate <= period.to) { total += e.amountAgorot; rows.push(e); labels.push(e.confidence || 'MANUAL'); }
+      else partial = true;
+    });
+    return { creditAgorot: total, applies: total > 0, partial: partial, cashPaidAgorot: total > 0 ? ads.adSpendAgorot - total : null,
+      confidence: labels.length ? worst(labels) : 'MANUAL', rows: rows };
+  }
+
   // ---------- חבילה אחת לתקופה ----------
 
   function summarize(data, period, opts) {
@@ -335,6 +353,7 @@ var LorinxEngine = (function () {
     var fees = calculatePaymentFees(orders, data.feeRates, period, opts);
     var ads = calculateAdSpend(data.adSpend, period, { coverage: data.adSpendCoverage });
     var fixed = calculateFixedCosts(data.expenses, period);
+    var adCredit = calculateAdCredit(data.expenses, ads, period);
     var gross = calculateGrossProfit(rev, cogs);
     var contrib = calculateContributionProfit(rev, cogs, fees, ads);
     var net = calculateNetProfit(contrib, fixed);
@@ -342,7 +361,7 @@ var LorinxEngine = (function () {
     var r = {
       formulaVersion: FORMULA_VERSION, period: period, days: periodDays(period),
       sales: sales, revenueForProfit: rev, cogs: cogs, fees: fees, ads: ads, fixed: fixed,
-      grossProfit: gross, contributionProfit: contrib, netProfit: net,
+      grossProfit: gross, contributionProfit: contrib, netProfit: net, adCredit: adCredit,
       kpis: {
         orders: sales.orderCount, aovAgorot: sales.orderCount ? roundHalfUp(sales.netAgorot / sales.orderCount) : null,
         contributionMarginPct: rev.netAgorot ? +(100 * contrib.agorot / rev.netAgorot).toFixed(1) : null,
@@ -478,7 +497,7 @@ var LorinxEngine = (function () {
     normalizeOrder: normalizeOrder, normalizeOrders: normalizeOrders, salesEligible: salesEligible, profitEligible: profitEligible,
     fxRate: fxRate, ilsFromUsd: ilsFromUsd, roundHalfUp: roundHalfUp,
     calculateNetRevenue: calculateNetRevenue, calculateCOGS: calculateCOGS, calculatePaymentFees: calculatePaymentFees, feeForOrder: feeForOrder,
-    calculateAdSpend: calculateAdSpend, calculateFixedCosts: calculateFixedCosts, allocateExpense: allocateExpense,
+    calculateAdSpend: calculateAdSpend, calculateAdCredit: calculateAdCredit, calculateFixedCosts: calculateFixedCosts, allocateExpense: allocateExpense,
     calculateGrossProfit: calculateGrossProfit, calculateContributionProfit: calculateContributionProfit, calculateNetProfit: calculateNetProfit,
     confidencePercent: confidencePercent, worst: worst, summarize: summarize, fmt: fmt,
     orderRows: orderRows, profitByProduct: profitByProduct, effectiveFeeRate: effectiveFeeRate, unitCosts: unitCosts, ordersNeeded: ordersNeeded, productName: productName, allocate: allocate

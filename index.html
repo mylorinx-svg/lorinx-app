@@ -664,7 +664,7 @@ body{padding-top:env(safe-area-inset-top)}
       box.appendChild(el("h3",null,"רווח גולמי = מכירות נטו פחות עלות המוצרים"));
       box.appendChild(eLines(s.cogs.perOrder.map(function(o){return {a:o.name+(o.creatorSample?" (יוצרת תוכן, לא ב-COGS)":"")+" · "+eConf(o.confidence),b:eAg(o.agorot)}}).concat([{a:"עלות מוצרים",b:eAg(s.cogs.cogsAgorot),sum:true},{a:"רווח גולמי",b:eAg(s.grossProfit.agorot),sum:true}])));
       if(s.cogs.ordersMissingCost.length)box.appendChild(el("p","err","בלי עלות: "+s.cogs.ordersMissingCost.join(", ")));
-      box.appendChild(el("p","note","עלות = מחיר הרכישה ב-AutoDS בדולרים, לפי שער הדולר של יום הרכישה. 'מוערך' = השער מבנק אנגליה עד שיוחלף בשער היציג."));
+      box.appendChild(el("p","note","עלות = מחיר הרכישה ב-AutoDS בדולרים, לפי השער היציג של בנק ישראל ביום הרכישה."));
     }else if(eSel==="contrib"){
       box.appendChild(el("h3",null,"רווח תרומה = רווח גולמי פחות עמלות ופרסום"));
       var L=[{a:"רווח גולמי",b:eAg(s.grossProfit.agorot)}];
@@ -674,10 +674,11 @@ body{padding-top:env(safe-area-inset-top)}
       if(s.cogs.creatorSamplesAgorot)L.push({a:"מוצרים ליוצרי תוכן",b:eAg(-s.cogs.creatorSamplesAgorot)});
       L.push({a:"רווח תרומה · ביטחון "+s.contributionProfit.confidencePercent+"%",b:eAg(s.contributionProfit.agorot),sum:true});
       box.appendChild(eLines(L));
-      box.appendChild(el("p","note","עמלה = 0.6% PayPlus + 1.2% ישראכרט (שניהם + מע\"מ) + 2% Shopify, לפי הצעת המחיר. מוערך עד שתהיה חשבונית. פרסום לפי Ads Manager, יום-יום."));
+      box.appendChild(el("p","note","עמלה = 0.6% PayPlus + 1.2% ישראכרט (שניהם + מע\"מ, כרטיס ישראלי) לפי ההצעה והחוזה החתומים, + 2% Shopify שאומת מול 13 חיובים בפועל. עדיין לא הותאם מול חשבונית ישראכרט. פרסום לפי Ads Manager, יום-יום."));
     }else if(eSel==="net"){
       box.appendChild(el("h3",null,"רווח נקי = רווח תרומה פחות הוצאות קבועות מוקצות"));
-      box.appendChild(eLines([{a:"רווח תרומה",b:eAg(s.contributionProfit.agorot)}].concat(s.fixed.perExpense.map(function(e){return {a:e.name,b:eAg(-e.agorot)}})).concat([{a:"רווח נקי · ביטחון "+s.netProfit.confidencePercent+"%",b:eAg(s.netProfit.agorot),sum:true}])));
+      box.appendChild(eLines([{a:"רווח תרומה",b:eAg(s.contributionProfit.agorot)}].concat(s.fixed.perExpense.map(function(e){return {a:e.name,b:eAg(-e.agorot)}})).concat([{a:"רווח נקי · ביטחון "+s.netProfit.confidencePercent+"%",b:eAg(s.netProfit.agorot),sum:true}].concat(s.adCredit&&s.adCredit.applies?[{a:"קרדיט פרסום שלא נגבה מהכרטיס · "+eConf(s.adCredit.confidence),b:eAg(s.adCredit.creditAgorot)},{a:"רווח נקי במזומן",b:eAg(s.netProfit.agorot+s.adCredit.creditAgorot),sum:true}]:[]))));
+      if(s.adCredit&&s.adCredit.applies)box.appendChild(el("p","note","הוצאת הפרסום נשארת מלאה ("+eAg(s.ads.adSpendAgorot)+", כמו ש-Meta מדווחת). בכרטיס חויבו בפועל "+eAg(s.adCredit.cashPaidAgorot)+" והשאר, "+eAg(s.adCredit.creditAgorot)+", נראה כקרדיט פרסום שנוצל. ההפרש הוא חישוב ולא חשבונית, לכן מסומן ידני."));
       box.appendChild(el("p","note","כל הוצאה מוקצית לפי ימים קלנדריים בתוך תקופת התוקף שלה. חודש מלא = בדיוק הסכום החודשי."));
     }
     return box;
@@ -697,7 +698,7 @@ body{padding-top:env(safe-area-inset-top)}
     g.appendChild(ekpi("gross","רווח גולמי",eAg(s.grossProfit.agorot),"עלות מוצרים "+eAg(s.cogs.cogsAgorot)+" · "+eConf(s.cogs.confidence),""));
     var cm=s.contributionProfit.missing.length?"חסר: "+s.contributionProfit.missing.join(", "):"פרסום "+eAg(s.ads.adSpendAgorot)+" · עמלות "+eAg(s.fees.feesAgorot)+" · ביטחון "+s.contributionProfit.confidencePercent+"%";
     g.appendChild(ekpi("contrib","רווח תרומה",s.contributionProfit.missing.length?"–":eAg(s.contributionProfit.agorot),cm,s.contributionProfit.missing.length?"":(s.contributionProfit.agorot<0?"bad":"ok")));
-    g.appendChild(ekpi("net","רווח נקי",s.netProfit.missing.length?"–":eAg(s.netProfit.agorot),"קבועות מוקצות "+eAg(s.fixed.fixedAgorot)+(s.netProfit.missing.length?" · חסר: "+s.netProfit.missing.join(", "):""),s.netProfit.missing.length?"":(s.netProfit.agorot<0?"bad":"ok")));
+    g.appendChild(ekpi("net","רווח נקי",s.netProfit.missing.length?"–":eAg(s.netProfit.agorot),"קבועות מוקצות "+eAg(s.fixed.fixedAgorot)+(!s.netProfit.missing.length&&s.adCredit&&s.adCredit.applies?" · במזומן "+eAg(s.netProfit.agorot+s.adCredit.creditAgorot):"")+(s.netProfit.missing.length?" · חסר: "+s.netProfit.missing.join(", "):""),s.netProfit.missing.length?"":(s.netProfit.agorot<0?"bad":"ok")));
     wrap.appendChild(g);
     if(eSel)wrap.appendChild(engineDetail(s));
     /* freshness: when the orders were synced into the new tabs, and the last day of ad data */
@@ -1054,6 +1055,7 @@ body{padding-top:env(safe-area-inset-top)}
     ln("פרסום · "+eConf(s.ads.confidence)+(adsMissing?" (אין נתוני Ads Manager לתקופה)":""),adsMissing?"–":eAg(-s.ads.adSpendAgorot));
     ln("הוצאות קבועות מוקצות לפי ימים",eAg(-s.fixed.fixedAgorot));
     ln("רווח נקי"+(hasNet?" · ביטחון "+nt.confidencePercent+"%":""),hasNet?eAg(nt.agorot):"–",true);
+    if(hasNet&&s.adCredit&&s.adCredit.applies){ln("קרדיט פרסום שלא נגבה מהכרטיס (מוצג בנפרד, ההוצאה למעלה מלאה)",eAg(s.adCredit.creditAgorot));ln("רווח נקי במזומן (אחרי הקרדיט)",eAg(nt.agorot+s.adCredit.creditAgorot),true)}
     main.appendChild(sec);
     if(rows.length){
       var lim=periodAll?rows.length:8,t=el("div","tbl"),tb=el("table","ptbl"),th=document.createElement("thead"),hr=document.createElement("tr");
@@ -1401,14 +1403,14 @@ body{padding-top:env(safe-area-inset-top)}
     var v=sheetVals();if(!v)return null;var fee=num(cell(3,2));if(fee==null)fee=0.025;
     return PRODS.map(function(p){var price=num(cell(p[1],2)),cost=num(cell(p[2],2));if(price==null||cost==null)return null;var net=price-cost*p[3]-price*fee;return {n:p[0],price:price,cost:cost*p[3],net:net,m:net/price}}).filter(Boolean);
   }
-  var PROD_SKU={1:"1915d4f3",2:"b9cd53cc",3:"3units"};
+  var PROD_KEY={"כוס רוח ×1":["bd79c27c",1],"כוס רוח ×2":["b9cd53cc",2],"כוס רוח ×3":["3units",3],"אקדח עיסוי":["massage-gun",1],"מעסה רגליים":["leg-massager",1],"מכשיר ירכיים":["thigh-trainer",1]};
   /* list price from the settings tab (an input), cost and payment fee from the engine; products the engine has no cost for keep the old sheet figures, marked */
   function portfolioRows(){
     var old=prodRows();if(!old||!old.length)return null;
     var ed=engineData(),U=null,F=null,E=null;
     if(ed.data){try{E=LorinxEngine;var t=todayJ();U=E.unitCosts(ed.data,t);F=E.effectiveFeeRate(ed.data.feeRates,"PayPlus - Payment Gateway",t)}catch(e){U=null;F=null}}
     return old.map(function(o,i){
-      var pd=PRODS.filter(function(q){return q[0]===o.n})[0],n=pd?pd[3]:1,u=pd&&U&&PROD_SKU[n]&&pd[0].indexOf("כוס רוח")===0?U[PROD_SKU[n]]:null,r={n:o.n,price:o.price,old:o,src:"old"};
+      var pd=PRODS.filter(function(q){return q[0]===o.n})[0],n=pd?pd[3]:1,pk=PROD_KEY[o.n],u=U&&pk?U[pk[0]]:null,r={n:o.n,price:o.price,old:o,src:"old"};
       if(u&&u.agorot!=null&&F){
         var cost=u.agorot*n/100,net=o.price-cost-o.price*F.pct;
         r.cost=cost;r.net=net;r.m=net/o.price;r.src="engine";r.pct=F.pct;r.stale=u.stale;r.until=u.effectiveTo;r.conf=u.confidence;
@@ -1434,7 +1436,7 @@ body{padding-top:env(safe-area-inset-top)}
       tb.appendChild(body);t.appendChild(tb);box.appendChild(t);
       var eng=r.filter(function(x){return x.src==="engine"}),none=r.filter(function(x){return x.src!=="engine"}).map(function(x){return x.n});
       var stale=eng.filter(function(x){return x.stale}).map(function(x){return x.n+" (עלות אחרונה ידועה, הסתיימה "+dmy(x.until)+")"});
-      box.appendChild(el("p","note",eng.length?"מחיר מחירון מהגיליון. עלות = מחיר הרכישה ב-AutoDS בדולרים כפול שער הדולר של היום, מוערך עד שער יציג. עמלה "+(eng[0].pct*100).toFixed(2)+"% (PayPlus 0.6% + ישראכרט 1.2% עם מע\"מ + Shopify 2%, מוערך). לפני הוצאות קבועות ופרסום ולפני החזרות."+(stale.length?" "+stale.join(", ")+".":"")+(none.length?" ללא עלות במנוע עדיין: "+none.join(", ")+" (מוצגים רק בחישוב הישן).":"")+" בחישוב הישן העמלה 2.5% והעלות מהגיליון.":"אין עדיין נתוני עלות במנוע, מוצג החישוב הישן."));
+      box.appendChild(el("p","note",eng.length?"מחיר מחירון מהגיליון. עלות = מחיר הרכישה ב-AutoDS בדולרים כפול שער היציג של בנק ישראל. מוצר שמעולם לא נמכר: מחיר הספק הנוכחי ב-AutoDS (אין רכישה בפועל). עמלה "+(eng[0].pct*100).toFixed(2)+"% (PayPlus 0.6% + ישראכרט 1.2% עם מע\"מ + Shopify 2%, לפי חוזים וחיובי Shopify בפועל, כרטיס ישראלי). לפני הוצאות קבועות ופרסום ולפני החזרות."+(stale.length?" "+stale.join(", ")+".":"")+(none.length?" ללא עלות במנוע עדיין: "+none.join(", ")+" (מוצגים רק בחישוב הישן).":"")+" בחישוב הישן העמלה 2.5% והעלות מהגיליון.":"אין עדיין נתוני עלות במנוע, מוצג החישוב הישן."));
     }
     box.appendChild(stamp("sheet"));
     return card("החנות כמו תיק השקעות",box,"span");

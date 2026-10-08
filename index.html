@@ -787,7 +787,7 @@ body{padding-top:env(safe-area-inset-top)}
       var r=v[i]||[];if(!r[2])continue;
       var d=isoDay(r[0]),counted=(r[14]===true||String(r[14]).toUpperCase()==="TRUE");
       if(!d){if(counted)out.bad++;continue}
-      out.push({d:d,name:String(r[2]),items:String(r[3]||""),units:num(r[4])||0,rev:num(r[7]),cogs:num(r[8]),fee:num(r[9]),profit:num(r[10]),counted:counted});
+      out.push({d:d,name:String(r[2]),items:String(r[3]||""),units:num(r[4])||0,rev:num(r[7]),cogs:num(r[8]),fee:num(r[9]),profit:num(r[10]),counted:counted,note:String(r[15]||"")});
     }
     return out;
   }
@@ -801,9 +801,11 @@ body{padding-top:env(safe-area-inset-top)}
   function periodText(g){return (g.from===g.to?dmy(g.from):dmy(g.from)+" עד "+dmy(g.to))+(g.days>1?" · "+g.days+" ימים":"")}
   function periodStats(){
     var rows=ledgerRows();if(!rows)return null;
-    var g=periodRange(rows),s={range:g,n:0,units:0,rev:0,cogs:0,fee:0,profit:0,unknown:0,list:[],bad:rows.bad,fixed:null,net:null,fresh:[]};
+    var g=periodRange(rows),s={range:g,n:0,units:0,rev:0,cogs:0,fee:0,profit:0,unknown:0,list:[],bad:rows.bad,fixed:null,net:null,fresh:[],shopN:0,shopRev:0,excl:[]};
     rows.forEach(function(r){
-      if(!r.counted||r.d<g.from||r.d>g.to||r.rev==null)return;
+      if(r.d<g.from||r.d>g.to||r.rev==null)return;
+      s.shopN++;s.shopRev+=r.rev;   /* what Shopify Analytics shows for the same days: every order, test orders included */
+      if(!r.counted){s.excl.push(r);return}
       s.n++;s.units+=r.units;s.rev+=r.rev;s.list.push(r);
       if(r.profit==null||r.cogs==null){s.unknown++;return}
       s.cogs+=r.cogs;s.fee+=r.fee||0;s.profit+=r.profit;
@@ -868,6 +870,7 @@ body{padding-top:env(safe-area-inset-top)}
       if(s.list.length>8){var bar=el("div","bar"),mb=el("button","ghost sm",periodAll?"הצג פחות":"הצג את כל "+s.list.length+" ההזמנות");mb.type="button";mb.addEventListener("click",function(){periodAll=!periodAll;render()});bar.appendChild(mb);side.appendChild(bar)}
     }else side.appendChild(el("div","empty","אין הזמנות נספרות בתקופה הזאת."));
     if(s.fresh.length)box.appendChild(el("p","err",s.fresh.length+" הזמנות מ-Shopify עוד לא נכנסו ליומן ולא נספרו כאן: "+s.fresh.map(function(x){return x.name}).join(", ")+" ("+mny(s.fresh.reduce(function(a,x){return a+paidAmt(x)},0))+")."));
+    if(s.excl.length)box.appendChild(el("p","note","מול Shopify Analytics: שם אמורות להופיע בתקופה הזאת "+s.shopN+" הזמנות ומכירות נטו של "+m2(s.shopRev)+". כאן לא נספרות "+s.excl.length+": "+s.excl.map(function(r){return r.name+" ("+m2(r.rev)+(r.note?", "+r.note:(r.rev?"":", הזמנה בלי תשלום"))+")"}).join(", ")+"."));
     if(s.unknown)box.appendChild(el("p","err",s.unknown+" הזמנות בלי עלות ידועה: ההכנסה שלהן נספרה, הרווח לא."));
     if(s.bad)box.appendChild(el("p","err",s.bad+" שורות ביומן בלי תאריך תקין לא נספרו."));
     box.appendChild(el("p","note",(period==="max"?"בתצוגת מקסימום ההוצאות הקבועות לא מנוכות, כי בגיליון נשמר רק הסכום החודשי של היום ולא ההיסטוריה שלו. ":"")+"הוצאות פרסום נכללות רק אם נרשמו בעמוד ההוצאות."));

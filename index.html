@@ -1403,7 +1403,7 @@ body{padding-top:env(safe-area-inset-top)}
     var v=sheetVals();if(!v)return null;var fee=num(cell(3,2));if(fee==null)fee=0.025;
     return PRODS.map(function(p){var price=num(cell(p[1],2)),cost=num(cell(p[2],2));if(price==null||cost==null)return null;var net=price-cost*p[3]-price*fee;return {n:p[0],price:price,cost:cost*p[3],net:net,m:net/price}}).filter(Boolean);
   }
-  var PROD_KEY={"כוס רוח ×1":["bd79c27c",1],"כוס רוח ×2":["b9cd53cc",2],"כוס רוח ×3":["3units",3],"אקדח עיסוי":["massage-gun",1],"מעסה רגליים":["leg-massager",1],"מכשיר ירכיים":["thigh-trainer",1]};
+  var PROD_KEY={"כוס רוח ×1":["bd79c27c",1],"כוס רוח ×2":["b9cd53cc",2],"כוס רוח ×3":["3units",3],"אקדח עיסוי":["massgun",1],"מעסה רגליים":["legmass",1],"מכשיר ירכיים":["thighdv",1]};
   /* list price from the settings tab (an input), cost and payment fee from the engine; products the engine has no cost for keep the old sheet figures, marked */
   function portfolioRows(){
     var old=prodRows();if(!old||!old.length)return null;

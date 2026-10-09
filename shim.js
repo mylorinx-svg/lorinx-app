@@ -4,7 +4,7 @@
   var SHEET_KEY="lorinx_local_";
   var IDEMP={get:1,update:1,appset:1,appdel:1,orders:1,gmail:1,health:1};
   /* append / expops are not naturally idempotent: they carry an opId, so the server applies a retried request only once */
-  var OPID={append:1,expops:1};
+  var OPID={append:1,expv2ops:1};
   function opId(){var a="";try{var u=new Uint8Array(12);crypto.getRandomValues(u);for(var i=0;i<u.length;i++)a+=("0"+u[i].toString(16)).slice(-2)}catch(e){a=String(Date.now())+String(Math.random()).slice(2,12)}return "op_"+a}
   function friendly(m){
     m=String(m||"");
@@ -166,7 +166,7 @@
       if(server==="Google Sheets"&&tool==="update_values")return api({action:"update",range:input.range,values:input.values}).then(function(){
         if(/^content!/.test(input.range))return loadClips().then(null,function(){}).then(function(){return {payload:{}}});
         return {payload:{}}});
-      if(server==="Google Sheets"&&tool==="exp_ops")return api({action:"expops",ops:input.ops}).then(function(){return {payload:{}}});
+      if(server==="Google Sheets"&&tool==="exp_v2_ops")return api({action:"expv2ops",ops:input.ops}).then(function(){return {payload:{}}});
       if(server==="Shopify"&&tool==="list-orders")return ordersFromShopify();
       if(server==="LORINX"&&tool==="health")return api({action:"health"}).then(function(j){if(!j||!Array.isArray(j.checks))throw {code:"old_server",message:"השרת עדיין בגרסה ישנה, בלי בדיקת תקינות."};return {payload:j}},function(e){if(e&&/unknown action/.test(String(e.message||"")))throw {code:"old_server",message:"השרת עדיין בגרסה ישנה, בלי בדיקת תקינות."};throw e});
       if(server==="Gmail"&&tool==="search_threads")return api({action:"gmail"}).then(function(j){if(j.error)throw {code:"upstream_error",message:j.error};if(typeof j.count!=="number")throw {code:"invalid_response",message:"Gmail החזיר תשובה לא תקינה."};return {payload:{threads:[],resultCountEstimate:j.count}}});

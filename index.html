@@ -395,7 +395,7 @@ body{padding-top:env(safe-area-inset-top)}
     {id:"fin",order:4,name:"כספים",st:"ok",tools:["Shopify","Sheets"],clips:false,agents:[A("סמנכ\"ל כספים","כל יום 06:58","רווח נטו יומי מהזמנות אמיתיות, בלי הזמנות בדיקה")],stats:[],sections:[]},
     {id:"ops",order:5,name:"תפעול",st:"ok",tools:["Shopify","AutoDS","Gmail"],clips:false,agents:[A("תפעול","כל יום 09:27","הזמנות מול AutoDS: תקין, לבדיקה, באיחור, נתקע"),A("החזרות","לפי פנייה","טיוטה אליך, לא ביצוע")],stats:[],sections:[]},
     {id:"res",order:6,name:"מחקר ו-SEO",st:"ok",tools:["רשת","Sheets"],clips:false,agents:[A("מחקר","שבת 09:47","מתחרים, טרנדים, שאלות לקוחות, 10 הוקים"),A("SEO","שני 08:49","מאמר בלוג אחד בעברית, טיוטה לאישור")],stats:[],sections:[]}
-    ,{id:"ads",order:7,name:"מודעות (מטא)",st:"off",tools:["Meta Ads"],clips:false,agents:[A("סוכן מודעות","מושהה עד חיבור","שלב 1, קריאה בלבד: הוצאה, עלות לרכישה, ROAS ועייפות קריאייטיב. תקרה 120 ₪ ליום. שינוי או הוצאה רק אחרי אשר")],stats:[],sections:[]}
+    ,{id:"ads",order:7,name:"מודעות (מטא)",st:"ok",tools:["Meta Ads"],clips:false,agents:[A("סוכן מודעות","קריאה בלבד, יומי","הוצאה, עלות לרכישה ו-MER מהגיליון. תקרה 120 ₪ ליום. שינוי או הוצאה רק אחרי אשר")],stats:[],sections:[]}
   ];
   var D_TODOS=[
     {id:"t1",text:"לוודא שאמצעי התשלום ב-Shopify עודכן (החיוב ב-30.9 כבר עבר)",dept:"ops",done:false},
@@ -1335,12 +1335,40 @@ body{padding-top:env(safe-area-inset-top)}
     if(d.id==="exec"){out.push(kpiRow(),engineKpiRow());var an=anomalyCard();if(an)out.push(an);out.push(goalCard())}
     if(d.id==="ops"){out.push(opsKpis(),ordersCard(true),trouble())}
     if(d.id==="fin"){var tk=tickerBar();if(tk)out.push(tk);out.push(engineKpiRow());var wy=whyCard();if(wy)out.push(wy);out.push(periodCard(),productCard(),portfolioCard(),financeCard());var gt=gateCard();if(gt)out.push(gt)}
+    if(d.id==="ads"){adsCards().forEach(function(n){out.push(n)})}
     if(d.id==="sales"){
       var dr=LIVE.drafts&&LIVE.drafts.data,box=el("div"),n=dr&&dr.resultCountEstimate!=null?dr.resultCountEstimate:null;
       box.appendChild(el("div",null,n!=null?(n+" שרשורים בתווית LORINX-לאישור (הספירה כוללת גם כאלה שכבר טופלו)"):"אין נתון"));box.appendChild(stamp("drafts"));
       out.push(card("תווית LORINX-לאישור (Gmail, חי)",box));
     }
     return out;
+  }
+  /* ads department: spend, MER, cost per order and campaigns for the selected period, from the engine (ad_spend tab). Nothing here is a fixed text. */
+  function adsCards(){
+    var box=el("div");box.appendChild(periodSeg());
+    function only(n){return [card("פרסום לפי תקופה",box,"span")]}
+    if(noEngine()){box.appendChild(el("p","err","קובצי המנוע לא נטענו."));return only()}
+    var g=cardRange(),X=engineStatsFor(g);
+    if(!X.s){box.appendChild(X.ed.error?el("p","err",X.ed.error):el("div","empty","טוען את נתוני המנוע…"));box.appendChild(stamp("v2_ad_spend"));return only()}
+    if(g.from>g.to){box.appendChild(el("div","empty","אין עדיין ימים שהסתיימו בתקופה הזאת ("+g.he+")."));return only()}
+    var s=X.s,a=s.ads,k=s.kpis,miss=a.confidence==="MISSING";
+    box.appendChild(el("p","prange",periodText(g)+" · "+g.he));
+    var kr=el("div","kpis");
+    kr.appendChild(kpi("הוצאה על פרסום",miss?"–":eAg(a.adSpendAgorot),miss?"חסרים נתוני פרסום ל-"+a.missingDays+" ימים":"ביטחון "+a.confidencePercent+"%"));
+    kr.appendChild(kpi("MER (מכירות נטו ÷ הוצאה)",!miss&&k.mer!=null?String(k.mer):"–",k.breakEvenRoas!=null?"נקודת איזון "+k.breakEvenRoas:""));
+    kr.appendChild(kpi("עלות לרכישה (הוצאה ÷ הזמנות)",!miss&&k.blendedCpaAgorot!=null?eAg(k.blendedCpaAgorot):"–",k.breakEvenCpaAgorot!=null?"נקודת איזון "+eAg(k.breakEvenCpaAgorot):""));
+    kr.appendChild(kpi("ימים עם נתוני פרסום",a.coveredDays+" מתוך "+a.expectedDays,""));
+    var rows=Object.keys(a.byCampaign).map(function(x){return a.byCampaign[x]}).filter(function(c){return c.spendAgorot>0||c.purchases>0}).sort(function(x,y){return y.spendAgorot-x.spendAgorot});
+    if(rows.length){
+      var t=el("div","tbl"),tb=document.createElement("table"),th=document.createElement("thead"),hr=document.createElement("tr");
+      ["קמפיין","הוצאה","רכישות לפי Meta"].forEach(function(h,i){hr.appendChild(el("th",i?"num":null,h))});th.appendChild(hr);tb.appendChild(th);
+      var body=document.createElement("tbody");
+      rows.forEach(function(c){var tr=document.createElement("tr");tr.appendChild(el("td",null,c.campaignName||c.campaignId));tr.appendChild(el("td","num",eAg(c.spendAgorot)));tr.appendChild(el("td","num",String(c.purchases)));body.appendChild(tr)});
+      tb.appendChild(body);t.appendChild(tb);box.appendChild(t);
+    }else box.appendChild(el("div","empty",miss?"חסרים נתוני פרסום, לכן אין פירוט קמפיינים.":"לא הייתה הוצאה על פרסום בתקופה הזאת."));
+    box.appendChild(el("p","note","רכישות לפי Meta הן הייחוס של Meta ולא ספירת ההזמנות. הזמנות והרווח האמיתיים נמצאים בדף הכספים. הפרסום נמשך אוטומטית ב-06:10, קריאה בלבד."));
+    box.appendChild(el("p","note",engineFreshNote(X.ed)));
+    return [kr,card("פרסום לפי תקופה",box,"span")];
   }
   function financeCard(){
     var box=el("div"),ed=engineData(),c=calc();
@@ -1390,7 +1418,7 @@ body{padding-top:env(safe-area-inset-top)}
     if(editMode){
       d.agents.forEach(function(a,i){var r=el("div","erow");r.appendChild(inp(a.n,function(v){a.n=v;saveDept(d)},"שם"));r.appendChild(inp(a.w,function(v){a.w=v;saveDept(d)},"מתי רץ"));r.appendChild(delBtn(function(){d.agents.splice(i,1);saveDept(d);render()}));var fw=el("div","full");fw.appendChild(inp(a.d,function(v){a.d=v;saveDept(d)},"מה הוא עושה"));r.appendChild(fw);ab.appendChild(r)});
       var bar=el("div","bar");bar.appendChild(addBtn("הוסף סוכן",function(){d.agents.push({n:"סוכן חדש",w:"",d:""});saveDept(d);render()}));ab.appendChild(bar);
-    }else ab.appendChild(rowsView(d.agents));
+    }else ab.appendChild(rowsView(d.id==="ads"?[{n:"סוכן מודעות",w:"ריצה אחרונה: "+lastRun(["מטא","פרסום"]),d:"קריאה בלבד: הוצאה, עלות לרכישה ו-MER. תקרה 120 ₪ ליום. שינוי תקציב או הוצאה רק אחרי אישור שלך"}]:d.agents));
     grid.appendChild(card("סוכנים",ab));
     d.sections.forEach(function(sec,si){
       var b2=el("div");

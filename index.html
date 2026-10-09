@@ -609,6 +609,9 @@ body{padding-top:env(safe-area-inset-top)}
     if(typeof LorinxEngine==="undefined"||typeof LorinxSheetAdapter==="undefined")return {error:"קובצי המנוע לא נטענו."};
     var tabs={},miss=[];V2TABS.forEach(function(t){var v=v2Vals(t);if(!v)miss.push(t);tabs[t]=v||[]});
     if(miss.length)return {missing:miss};
+    /* never calculate on part of a tab: if the server says rows were left out of the range, show an error instead of numbers */
+    var cut=V2TABS.filter(function(t){var s=LIVE["v2_"+t];return s&&s.data&&s.data.truncated});
+    if(cut.length)return {error:"הלשוניות "+cut.join(", ")+" ארוכות מהטווח שהאפליקציה קוראת, והמספרים לא היו מלאים. יש להגדיל את הטווח לפני שמסתמכים עליהם."};
     try{return {data:LorinxSheetAdapter.build(tabs)}}catch(e){return {error:String(e&&e.message||e)}}
   }
   function enginePeriod(){

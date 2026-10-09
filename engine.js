@@ -509,6 +509,30 @@ var LorinxEngine = (function () {
     return { met: reasons.length === 0, need: need, orders: n, confidencePercent: c, coverage: cov, reasons: reasons };
   }
 
+  // ---------- צילום מדדים (kpi_snapshots) ----------
+  // שורה לכל (תקופה, מדד): snapshot_date, period_label, period_from, period_to, metric, value_agorot, confidence, confidence_pct, missing, formula_version, data_version, components_json
+  function snapshotRows(data, nowIso, dataVersion) {
+    var today = israelDate(nowIso), ym = today.slice(0, 7), periods = [], rows = [];
+    for (var m = 7; m < Number(today.slice(5, 7)); m++) { var lab = today.slice(0, 4) + '-' + ('0' + m).slice(-2); periods.push([lab, periodMonth(lab)]); }
+    if (ym) periods.push(['30d', periodLastDays(30, nowIso)], ['7d', periodLastDays(7, nowIso)]);
+    function cj(list) { return JSON.stringify(list.map(function (x) { return { n: x.name, a: x.amountAgorot, c: x.confidence }; })); }
+    periods.forEach(function (pp) {
+      var label = pp[0], p = pp[1], s = summarize(data, p);
+      function row(metric, v, conf, pct, missing, comps) { rows.push([today, label, p.from, p.to, metric, v, conf, pct, missing, s.formulaVersion, dataVersion || today, comps]); }
+      var rv = s.revenueForProfit;
+      row('netRevenue', rv.netAgorot, 'VERIFIED', 100, '', cj([{ name: 'מכירות ברוטו', amountAgorot: rv.grossAgorot, confidence: 'VERIFIED' }, { name: 'הנחות', amountAgorot: -rv.discountAgorot, confidence: 'VERIFIED' }, { name: 'החזרים', amountAgorot: -rv.refundAgorot, confidence: 'VERIFIED' }]));
+      row('salesLikeShopify', s.sales.netAgorot, 'VERIFIED', 100, '', cj([{ name: 'הזמנות', amountAgorot: s.sales.orderCount, confidence: 'VERIFIED' }]));
+      row('cogs', s.cogs.cogsAgorot, s.cogs.confidence, s.cogs.confidencePercent, s.cogs.ordersMissingCost.join(' '), cj([{ name: 'עלות מוצרים ומשלוח לספק', amountAgorot: s.cogs.cogsAgorot, confidence: s.cogs.confidence }]));
+      row('paymentFees', s.fees.feesAgorot, s.fees.confidence, s.fees.confidencePercent, '', cj(s.fees.components));
+      row('adSpend', s.ads.adSpendAgorot, s.ads.confidence, s.ads.confidencePercent, s.ads.confidence === 'MISSING' ? 'פרסום' : '', cj(s.ads.components));
+      row('fixedCosts', s.fixed.fixedAgorot, s.fixed.confidence, s.fixed.confidencePercent, '', cj(s.fixed.perExpense.map(function (e) { return { name: e.name, amountAgorot: e.agorot, confidence: e.confidence || 'MANUAL' }; })));
+      row('grossProfit', s.grossProfit.agorot, s.grossProfit.confidence, s.grossProfit.confidencePercent, s.grossProfit.missing.join(' '), '[]');
+      row('contributionProfit', s.contributionProfit.agorot, s.contributionProfit.confidence, s.contributionProfit.confidencePercent, s.contributionProfit.missing.join(' '), '[]');
+      row('netProfit', s.netProfit.agorot, s.netProfit.confidence, s.netProfit.confidencePercent, s.netProfit.missing.join(' '), '[]');
+    });
+    return rows;
+  }
+
   // ---------- חבילה אחת לתקופה ----------
 
   function summarize(data, period, opts) {
@@ -664,7 +688,7 @@ var LorinxEngine = (function () {
     normalizeOrder: normalizeOrder, normalizeOrders: normalizeOrders, salesEligible: salesEligible, profitEligible: profitEligible,
     fxRate: fxRate, ilsFromUsd: ilsFromUsd, roundHalfUp: roundHalfUp,
     calculateNetRevenue: calculateNetRevenue, calculateCOGS: calculateCOGS, calculatePaymentFees: calculatePaymentFees, feeForOrder: feeForOrder,
-    calculateAdSpend: calculateAdSpend, calculateAdCredit: calculateAdCredit, dataHealth: dataHealth, explainChange: explainChange, comparePeriods: comparePeriods, anomalies: anomalies, advancedGate: advancedGate, calculateFixedCosts: calculateFixedCosts, allocateExpense: allocateExpense,
+    calculateAdSpend: calculateAdSpend, calculateAdCredit: calculateAdCredit, dataHealth: dataHealth, explainChange: explainChange, comparePeriods: comparePeriods, anomalies: anomalies, advancedGate: advancedGate, snapshotRows: snapshotRows, calculateFixedCosts: calculateFixedCosts, allocateExpense: allocateExpense,
     calculateGrossProfit: calculateGrossProfit, calculateContributionProfit: calculateContributionProfit, calculateNetProfit: calculateNetProfit,
     confidencePercent: confidencePercent, worst: worst, summarize: summarize, fmt: fmt,
     orderRows: orderRows, profitByProduct: profitByProduct, effectiveFeeRate: effectiveFeeRate, unitCosts: unitCosts, ordersNeeded: ordersNeeded, productName: productName, allocate: allocate

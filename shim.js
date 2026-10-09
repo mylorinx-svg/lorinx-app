@@ -159,7 +159,10 @@
   var mcp={
     listTools:function(){return Promise.resolve({servers:[{server:"Google Sheets",authStatus:CFG.url?"connected":"needs_reauth"},{server:"Shopify",authStatus:CFG.url?"connected":"needs_reauth"},{server:"Gmail",authStatus:CFG.url?"connected":"needs_reauth"}]})},
     callTool:function(server,tool,input){
-      if(server==="Google Sheets"&&tool==="get_values")return api({action:"get",range:input.range}).then(function(j){return {payload:{values:j.values}}});
+      if(server==="Google Sheets"&&tool==="get_values")return api({action:"get",range:input.range}).then(function(j){
+        /* a newer server says when the tab has more rows than the range asked for; an older one never sets the flag */
+        if(j.truncated&&window.LX_WARN)window.LX_WARN("הלשונית "+String(input.range).split("!")[0]+" ארוכה מהטווח שנקרא ("+j.lastRow+" שורות). חלק מהשורות לא נטען.");
+        return {payload:{values:j.values,truncated:!!j.truncated,lastRow:j.lastRow}}});
       if(server==="Google Sheets"&&tool==="update_values")return api({action:"update",range:input.range,values:input.values}).then(function(){
         if(/^content!/.test(input.range))return loadClips().then(null,function(){}).then(function(){return {payload:{}}});
         return {payload:{}}});

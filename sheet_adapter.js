@@ -86,6 +86,7 @@ var LorinxSheetAdapter = (function () {
   function orders(ordersRows, linesRows, refundsRows) {
     var lines = {}, refunds = {};
     table(linesRows).forEach(function (l) {
+      if (bool(l.removed_in_shopify)) return; // שורה שהוסרה בשופיפיי (עריכת הזמנה): לא נספרת
       var q = num(l.qty, 'order_lines', l._row, 'qty'), up = num(l.unit_price_agorot, 'order_lines', l._row, 'unit_price_agorot');
       (lines[l.order_id] = lines[l.order_id] || []).push({ id: l.line_id, sku: nul(l.sku), variantTitle: nul(l.variant_title), qty: q, unitsPerVariant: num(l.units_per_variant, 'order_lines', l._row, 'units_per_variant') || 1, unitPriceAgorot: up, lineDiscountAgorot: num(l.line_discount_agorot, 'order_lines', l._row, 'line_discount_agorot'), invalid: q == null || up == null });
     });

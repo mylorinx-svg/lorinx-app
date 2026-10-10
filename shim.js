@@ -171,7 +171,7 @@
         /* a newer server says when the tab has more rows than the range asked for; an older one never sets the flag */
         if(j.truncated&&window.LX_WARN)window.LX_WARN("הלשונית "+String(input.range).split("!")[0]+" ארוכה מהטווח שנקרא ("+j.lastRow+" שורות). חלק מהשורות לא נטען.");
         return {payload:{values:j.values,truncated:!!j.truncated,lastRow:j.lastRow}}});
-      if(server==="Google Sheets"&&tool==="update_values")return api({action:"update",range:input.range,values:input.values}).then(function(){
+      if(server==="Google Sheets"&&tool==="update_values")return api({action:"update",range:input.range,values:input.values,expectOld:input.expectOld,confirmRepublish:input.confirmRepublish}).then(function(){
         if(/^content!/.test(input.range))return loadClips().then(null,function(){}).then(function(){return {payload:{}}});
         return {payload:{}}});
       if(server==="Google Sheets"&&tool==="exp_v2_ops")return api({action:"expv2ops",ops:input.ops}).then(function(){return {payload:{}}});

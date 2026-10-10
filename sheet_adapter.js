@@ -129,7 +129,7 @@ var LorinxSheetAdapter = (function () {
   function feeRates(rows) { return table(rows).map(function (r) {
     var comps = []; try { comps = r.components_json ? JSON.parse(r.components_json) : []; } catch (e) { issue('fee_rates', r._row, 'components_json', r.components_json, 'JSON לא תקין'); }
     var act = r.actual_agorot === '' || r.actual_agorot == null ? null : num(r.actual_agorot, 'fee_rates', r._row, 'actual_agorot', null);
-    return { gateway: r.gateway, effectiveFrom: day(r.effective_from, 'fee_rates', r._row, 'effective_from'), effectiveTo: day(r.effective_to, 'fee_rates', r._row, 'effective_to'), components: comps, actualAgorot: act, source: r.source, confidence: enumU(r.confidence) || 'ESTIMATED', note: r.note }; }); }
+    return { gateway: r.gateway, effectiveFrom: day(r.effective_from, 'fee_rates', r._row, 'effective_from'), effectiveTo: day(r.effective_to, 'fee_rates', r._row, 'effective_to'), components: comps, actualAgorot: act, orderId: r.order_id === '' || r.order_id == null ? null : String(r.order_id), source: r.source, confidence: enumU(r.confidence) || 'ESTIMATED', note: r.note }; }); }
   function adSpend(rows) {
     return table(rows).map(function (r) {
       var d = day(r.date, 'ad_spend', r._row, 'date');

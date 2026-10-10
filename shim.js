@@ -12,7 +12,12 @@
     if(/^locked/.test(m))return "נחסם זמנית אחרי ניסיונות כושלים. נסה שוב בעוד כמה דקות.";
     if(/^busy/.test(m))return "המערכת עסוקה, נסה שוב בעוד רגע.";
     if(/^conflict/.test(m))return m.replace(/^conflict:\s*/,"");
-    if(/not allowed|not writable|header is read-only/.test(m))return "הפעולה לא מותרת בשרת.";
+    if(/^slot taken/.test(m))return "כבר יש קליפ באותו תאריך ושעה. בחר שעה או תאריך אחרים.";
+    if(/^stale/.test(m))return "הסטטוס של הקליפ השתנה בינתיים. רענן ונסה שוב.";
+    if(/^bad (status|date)|bad row: content date/.test(m))return "תאריך או סטטוס לא תקינים.";
+    if(/^forbidden/.test(m))return "אין לך הרשאה לפעולה הזאת.";
+    if(/^clip already published/.test(m))return "הקליפ כבר פורסם. את הסטטוס שלו משנה רק הבעלים.";
+    if(/not allowed|not writable|header is read-only|too large/.test(m))return "הפעולה לא מותרת בשרת.";
     return "הגיליון החזיר שגיאה: "+m;
   }
   function setNet(off){if(window.LX_OFFLINE===off)return;window.LX_OFFLINE=off;try{window.dispatchEvent(new Event("lx-net"))}catch(e){}}
@@ -46,11 +51,13 @@
     if(st.indexOf("בוטל")===0||!r[0])return null;
     var file=r[4]||"",base=file.split("/").pop(),ak=r[0]+"|"+file;
     if(st.indexOf("מאושר לפרסום")===0)approvedAs[ak]=st;
-    return {id:r[0],row:i+1,data:{date:r[0],product:r[1]||"",template:r[2]||"",hook:r[3]||"",file:file,status:statusIn(st),statusRaw:approvedAs[ak]||st,time:r[14]||"20:30",caption:r[15]||"",
+    var cid=String(r[16]||"");   /* a stable id from the sheet (column Q); the date alone is not unique */
+    return {id:cid||r[0],cid:cid,row:i+1,data:{date:r[0],product:r[1]||"",template:r[2]||"",hook:r[3]||"",file:file,status:statusIn(st),statusRaw:approvedAs[ak]||st,time:r[14]||"20:30",caption:r[15]||"",
       video:file?encodeURI("../"+file):""}};
   }
   function loadClips(){
-    return api({action:"get",range:"content!A1:P200"}).then(function(j){
+    return api({action:"get",range:"content!A1:Q300"}).then(function(j){
+      if(j.truncated)throw {code:"upstream_error",message:"לשונית התוכן ארוכה מ-300 שורות. המסך לא יציג חלק ממנה. נקה שורות ישנות בגיליון."};
       rowsCache=(j.values||[]).map(mapRow).slice(1).filter(Boolean);
       clipListeners.forEach(function(f){f()});
     });
@@ -71,6 +78,7 @@
         set:function(data){
           if(p[0]==="clips"){
             var ex=rowsCache.filter(function(x){return x.id===p[1]})[0];
+            if(!ex){var byDate=rowsCache.filter(function(x){return x.data.date===p[1]});if(byDate.length===1)ex=byDate[0]}   /* an old date-based id: only when it is unambiguous */
             if(ex){
               return api({action:"update",range:"content!B"+ex.row+":E"+ex.row,values:[[data.product||"",data.template||"",data.hook||"",data.file||""]]});
             }

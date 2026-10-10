@@ -102,7 +102,7 @@ var LorinxSheetAdapter = (function () {
       var ls = lines[o.order_id] || [], rs = refunds[o.order_id] || [];
       var bad = created == null || gross == null || disc == null || net == null || (cancelled != null && cancelStamp == null) || ls.some(function (l) { return l.invalid; }) || rs.some(function (r) { return r.invalid; });
       list.push({ id: o.order_id, name: o.name, createdAt: created, cancelledAt: cancelStamp, financialStatus: enumU(o.financial_status), fulfillmentStatus: enumU(o.fulfillment_status), gateway: nul(o.gateway), city: o.city, customerId: String(o.customer_id), campaign: nul(String(o.campaign_id || '')), source: nul(o.source), tags: o.tags ? String(o.tags).split(',') : [], grossAgorot: gross, discountAgorot: disc, netAgorot: net, shippingAgorot: ship, refunds: rs, lines: ls, invalid: bad });
-      flags[o.name] = { isTest: bool(o.is_test), cancelledInError: bool(o.cancelled_in_error), creatorSample: bool(o.creator_sample), note: o.note || '' };
+      flags[o.name] = { isTest: bool(o.is_test), cancelledInError: bool(o.cancelled_in_error), creatorSample: bool(o.creator_sample), deletedInShopify: bool(o.deleted_in_shopify), note: o.note || '' };
     });
     return { orders: list, flags: flags };
   }

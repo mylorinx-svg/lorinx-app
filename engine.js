@@ -121,6 +121,7 @@ var LorinxEngine = (function () {
     var cancelled = !!o.cancelledAt && !f.cancelledInError;
     var state = 'OK';
     if (o.invalid) state = 'INVALID'; // שדה לא תקין בגיליון: ההזמנה מדווחת ב-dataHealth ולא נכנסת לשום סכום
+    else if (f.deletedInShopify) state = 'DELETED'; // נמחקה ב-Shopify (הסנכרון מסמן, לא מוחק): לא נספרת בשום סכום, ומדווחת ב-Health
     else if (f.isTest) state = 'TEST';
     else if (f.creatorSample) state = 'CREATOR_SAMPLE';
     else if (cancelled && refunded === 0) state = 'CANCELLED_NO_REFUND';
@@ -143,16 +144,30 @@ var LorinxEngine = (function () {
 
   // אילו הזמנות נכנסות למכירות ואילו לרווח
   function salesEligible(o, opts) {
-    if (o.state === 'INVALID') return false;
+    if (o.state === 'INVALID' || o.state === 'DELETED') return false;
     if (o.state === 'TEST' && !(opts && opts.includeTestOrders)) return false;
     return true; // מכירות = כמו Shopify (כולל מבוטלות; ההחזר יורד בנפרד)
   }
   function profitEligible(o, opts) {
-    if (o.state === 'INVALID') return false;
+    if (o.state === 'INVALID' || o.state === 'DELETED') return false;
     if (o.state === 'TEST' && !(opts && opts.includeTestOrders)) return false;
     if (o.state === 'CANCELLED_NO_REFUND') return false; // עד שההחזר נרשם או שההזמנה מתוקנת
     if (o.state === 'UNPAID') return false;
     return true;
+  }
+
+  // הזמנה אמיתית לצורך מכנים (AOV, CPA, CAC, נקודת איזון, הזמנות נדרשות): בתוך הרווח, לא דוגמת יוצר, ולא הזמנה שבוטלה והוחזרה במלואה.
+  // ביטול עם החזר חלקי נשאר הזמנה (חלק מהכסף נשאר אצלך).
+  function isRealOrderRow(r) {
+    if (!r.inProfit || r.state === 'CREATOR_SAMPLE') return false;
+    if (r.state === 'CANCELLED' && r.netAgorot <= 0) return false;
+    return true;
+  }
+  // שורות פרסום בלי כפילויות (אותו יום, קמפיין וקבוצת מודעות: האחרונה בגיליון), כמו ב-calculateAdSpend
+  function dedupeAds(adSpend) {
+    var last = {};
+    (adSpend || []).forEach(function (r, i) { last[r.date + '|' + r.campaignId + '|' + (r.adsetId || '')] = i; });
+    return (adSpend || []).filter(function (r, i) { return last[r.date + '|' + r.campaignId + '|' + (r.adsetId || '')] === i && r.spendAgorot != null; });
   }
 
   // ---------- מכירות ----------
@@ -162,16 +177,18 @@ var LorinxEngine = (function () {
     var gross = 0, disc = 0, refund = 0, count = 0, countTest = 0, testNet = 0, list = [], samples = 0, cancelledN = 0, invalid = [];
     orders.forEach(function (o) {
       if (o.state === 'INVALID') { invalid.push(o.name); return; }
+      if (o.state === 'DELETED') return;
       if (!inPeriod(o.date, period)) return;
       if (o.state === 'TEST') { countTest++; testNet += o.netAgorot; if (!opts.includeTestOrders) return; }
       if (opts.profitOnly && !profitEligible(o, opts)) return;
       count++; gross += o.grossAgorot; disc += o.discountAgorot; list.push(o.name);
-      if (o.state === 'CREATOR_SAMPLE') samples++; else if (o.state === 'CANCELLED') cancelledN++;
+      if (o.state === 'CREATOR_SAMPLE') samples++; else if (o.state === 'CANCELLED' && o.refundedAgorot >= o.netAgorot) cancelledN++; // בוטלה במלואה. החזר חלקי: ההזמנה נשארת (חלק מהכסף נשאר)
     });
     // החזרים לפי תאריך ההחזר
     orders.forEach(function (o) {
-      if (o.state === 'INVALID') return;
+      if (o.state === 'INVALID' || o.state === 'DELETED') return;
       if (o.state === 'TEST' && !opts.includeTestOrders) return;
+      if (opts.profitOnly && !profitEligible(o, opts)) return; // ההכנסה ברוטו של הזמנה כזו לא נכנסה, אז גם ההחזר שלה לא יורד
       o.refunds.forEach(function (r) { if (inPeriod(israelDate(r.createdAt), period)) refund += r.amountAgorot; });
     });
     var net = gross - disc - refund;
@@ -199,6 +216,23 @@ var LorinxEngine = (function () {
       if (r) return { rate: r.rate, date: r.date, exact: i === 0, confidence: r.confidence || 'VERIFIED' };
     }
     return null;
+  }
+
+  // אומדן עלות מקטלוג העלויות בתוקף ביום ההזמנה (ושער היום). ok=false אם חסר מוצר או שער או שורות.
+  function catalogEstimate(o, productCosts, fx) {
+    var est = 0, ok = !!(o.lines && o.lines.length);
+    (o.lines || []).forEach(function (l) {
+      var pc = null;
+      (productCosts || []).forEach(function (p) {
+        var key = l.sku || (l.unitsPerVariant === 3 ? '3units' : null);
+        if (p.sku === key && p.unitCostUsdCents != null && p.effectiveFrom && p.effectiveFrom <= o.date && (!p.effectiveTo || p.effectiveTo >= o.date)) pc = p;
+      });
+      if (!pc) { ok = false; return; }
+      var r = fxRate(fx, o.date);
+      if (!r) { ok = false; return; }
+      est += ilsFromUsd(pc.unitCostUsdCents * (l.qty * (l.unitsPerVariant || 1)), r.rate);
+    });
+    return { ok: ok, agorot: ok ? est : null };
   }
 
   function calculateCOGS(orders, orderCosts, productCosts, fx, period, opts) {
@@ -231,19 +265,8 @@ var LorinxEngine = (function () {
         });
       } else {
         // אין רכישה רשומה: עלות לפי product_costs בתוקף
-        var est = 0, ok = true;
-        o.lines.forEach(function (l) {
-          var pc = null;
-          (productCosts || []).forEach(function (p) {
-            var key = l.sku || (l.unitsPerVariant === 3 ? '3units' : null);
-            if (p.sku === key && p.unitCostUsdCents != null && p.effectiveFrom && p.effectiveFrom <= o.date && (!p.effectiveTo || p.effectiveTo >= o.date)) pc = p;
-          });
-          if (!pc) { ok = false; return; }
-          var r = fxRate(fx, o.date);
-          if (!r) { ok = false; return; }
-          est += ilsFromUsd(pc.unitCostUsdCents * (l.qty * (l.unitsPerVariant || 1)), r.rate);
-        });
-        if (ok && o.lines.length) { amt = est; conf.push('ESTIMATED'); detail.push({ reason: 'לפי עלות מוצר בתוקף, אין רכישה רשומה' }); }
+        var ce = catalogEstimate(o, productCosts, fx);
+        if (ce.ok) { amt = ce.agorot; conf.push('ESTIMATED'); detail.push({ reason: 'לפי עלות מוצר בתוקף, אין רכישה רשומה' }); }
         else { conf.push('MISSING'); missing.push(o.name); }
       }
       var c = worst(conf);
@@ -471,9 +494,20 @@ var LorinxEngine = (function () {
     var est = cogs.perOrder.filter(function (p) { return p.confidence === 'ESTIMATED' && reviewNames.indexOf(p.name) < 0; }).map(function (p) { return p.name; });
     add('cost_actual', 'העלות מבוססת על רכישה בפועל', est.length ? 'warn' : 'ok', est.length ? 'מחיר ספק נוכחי במקום רכישה בפועל: ' + est.join(', ') : '');
 
+    // שער הזמנה נדרש רק להזמנה שהעלות שלה נגזרת מהקטלוג (בלי שורת רכש); עלות רכש משתמשת בשער תאריך הרכישה (בדיקה נפרדת)
+    var costNames = {}; (data.orderCosts || []).forEach(function (c) { if (c.amountUsdCents != null) costNames[c.orderName] = 1; });
     var noFx = [];
-    orders.forEach(function (o) { if (profitEligible(o) && !fxRate(data.fx, o.date)) noFx.push(o.name); });
-    add('fx_coverage', 'יש שער בנק ישראל לכל תאריך הזמנה', noFx.length ? 'bad' : 'ok', noFx.length ? 'בלי שער: ' + noFx.join(', ') : '');
+    orders.forEach(function (o) { if (profitEligible(o) && !costNames[o.name] && !fxRate(data.fx, o.date)) noFx.push(o.name); });
+    add('fx_coverage', 'יש שער בנק ישראל לכל הזמנה שעלותה מהקטלוג', noFx.length ? 'bad' : 'ok', noFx.length ? 'בלי שער: ' + noFx.join(', ') : '');
+    var deleted = orders.filter(function (o) { return o.state === 'DELETED'; }).map(function (o) { return o.name; });
+    add('orders_deleted', 'אין הזמנות שנמחקו ב-Shopify', deleted.length ? 'warn' : 'ok', deleted.length ? 'נמחקו ב-Shopify ומוחרגות מכל הסכומים: ' + deleted.join(', ') : '');
+    var noFxBuy = [];
+    (data.orderCosts || []).forEach(function (c) {
+      if (c.amountUsdCents == null || !c.purchaseDate) return;
+      var frozen = c.convertedAgorot != null && c.rateUsed > 0 && ilsFromUsd(c.amountUsdCents, c.rateUsed) === c.convertedAgorot;
+      if (!frozen && !fxRate(data.fx, c.purchaseDate)) noFxBuy.push(c.orderName + (c.supplierOrder ? ' (' + c.supplierOrder + ')' : ''));
+    });
+    add('fx_purchase', 'יש שער לכל תאריך רכישה שלא ננעל', noFxBuy.length ? 'bad' : 'ok', noFxBuy.join(', '));
 
     var fees = calculatePaymentFees(orders, data.feeRates, all);
     var weak = fees.perOrder.filter(function (p) { return p.confidence === 'MISSING'; }).map(function (p) { return p.name; });
@@ -512,6 +546,36 @@ var LorinxEngine = (function () {
     });
     add('cost_frozen', 'סכומי הרכש נעולים בשקלים', inconsistent.length ? 'bad' : ((unfrozen.length || drift.length) ? 'warn' : 'ok'),
       inconsistent.length ? 'סכום נעול לא תואם לשער שלו: ' + inconsistent.join(', ') : (drift.length ? 'השער בטבלה השתנה מאז הנעילה: ' + drift.join(', ') : (unfrozen.length ? 'עוד לא ננעלו: ' + unfrozen.join(', ') : '')));
+    // order_costs: כפילות, יתומה, ועלות על הזמנה שלא נכנסת לרווח. כל אחת משנה או מסתירה COGS בלי שמישהו שם לב.
+    var seenSup = {}, dupSup = [], orphanCost = [], excludedCost = [], byName = {};
+    orders.forEach(function (o) { byName[o.name] = o; });
+    (data.orderCosts || []).forEach(function (c) {
+      var key = c.orderName + '|' + (c.supplierOrder || '');
+      if (c.supplierOrder) { if (seenSup[key]) dupSup.push(c.orderName + ' (' + c.supplierOrder + ')'); seenSup[key] = 1; }
+      var o = byName[c.orderName];
+      if (!o) orphanCost.push(c.orderName + (c.supplierOrder ? ' (' + c.supplierOrder + ')' : ''));
+      else if ((o.state === 'CANCELLED_NO_REFUND' || o.state === 'UNPAID') && c.amountUsdCents != null) excludedCost.push(o.name + ' (' + o.state + (c.status ? ', ' + c.status : '') + ', $' + (c.amountUsdCents / 100).toFixed(2) + ')');
+    });
+    add('cost_duplicates', 'אין שורת רכש כפולה לאותה הזמנת ספק', dupSup.length ? 'bad' : 'ok', dupSup.join(', '));
+    add('cost_orphans', 'לכל שורת רכש יש הזמנה', orphanCost.length ? 'warn' : 'ok', orphanCost.join(', '));
+    add('cost_excluded', 'אין עלות רכש על הזמנה שלא נכנסת לרווח', excludedCost.length ? 'warn' : 'ok', excludedCost.length ? 'העלות לא נספרת ברווח: ' + excludedCost.join(', ') : '');
+    // עלות רכש נמוכה בהרבה מאומדן הקטלוג להזמנה: ייתכן שחסרה שורת רכש ליחידה
+    var lowCost = [];
+    cogs.perOrder.forEach(function (p) {
+      if (p.creatorSample || p.confidence === 'MISSING' || !(byName[p.name] && (byName[p.name].lines || []).length)) return;
+      var hasPurchase = (data.orderCosts || []).some(function (c) { return c.orderName === p.name && c.amountUsdCents != null; });
+      if (!hasPurchase) return;
+      var ce = catalogEstimate(byName[p.name], data.productCosts, data.fx);
+      if (ce.ok && ce.agorot > 0 && p.agorot < 0.6 * ce.agorot) lowCost.push(p.name + ' (רכש ' + fmt(p.agorot) + ' מול אומדן ' + fmt(ce.agorot) + ')');
+    });
+    add('cost_vs_units', 'עלות הרכש סבירה ביחס לכמות היחידות', lowCost.length ? 'warn' : 'ok', lowCost.join(', '));
+    // סטטוס תשלום "הוחזר" בלי שורות החזר: ההכנסה נספרת במלואה
+    var noRefundRows = [];
+    (data.orders || []).forEach(function (o) {
+      var st = String(o.financialStatus || '').toUpperCase();
+      if ((st === 'REFUNDED' || st === 'PARTIALLY_REFUNDED') && !(o.refunds || []).length) noRefundRows.push(o.name);
+    });
+    add('refund_rows', 'הזמנה שסומנה כמוחזרת כוללת שורות החזר', noRefundRows.length ? 'bad' : 'ok', noRefundRows.join(', '));
     var review = cogs.statusReview || [];
     add('cost_status', 'אין רכש בסטטוס החזרה או ביטול שנספר כעלות', review.length ? 'warn' : 'ok', review.map(function (r) { return r.order + ' (' + r.status + ', $' + (r.usdCents / 100).toFixed(2) + ')'; }).join(', '));
     var lastFx = (data.fx || []).reduce(function (m, r) { return r.date > m ? r.date : m; }, '');
@@ -530,7 +594,7 @@ var LorinxEngine = (function () {
   // red = חסרה בגיליון הזמנה או שסכום החזר שונה. yellow = הזמנה בגיליון שאינה ב-Shopify, או הבדל בסימון בדיקה. green = זהה.
   function reconcileOrders(data, feed) {
     var orders = normalizeOrders(data.orders, data.flags), sheet = {}, shop = {}, tests = {}, refunds = {}, totals = {};
-    orders.forEach(function (o) { if (o.state !== 'INVALID') sheet[o.name] = o; });
+    orders.forEach(function (o) { if (o.state !== 'INVALID' && o.state !== 'DELETED') sheet[o.name] = o; });
     ((feed && feed.orders) || []).forEach(function (o) { shop[o.name] = 1; if (o.totalPrice != null) totals[o.name] = Math.round(parseFloat(o.totalPrice) * 100); refunds[o.name] = Math.round(parseFloat(o.refunded || '0') * 100) || 0; });
     ((feed && feed.excluded) || []).forEach(function (o) { shop[o.name] = 1; if (o.totalPrice != null) totals[o.name] = Math.round(parseFloat(o.totalPrice) * 100); if (o.reason === 'test') tests[o.name] = 1; refunds[o.name] = Math.round(parseFloat(o.refunded || '0') * 100) || 0; });
     var onlyShopify = Object.keys(shop).filter(function (n) { return !sheet[n]; }).sort();
@@ -621,7 +685,8 @@ var LorinxEngine = (function () {
       }
     });
     // 3) קפיצת הוצאת פרסום ביום לעומת ממוצע 7 הימים שקדמו לו (רק ימים עם נתון)
-    var byDay = {}; (data.adSpend || []).forEach(function (r) { byDay[r.date] = (byDay[r.date] || 0) + r.spendAgorot; });
+    var adsClean = dedupeAds(data.adSpend);
+    var byDay = {}; adsClean.forEach(function (r) { byDay[r.date] = (byDay[r.date] || 0) + r.spendAgorot; });
     for (var i = 1; i <= R.adWindowDays; i++) {
       var d = addDays(today, -i), v = byDay[d];
       if (v == null) continue;
@@ -633,7 +698,7 @@ var LorinxEngine = (function () {
     }
     // 4) קמפיין שהוציא הרבה בשבוע האחרון בלי רכישה אחת לפי מטא
     var win = { from: addDays(today, -R.adWindowDays), to: addDays(today, -1) }, camp = {};
-    (data.adSpend || []).forEach(function (r) {
+    adsClean.forEach(function (r) {
       if (!inPeriod(r.date, win)) return;
       var c = camp[r.campaignId] || (camp[r.campaignId] = { name: r.campaignName, spend: 0, purchases: 0 });
       c.spend += r.spendAgorot; c.purchases += r.purchases || 0;
@@ -654,7 +719,7 @@ var LorinxEngine = (function () {
   function attributeByCampaign(data, period, opts) {
     opts = opts || {};
     var ads = calculateAdSpend(data.adSpend, period, { coverage: data.adSpendCoverage, now: opts.now });
-    var rows = orderRows(data, period, opts).filter(function (r) { return r.inProfit; });
+    var rows = orderRows(data, period, opts).filter(isRealOrderRow); // רק הזמנות אמיתיות: לא דוגמאות ולא ביטולים שהוחזרו במלואם
     var by = {}, un = { orders: 0, netAgorot: 0 }, spendKnown = {};
     Object.keys(ads.byCampaign).forEach(function (id) { var c = ads.byCampaign[id]; spendKnown[id] = 1; by[id] = { campaignId: id, campaignName: c.campaignName, spendAgorot: c.spendAgorot, metaPurchases: c.purchases, orders: 0, netAgorot: 0, profitBeforeAdsAgorot: 0, profitKnownOrders: 0, orderNames: [] }; });
     var orphan = { orders: 0, netAgorot: 0, ids: {} };
@@ -667,9 +732,10 @@ var LorinxEngine = (function () {
     });
     var list = Object.keys(by).map(function (id) {
       var c = by[id], full = c.profitKnownOrders === c.orders;
-      c.roas = c.spendAgorot > 0 && c.orders ? +(c.netAgorot / c.spendAgorot).toFixed(2) : null;
-      c.cacAgorot = c.orders ? roundHalfUp(c.spendAgorot / c.orders) : null;
-      c.profitAfterAdsAgorot = c.orders && full ? c.profitBeforeAdsAgorot - c.spendAgorot : null;
+      var adsMissing = ads.confidence === 'MISSING'; // פרסום חסר: אין ROAS, CAC או רווח אחרי פרסום (כמו ב-kpi של summarize)
+      c.roas = !adsMissing && c.spendAgorot > 0 && c.orders ? +(c.netAgorot / c.spendAgorot).toFixed(2) : null;
+      c.cacAgorot = !adsMissing && c.orders ? roundHalfUp(c.spendAgorot / c.orders) : null;
+      c.profitAfterAdsAgorot = !adsMissing && c.orders && full ? c.profitBeforeAdsAgorot - c.spendAgorot : null;
       c.confidence = ads.confidence === 'MISSING' ? 'MISSING' : 'ESTIMATED'; // ייחוס לפי UTM הוא הערכה, לא מדידה
       return c;
     }).sort(function (a, b) { return b.spendAgorot - a.spendAgorot; });
@@ -718,11 +784,11 @@ var LorinxEngine = (function () {
     periods.push(['30d', defs.d30], ['7d', defs.week]);
     function cj(list) { return JSON.stringify(list.map(function (x) { return { n: x.name, a: x.amountAgorot, c: x.confidence }; })); }
     periods.forEach(function (pp) {
-      var label = pp[0], p = pp[1], s = summarize(data, p);
+      var label = pp[0], p = pp[1], s = summarize(data, p, { now: nowIso });
       function row(metric, v, conf, pct, missing, comps) { rows.push([today, label, p.from, p.to, metric, v, conf, pct == null ? '' : pct, missing, s.formulaVersion, dataVersion || today, comps]); }
       var rv = s.revenueForProfit;
-      row('netRevenue', rv.netAgorot, 'VERIFIED', 100, '', cj([{ name: 'מכירות ברוטו', amountAgorot: rv.grossAgorot, confidence: 'VERIFIED' }, { name: 'הנחות', amountAgorot: -rv.discountAgorot, confidence: 'VERIFIED' }, { name: 'החזרים', amountAgorot: -rv.refundAgorot, confidence: 'VERIFIED' }]));
-      row('salesLikeShopify', s.sales.netAgorot, 'VERIFIED', 100, '', cj([{ name: 'הזמנות', amountAgorot: s.sales.orderCount, confidence: 'VERIFIED' }]));
+      row('netRevenue', rv.netAgorot, rv.confidence, rv.confidencePercent, rv.confidence === 'MISSING' ? 'מכירות ברוטו' : '', cj(rv.components));
+      row('salesLikeShopify', s.sales.netAgorot, s.sales.confidence, s.sales.confidencePercent, s.sales.confidence === 'MISSING' ? 'מכירות ברוטו' : '', cj([{ name: 'הזמנות', amountAgorot: s.sales.orderCount, confidence: s.sales.confidence }]));
       row('cogs', s.cogs.cogsAgorot, s.cogs.confidence, s.cogs.confidencePercent, s.cogs.ordersMissingCost.join(' '), cj([{ name: 'עלות מוצרים ומשלוח לספק', amountAgorot: s.cogs.cogsAgorot, confidence: s.cogs.confidence }]));
       row('paymentFees', s.fees.feesAgorot, s.fees.confidence, s.fees.confidencePercent, '', cj(s.fees.components));
       row('adSpend', s.ads.adSpendAgorot, s.ads.confidence, s.ads.confidencePercent, s.ads.confidence === 'MISSING' ? 'פרסום' : '', cj(s.ads.components));
@@ -751,7 +817,7 @@ var LorinxEngine = (function () {
     var net = calculateNetProfit(contrib, fixed);
     // מכנה ההזמנות: הזמנות אמיתיות בלבד. דוגמאות ליוצרים (0 ₪) והזמנות שבוטלו והוחזרו לא מדללות AOV, CPA ונקודת איזון.
     var ordersInProfit = rev.realOrderCount;
-    var unitProfitBase = rev.netAgorot - cogs.cogsAgorot - fees.feesAgorot;
+    var unitProfitBase = rev.netAgorot - cogs.cogsAgorot - fees.feesAgorot - (cogs.creatorSamplesAgorot || 0); // כולל מוצרים שנשלחו ליוצרים, כמו ברווח התרומה
     // כל KPI נושא את הרכיבים שהוא תלוי בהם. אם אחד מהם MISSING הערך הוא null ולא מספר שנראה תקין (H3).
     function kpi(name, value, deps) {
       var miss = [];
@@ -765,15 +831,16 @@ var LorinxEngine = (function () {
       depFees = { name: 'עמלות סליקה', confidence: fees.confidence }, depAds = { name: 'פרסום', confidence: ads.confidence === 'MISSING' ? 'MISSING' : ads.confidence }, depFixed = { name: 'הוצאות קבועות', confidence: fixed.confidence };
     var beCpa = ordersInProfit ? roundHalfUp(unitProfitBase / ordersInProfit) : null;
     var r = {
-      formulaVersion: FORMULA_VERSION, period: period, days: periodDays(period),
+      formulaVersion: FORMULA_VERSION, period: period, days: periodDays(period), refundBasis: 'לפי תאריך ההחזר (ההכנסה בתקופה יורדת בחודש שבו ההחזר נרשם, לא בחודש ההזמנה)',
       sales: sales, revenueForProfit: rev, cogs: cogs, fees: fees, ads: ads, fixed: fixed, fixedActual: fixedActual,
       grossProfit: gross, contributionProfit: contrib, netProfit: net, adCredit: adCredit,
       kpis: {
         orders: sales.orderCount,
+        realOrders: rev.realOrderCount, // מונה אחד להזמנות אמיתיות (בלי בדיקות, דוגמאות, לא שולמו וביטולים שהוחזרו במלואם)
         aovAgorot: kpi('aovAgorot', ordersInProfit ? roundHalfUp(rev.netAgorot / ordersInProfit) : null, [depRev]),
-        contributionMarginPct: kpi('contributionMarginPct', rev.netAgorot ? +(100 * contrib.agorot / rev.netAgorot).toFixed(1) : null, [depRev, depCogs, depFees, depAds]),
-        netMarginPct: kpi('netMarginPct', rev.netAgorot ? +(100 * net.agorot / rev.netAgorot).toFixed(1) : null, [depRev, depCogs, depFees, depAds, depFixed]),
-        mer: kpi('mer', ads.adSpendAgorot ? +(rev.netAgorot / ads.adSpendAgorot).toFixed(2) : null, [depRev, depAds]),
+        contributionMarginPct: kpi('contributionMarginPct', rev.netAgorot > 0 ? +(100 * contrib.agorot / rev.netAgorot).toFixed(1) : null, [depRev, depCogs, depFees, depAds]),
+        netMarginPct: kpi('netMarginPct', rev.netAgorot > 0 ? +(100 * net.agorot / rev.netAgorot).toFixed(1) : null, [depRev, depCogs, depFees, depAds, depFixed]),
+        mer: kpi('mer', ads.adSpendAgorot && rev.netAgorot > 0 ? +(rev.netAgorot / ads.adSpendAgorot).toFixed(2) : null, [depRev, depAds]),
         blendedCpaAgorot: kpi('blendedCpaAgorot', ads.adSpendAgorot && ordersInProfit ? roundHalfUp(ads.adSpendAgorot / ordersInProfit) : null, [depAds]),
         breakEvenCpaAgorot: kpi('breakEvenCpaAgorot', beCpa != null && beCpa > 0 ? beCpa : null, [depRev, depCogs, depFees]), // שלילי = אין נקודת איזון: null
         breakEvenRoas: kpi('breakEvenRoas', unitProfitBase > 0 ? +(rev.netAgorot / unitProfitBase).toFixed(2) : null, [depRev, depCogs, depFees])
@@ -871,6 +938,34 @@ var LorinxEngine = (function () {
     return { pct: pct, fixedAgorot: fixed, confidence: rule.confidence || 'ESTIMATED', actual: rule.actualAgorot != null };
   }
 
+  // התחייבויות חודשיות פעילות ביום ymd: הוצאה קבועה/זמנית שבתוקף. חד-פעמית וקרדיט פרסום לא נכנסות (הן לא התחייבות חודשית). שורה בלי סכום חודשי תקין לא נספרת אלא מדווחת.
+  function monthlyCommitments(expenses, ymd) {
+    var items = [], total = 0, skipped = [];
+    (expenses || []).forEach(function (e) {
+      if (e.category !== 'Fixed' && e.category !== 'Temporary') return;
+      if (e.startDate && e.startDate > ymd) return;
+      if (e.endDate && e.endDate < ymd) return;
+      if (e.monthlyAgorot == null || !isFinite(e.monthlyAgorot)) { skipped.push(e.name || e.id); return; }
+      total += e.monthlyAgorot;
+      items.push({ id: e.id, name: e.name, category: e.category, monthlyAgorot: e.monthlyAgorot, startDate: e.startDate || null, endDate: e.endDate || null, confidence: e.confidence });
+    });
+    return { totalAgorot: total, items: items, skipped: skipped, asOf: ymd };
+  }
+
+  // רווח ליחידה ממחיר מחירון: מנכה עלות, עמלה באחוזים ועמלה קבועה (fee = תוצאת effectiveFeeRate)
+  function unitMargin(priceAgorot, costAgorot, fee) {
+    if (priceAgorot == null || costAgorot == null || !fee || !(priceAgorot > 0)) return null;
+    var feeAg = roundHalfUp(priceAgorot * fee.pct) + (fee.fixedAgorot || 0), net = priceAgorot - costAgorot - feeAg;
+    return { netAgorot: net, feeAgorot: feeAg, margin: net / priceAgorot };
+  }
+
+  // סיכום שורות ההזמנות על בסיס אחד (החזר לפי ההזמנה): רווח, מכירות נטו של אותן הזמנות, ושוליים. לא מערבבים עם מכירות לפי תאריך החזר.
+  function orderRowsTotals(rows) {
+    var profit = 0, net = 0, n = 0;
+    (rows || []).forEach(function (r) { if (r.inProfit && r.profitAgorot != null) { profit += r.profitAgorot; net += r.netAgorot; n++; } });
+    return { profitAgorot: profit, netAgorot: net, orders: n, pct: net > 0 ? Math.round(profit / net * 100) : null };
+  }
+
   // עלות יחידה נוכחית (בשקלים, באגורות שלמות) לכל מק"ט: השורה שבתוקף ביום asOf, ואם אין, האחרונה הידועה (מסומנת)
   function unitCosts(data, asOf) {
     var by = {};
@@ -891,9 +986,11 @@ var LorinxEngine = (function () {
   // הממוצע מהזמנות רגילות ששולמו בתקופת הבסיס (בלי בדיקות, דוגמאות ליוצרים, ביטולים בלי החזר).
   function ordersNeeded(data, goalAgorot, monthPeriod, basisPeriod, opts) {
     opts = opts || {};
-    var rows = orderRows(data, basisPeriod, opts).filter(function (r) { return r.inProfit && r.state === 'OK' && r.profitAgorot != null && r.netAgorot > 0; });
+    var rows = orderRows(data, basisPeriod, opts).filter(function (r) { return isRealOrderRow(r) && r.profitAgorot != null && r.netAgorot > 0; });
     var sum = 0; rows.forEach(function (r) { sum += r.profitAgorot; });
-    var avg = rows.length ? sum / rows.length : null, fixed = calculateFixedCosts(data.expenses, monthPeriod);
+    // מוצרים שנשלחו ליוצרים בתקופה הם עלות של ההזמנות האמיתיות (כמו ברווח התרומה)
+    var samplesTotal = rows.length ? calculateCOGS(normalizeOrders(data.orders, data.flags), data.orderCosts, data.productCosts, data.fx, basisPeriod, opts).creatorSamplesAgorot : 0;
+    var avg = rows.length ? (sum - samplesTotal) / rows.length : null, fixed = calculateFixedCosts(data.expenses, monthPeriod);
     var needBefore = avg && avg > 0 ? Math.ceil((goalAgorot + fixed.fixedAgorot) / avg) : null;
     // פרסום (M10): כשיש נתוני פרסום לתקופת הבסיס, הרווח הממוצע להזמנה יורד בעלות הפרסום להזמנה (פרסום בתקופה / הזמנות ברווח באותה תקופה)
     var withAds = false, adsPer = 0, adsConf = null;
@@ -913,16 +1010,17 @@ var LorinxEngine = (function () {
   // ---------- שלב 3: מה-אם, החלטות, תחזית ----------
   // כל שלושתן טהורות, בלי כתיבה. מה-אם הוא חשבון בלבד (עובד תמיד, מסומן לפי אמינות הבסיס). החלטות ותחזית נעולות עד advancedGate.
   function baselineUnit(data, basisPeriod, opts) {
-    var rows = orderRows(data, basisPeriod, opts).filter(function (r) { return r.inProfit && r.state === 'OK' && r.profitAgorot != null && r.netAgorot > 0; });
+    var rows = orderRows(data, basisPeriod, opts).filter(function (r) { return isRealOrderRow(r) && r.profitAgorot != null && r.netAgorot > 0; });
     if (!rows.length) return null;
-    var n = rows.length, net = 0, cogs = 0, fee = 0;
-    rows.forEach(function (r) { net += r.netAgorot; cogs += r.cogsAgorot; fee += r.feeAgorot; });
+    var n = rows.length, net = 0, cogs = 0, fee = 0, first = rows[0].date;
+    rows.forEach(function (r) { net += r.netAgorot; cogs += r.cogsAgorot; fee += r.feeAgorot; if (r.date < first) first = r.date; });
+    cogs += calculateCOGS(normalizeOrders(data.orders, data.flags), data.orderCosts, data.productCosts, data.fx, basisPeriod, opts).creatorSamplesAgorot || 0; // כולל דוגמאות ליוצרים
     var ads = null, adsConf = null;
     if (data.adSpend && data.adSpend.length && data.adSpendCoverage) {
       var a = calculateAdSpend(data.adSpend, basisPeriod, { coverage: data.adSpendCoverage, now: (opts && opts.now) });
       if (a.confidence !== 'MISSING') { ads = a.adSpendAgorot / n; adsConf = a.confidence; }
     }
-    return { orders: n, netPerOrder: net / n, cogsPerOrder: cogs / n, feePerOrder: fee / n, adsPerOrder: ads, confidence: worst(rows.map(function (r) { return r.confidence; }).concat(adsConf ? [adsConf] : [])) };
+    return { orders: n, firstDate: first, netPerOrder: net / n, cogsPerOrder: cogs / n, feePerOrder: fee / n, adsPerOrder: ads, confidence: worst(rows.map(function (r) { return r.confidence; }).concat(adsConf ? [adsConf] : [])) };
   }
   function unitMath(net, cogs, fee, ads) {
     var contribution = net - cogs - fee; // לפני פרסום = גם נקודת האיזון של עלות להזמנה
@@ -935,7 +1033,10 @@ var LorinxEngine = (function () {
     var b = baselineUnit(data, basisPeriod, opts);
     if (!b) return { ok: false, reason: 'אין הזמנות רגילות ששולמו בתקופת הבסיס, אין ממה לחשב' };
     var fixed = calculateFixedCosts(data.expenses, monthPeriod), feeRatio = b.netPerOrder ? b.feePerOrder / b.netPerOrder : 0;
-    var days = periodDays(basisPeriod), baseOrdersMonth = roundHalfUp(b.orders / days * 30);
+    // בסיס הזמנות בחודש: מהזמנה הראשונה בתקופה (לא מתחילת התקופה) עד אתמול, ולפי אורך החודש של החודש המוצג
+    var today = israelDate((opts && opts.now) || new Date()), basisFrom = b.firstDate > basisPeriod.from ? b.firstDate : basisPeriod.from, basisTo0 = addDays(today, -1);
+    var basisTo = basisPeriod.to < basisTo0 ? basisPeriod.to : basisTo0; if (basisTo < basisFrom) basisTo = basisFrom;
+    var days = periodDays({ from: basisFrom, to: basisTo }), baseOrdersMonth = roundHalfUp(b.orders / days * daysInMonth(String(monthPeriod.from).slice(0, 7)));
     function pick(v, d) { return v == null || v === '' || !isFinite(v) ? d : Number(v); }
     var sNet = pick(scenario.netPerOrderAgorot, b.netPerOrder), sCogs = pick(scenario.cogsPerOrderAgorot, b.cogsPerOrder), sAds = pick(scenario.adsPerOrderAgorot, b.adsPerOrder);
     var sOrders = pick(scenario.ordersPerMonth, baseOrdersMonth), goal = pick(scenario.goalAgorot, null);
@@ -944,7 +1045,7 @@ var LorinxEngine = (function () {
     function need(u) { return goal != null && u.profitAgorot > 0 ? Math.ceil((goal + fixed.fixedAgorot) / u.profitAgorot) : null; }
     var bm = month(base, baseOrdersMonth), sm = month(sc, sOrders);
     var changed = ['netPerOrderAgorot', 'cogsPerOrderAgorot', 'adsPerOrderAgorot', 'ordersPerMonth'].filter(function (k) { return scenario[k] != null && scenario[k] !== ''; });
-    return { ok: true, basis: { orders: b.orders, period: basisPeriod, ordersPerMonth: baseOrdersMonth, beforeAds: b.adsPerOrder == null }, fixedAgorot: fixed.fixedAgorot,
+    return { ok: true, basis: { orders: b.orders, period: basisPeriod, effectiveFrom: basisFrom, effectiveTo: basisTo, days: days, ordersPerMonth: baseOrdersMonth, beforeAds: b.adsPerOrder == null }, fixedAgorot: fixed.fixedAgorot,
       baseline: { unit: base, monthProfitAgorot: bm, ordersNeeded: need(base) }, scenario: { unit: sc, ordersPerMonth: sOrders, monthProfitAgorot: sm, ordersNeeded: need(sc) },
       deltaMonthAgorot: bm == null || sm == null ? null : sm - bm, changed: changed,
       confidence: worst([b.confidence, fixed.confidence || 'MANUAL'].concat(changed.length ? ['ESTIMATED'] : [])),
@@ -989,10 +1090,12 @@ var LorinxEngine = (function () {
     var out = [];
     (orderCosts || []).forEach(function (c) {
       if (c.amountUsdCents == null || !c.purchaseDate || !c.row) return;
-      if (c.convertedAgorot != null || c.rateUsed != null || c.rateDate) return;
-      var r = fxRate(fx, c.purchaseDate);
-      if (!r) return;
-      out.push({ row: c.row, rateUsed: r.rate, rateDate: r.date, convertedAgorot: ilsFromUsd(c.amountUsdCents, r.rate) });
+      if (c.convertedAgorot != null && c.rateUsed != null && c.rateDate) return; // קפואה במלואה: לא נוגעים
+      // קפואה חלקית (קריסה באמצע כתיבה): משלימים לפי מה שכבר נכתב, בלי לשנות שער שנקבע
+      var rate, rdate;
+      if (c.rateUsed != null && c.rateDate) { rate = c.rateUsed; rdate = c.rateDate; }
+      else { var r = fxRate(fx, c.purchaseDate); if (!r) return; rate = r.rate; rdate = r.date; }
+      out.push({ row: c.row, rateUsed: rate, rateDate: rdate, convertedAgorot: ilsFromUsd(c.amountUsdCents, rate) });
     });
     return out;
   }
@@ -1008,7 +1111,8 @@ var LorinxEngine = (function () {
     reconcileOrders: reconcileOrders, calculateAdSpend: calculateAdSpend, calculateAdCredit: calculateAdCredit, dataHealth: dataHealth, explainChange: explainChange, comparePeriods: comparePeriods, anomalies: anomalies, advancedGate: advancedGate, snapshotRows: snapshotRows, calculateFixedCosts: calculateFixedCosts, calculateFixedActual: calculateFixedActual, allocateExpense: allocateExpense,
     calculateGrossProfit: calculateGrossProfit, calculateContributionProfit: calculateContributionProfit, calculateNetProfit: calculateNetProfit,
     confidencePercent: confidencePercent, worst: worst, summarize: summarize, fmt: fmt,
-    orderRows: orderRows, attributeByCampaign: attributeByCampaign, shippingSummary: shippingSummary, profitByProduct: profitByProduct, effectiveFeeRate: effectiveFeeRate, unitCosts: unitCosts, ordersNeeded: ordersNeeded, productName: productName, allocate: allocate
+    monthlyCommitments: monthlyCommitments, unitMargin: unitMargin, orderRowsTotals: orderRowsTotals,
+    isRealOrderRow: isRealOrderRow, dedupeAds: dedupeAds, catalogEstimate: catalogEstimate, orderRows: orderRows, attributeByCampaign: attributeByCampaign, shippingSummary: shippingSummary, profitByProduct: profitByProduct, effectiveFeeRate: effectiveFeeRate, unitCosts: unitCosts, ordersNeeded: ordersNeeded, productName: productName, allocate: allocate
   };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = LorinxEngine;

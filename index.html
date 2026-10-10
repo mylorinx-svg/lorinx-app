@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-I9VHefR24JWnrFlX5alHS61GNqpLdgoeyWEqA6O0shY=' 'sha256-/rMK8/UhZylrbrLeGROxRGdM5yQMmKwG+TKrNScrNNk='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://script.google.com https://script.googleusercontent.com; img-src 'self' data: blob:; media-src 'self' blob: data:; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="theme-color" content="#111111"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" type="image/svg+xml" href="favicon.svg"><link rel="icon" href="favicon.ico" sizes="any"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="LORINX">
+<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-VRt+bxhg9j0W8iQOCPG0YZFz+HLa/geKhS069exK0Sg=' 'sha256-/rMK8/UhZylrbrLeGROxRGdM5yQMmKwG+TKrNScrNNk='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://script.google.com https://script.googleusercontent.com; img-src 'self' data: blob:; media-src 'self' blob: data:; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="theme-color" content="#111111"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" type="image/svg+xml" href="favicon.svg"><link rel="icon" href="favicon.ico" sizes="any"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="LORINX">
 <title>LORINX מרכז שליטה</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJhIiB4MT0iMC4yIiB5MT0iMCIgeDI9IjAuOSIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI0ZGRkZGRiIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI0U0RTRFNCIvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJiIiB4MT0iMCIgeTE9IjEiIHgyPSIxIiB5Mj0iMCI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjRThFOEU4Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjRkZGRkZGIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIGZpbGw9IiMwQjBCMEIiIHJ4PSI5NiIvPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKC04NS41MCAtMzEuNTApIHNjYWxlKDAuNSkiPjxwYXRoIGQ9Ik00NDEgNDA0UTQ0MSAzOTMgNDUxIDM4N0w2MTggMjg0VjY1NVE2MTggNzA2IDU4MCA3MzZRNDkyIDc5OCA0NDEgODYyWiIgZmlsbD0idXJsKCNhKSIvPjxwYXRoIGQ9Ik00NDEgODYyUTUxMiA3NzYgNjAyIDc1OEg5MjVMODM2IDg1MlE4MjggODY3IDgxMSA4NjdINDQxWiIgZmlsbD0idXJsKCNiKSIvPjwvZz48L3N2Zz4=">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -381,7 +381,7 @@ body{padding-top:env(safe-area-inset-top)}
   function clone(x){return JSON.parse(J(x))}
   function fmt(n,d){if(n==null||isNaN(n))return "–";return Number(n).toLocaleString("he-IL",{maximumFractionDigits:d==null?0:d})}
   function sh(n){return fmt(n)+" ₪"}
-  var SHEET="1ZrjEi4OMtCI61dSTGy3j_oplQ5yHTAJiHahyz3CHEZg";
+  var SHEET="";
 
   /* ---------- defaults (used only until the store answers / on first run) ---------- */
   var D_STRIP=[];
@@ -929,7 +929,7 @@ body{padding-top:env(safe-area-inset-top)}
   function monthGauge(){
     var box=el("div"),c=calc(),goal=c.goal,em=engMonth();
     if(!em||goal==null){box.appendChild(el("div","empty",goal==null?"יעד חודשי לא הוגדר בהגדרות.":"ממתין לנתוני המנוע."));box.appendChild(stamp("v2_orders_v2"));return card("מד יעד חודשי",box)}
-    var miss=em.netProfit.missing,profit=miss.length?null:em.netProfit.agorot/100,ordersN=em.sales.orderCount,en=engNeed(goal),need=en?en.needed:null;
+    var miss=em.netProfit.missing,profit=miss.length?null:em.netProfit.agorot/100,ordersN=em.kpis.realOrders,en=engNeed(goal),need=en?en.needed:null;
     var pct=profit==null?0:Math.max(0,Math.min(1,profit/goal));
     var g=el("div","gauge"),sv=svg("svg",{viewBox:"0 0 200 124",role:"img","aria-label":"התקדמות מול יעד הרווח החודשי"});
     var d="M20 100A80 80 0 0 1 180 100";
@@ -1007,7 +1007,7 @@ body{padding-top:env(safe-area-inset-top)}
     ln("עלות מוצרים · "+eConf(s.cogs.confidence),eAg(-s.cogs.cogsAgorot));
     if(s.cogs.creatorSamplesAgorot)ln("מוצרים ליוצרי תוכן",eAg(-s.cogs.creatorSamplesAgorot));
     ln("עמלות · "+eConf(s.fees.confidence),eAg(-s.fees.feesAgorot));
-    ln("רווח מהזמנות"+(s.revenueForProfit.netAgorot>0?" ("+Math.round(rowSum/s.revenueForProfit.netAgorot*100)+"% מהמכירות)":""),eAg(rowSum),true);
+    var rt=LorinxEngine.orderRowsTotals(rows);ln("רווח מהזמנות"+(rt.pct!=null?" ("+rt.pct+"% ממכירות אותן הזמנות)":""),eAg(rowSum),true);
     ln("פרסום · "+eConf(s.ads.confidence)+(adsMissing?" (אין נתוני Ads Manager לתקופה)":""),adsMissing?"–":eAg(-s.ads.adSpendAgorot));
     ln("הוצאות קבועות מוקצות לפי ימים",eAg(-s.fixed.fixedAgorot));
     ln("רווח נקי"+(hasNet?" · ביטחון "+nt.confidencePercent+"%":""),hasNet?eAg(nt.agorot):"–",true);
@@ -1345,8 +1345,10 @@ body{padding-top:env(safe-area-inset-top)}
     return old.map(function(o,i){
       var pd=PRODS.filter(function(q){return q[0]===o.n})[0],n=pd?pd[3]:1,pk=PROD_KEY[o.n],u=U&&pk?U[pk[0]]:null,r={n:o.n,price:o.price,old:o,src:"old"};
       if(u&&u.agorot!=null&&F){
-        var cost=u.agorot*n/100,net=o.price-cost-o.price*F.pct;
-        r.cost=cost;r.net=net;r.m=net/o.price;r.src="engine";r.pct=F.pct;r.stale=u.stale;r.until=u.effectiveTo;r.conf=u.confidence;
+        var um=LorinxEngine.unitMargin(Math.round(o.price*100),u.agorot*n,F);
+        if(!um){r.cost=null;r.net=null;r.m=null;return r}
+        var cost=u.agorot*n/100,net=um.netAgorot/100;
+        r.cost=cost;r.net=net;r.m=um.margin;r.src="engine";r.pct=F.pct;r.stale=u.stale;r.until=u.effectiveTo;r.conf=u.confidence;
       }else{r.cost=null;r.net=null;r.m=null}
       return r;
     });
@@ -1453,8 +1455,9 @@ body{padding-top:env(safe-area-inset-top)}
     function xr(l,x){var tr=document.createElement("tr");tr.appendChild(el("td",null,l));tr.appendChild(el("td","num",x));body.appendChild(tr)}
     xr("יעד רווח נקי חודשי",c.goal!=null?m2(c.goal):"לא הוגדר");
     if(ed.data){
-      var tot=0;ed.data.expenses.forEach(function(e){tot+=e.monthlyAgorot;xr(e.name+" · "+eConf(e.confidence)+(e.endDate?" · עד "+dmy(e.endDate):"")+" · מ-"+dmy(e.startDate),eAg(e.monthlyAgorot))});
-      xr("סה\"כ הוצאות חודשיות (לפי הרשומות בלשונית expenses_v2)",eAg(tot));
+      var mc=LorinxEngine.monthlyCommitments(ed.data.expenses,todayJ());mc.items.forEach(function(e){xr(e.name+" · "+eConf(e.confidence)+(e.endDate?" · עד "+dmy(e.endDate):"")+" · מ-"+dmy(e.startDate),eAg(e.monthlyAgorot))});
+      xr("סה\"כ התחייבויות חודשיות פעילות היום (הוצאות חד-פעמיות, שהסתיימו או עתידיות לא נכללות)",eAg(mc.totalAgorot));
+      if(mc.skipped.length)xr("שורות בלי סכום חודשי תקין (לא נספרו)",mc.skipped.join(", "));
     }else xr("הוצאות",ed.error||"טוען…");
     tb.appendChild(body);t.appendChild(tb);box.appendChild(t);
     var b=el("div","bar");var bt=el("button","ghost sm","עריכה בהגדרות");bt.addEventListener("click",function(){go("settings")});b.appendChild(bt);box.appendChild(b);
@@ -1922,7 +1925,7 @@ body{padding-top:env(safe-area-inset-top)}
     return card("תקינות נתוני המנוע",box);
   }
   /* ---------- system health: live checks from the server, not decoration ---------- */
-  var HEALTH=null,healthBusy=false,APP_BUILD="580762a 2026-10-10";
+  var HEALTH=null,healthBusy=false,APP_BUILD="3893f63 2026-10-11";
   var HLBL={sheet:"גיליון הנתונים",tabs:"לשוניות",expenses_valid:"שורות הוצאה תקינות",fixed_total_match:"סך הקבועות תואם לסכום ההוצאות",settings_numeric:"הגדרות מספריות",appdata_unique:"מפתחות ללא כפילות",appdata_json:"נתוני האפליקציה תקינים",appdata_capacity:"מקום בטבלת הנתונים",content_unique_slot:"קליפ אחד לכל מועד",content_no_weekend:"אין פרסום בשישי ובשבת",timezone:"אזור זמן",shopify:"Shopify",shopify_api_version:"גרסת ה-API של Shopify",shopify_currency:"מטבע החנות",gmail:"Gmail",orders_complete:"רשימת ההזמנות מלאה",ledger:"יומן ההזמנות בגיליון",backup_fresh:"גיבוי יומי טרי",orders_orphans:"הזמנות שנמחקו ב-Shopify"};
   function runHealth(){
     if(!mcp||healthBusy)return;healthBusy=true;render();

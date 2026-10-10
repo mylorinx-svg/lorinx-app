@@ -5,7 +5,7 @@
   /* the access code is accepted only by pasting it below; it is never read from the URL (URLs end up in history and screenshots) */
   try{if(/[#&]k=/.test(location.hash))history.replaceState(null,"",location.pathname+location.search)}catch(e){}
   var cfg=null;try{cfg=JSON.parse(localStorage.getItem(KEY)||"null")}catch(e){}
-  if(cfg&&cfg.u&&cfg.t){window.LORINX_CFG={url:cfg.u,token:cfg.t};window.LORINX_LOGOUT=function(){try{Object.keys(localStorage).filter(function(k){return k===KEY||k==="lorinx_cache_app"||k.indexOf("lorinx_local_")===0}).forEach(function(k){localStorage.removeItem(k)})}catch(e){}location.reload()};return}
+  if(cfg&&cfg.u&&cfg.t){window.LORINX_CFG={url:cfg.u,token:cfg.t};window.LORINX_LOGOUT=function(){try{var tk=window.LORINX_CFG&&window.LORINX_CFG.token,u=window.LORINX_CFG&&window.LORINX_CFG.url;if(tk&&u)fetch(u,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({token:tk,action:"logout"}),keepalive:true}).catch(function(){})}catch(e){}try{Object.keys(localStorage).filter(function(k){return k===KEY||k==="lorinx_cache_app"||k.indexOf("lorinx_local_")===0}).forEach(function(k){localStorage.removeItem(k)})}catch(e){}location.reload()};return}
   window.LORINX_CFG={};window.LORINX_NEEDS_CODE=true;
   document.addEventListener("DOMContentLoaded",function(){
     var d=document.createElement("div");

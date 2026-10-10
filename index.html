@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://script.google.com https://script.googleusercontent.com; img-src 'self' data: blob:; media-src 'self' blob: data:; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="theme-color" content="#111111"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" type="image/svg+xml" href="favicon.svg"><link rel="icon" href="favicon.ico" sizes="any"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="LORINX">
+<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-e+c+6PQwjwvfnHQVz7YAgaEnpN5SNhaq1Jy2gKCPUGE=' 'sha256-/rMK8/UhZylrbrLeGROxRGdM5yQMmKwG+TKrNScrNNk='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://script.google.com https://script.googleusercontent.com; img-src 'self' data: blob:; media-src 'self' blob: data:; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="theme-color" content="#111111"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" type="image/svg+xml" href="favicon.svg"><link rel="icon" href="favicon.ico" sizes="any"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="LORINX">
 <title>LORINX מרכז שליטה</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJhIiB4MT0iMC4yIiB5MT0iMCIgeDI9IjAuOSIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI0ZGRkZGRiIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI0U0RTRFNCIvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJiIiB4MT0iMCIgeTE9IjEiIHgyPSIxIiB5Mj0iMCI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjRThFOEU4Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjRkZGRkZGIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIGZpbGw9IiMwQjBCMEIiIHJ4PSI5NiIvPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKC04NS41MCAtMzEuNTApIHNjYWxlKDAuNSkiPjxwYXRoIGQ9Ik00NDEgNDA0UTQ0MSAzOTMgNDUxIDM4N0w2MTggMjg0VjY1NVE2MTggNzA2IDU4MCA3MzZRNDkyIDc5OCA0NDEgODYyWiIgZmlsbD0idXJsKCNhKSIvPjxwYXRoIGQ9Ik00NDEgODYyUTUxMiA3NzYgNjAyIDc1OEg5MjVMODM2IDg1MlE4MjggODY3IDgxMSA4NjdINDQxWiIgZmlsbD0idXJsKCNiKSIvPjwvZz48L3N2Zz4=">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -555,7 +555,17 @@ body{padding-top:env(safe-area-inset-top)}
       LIVE[slot]={data:prev||null,at:LIVE[slot]&&LIVE[slot].at,err:errText(e,server)};
     });
   }
-  function loadContent(){return call("content","Google Sheets","get_values",{spreadsheetId:SHEET,range:"content!A1:G200"})}
+  function loadContent(){return call("content","Google Sheets","get_values",{spreadsheetId:SHEET,range:"content!A1:Q300"})}
+  /* which sheet row is this clip? Several clips may share a date, so the date alone is not enough: date + hook (D), and when still ambiguous the time (O). Never guess between two rows. */
+  function clipRowOf(v,key,c){
+    /* exact match by content_id (column Q) when the clip has one: never falls back to guessing a different row */
+    if(c&&c.contentId){for(var q=1;q<v.length;q++){if(v[q]&&String(v[q][16]||"")===c.contentId)return q+1}return 0}
+    var hits=[];for(var i=1;i<v.length;i++){if(v[i]&&v[i][0]===key)hits.push(i)}
+    if(hits.length<=1)return hits.length?hits[0]+1:0;
+    var h=hits.filter(function(i){return String(v[i][3]||"")===String(c.hook||"")});
+    if(h.length>1&&c.time){var t=h.filter(function(i){return String(v[i][14]||"")===String(c.time)});if(t.length)h=t}
+    return h.length===1?h[0]+1:-1;
+  }
   function loadOrders(){
     if(LOCAL)return call("orders","Shopify","list-orders",{});
     /* claude.ai build: the connector does not say which orders are cancelled, so they are fetched as a second list and flagged.
@@ -573,7 +583,7 @@ body{padding-top:env(safe-area-inset-top)}
     });
   }
   function loadSheet(){return call("sheet","Google Sheets","get_values",{spreadsheetId:SHEET,range:"settings!A1:C26"})}
-  function loadLog(){return call("log","Google Sheets","get_values",{spreadsheetId:SHEET,range:"log!A1:E1000"})}
+  function loadLog(){return call("log","Google Sheets","get_values",{spreadsheetId:SHEET,range:"log!A1:I1000"})}
   function loadDrafts(){return call("drafts","Gmail","search_threads",{query:"label:LORINX-לאישור"}).then(function(){var s=LIVE.drafts;if(s&&!s.err){var d=s.data;if(d==null||typeof d!=="object")d={};if(d.resultCountEstimate==null)d.resultCountEstimate=d.threads?d.threads.length:0;s.data=d}})}
   function loadConn(){
     if(!mcp){LIVE.conn={err:(LOCAL?"החיבור לגיליון לא הוגדר.":"החיבורים לשירותים זמינים רק כשהעמוד נפתח מתוך claude.ai."),data:null};return Promise.resolve()}
@@ -1094,7 +1104,7 @@ body{padding-top:env(safe-area-inset-top)}
       stage.textContent="";var n;
       if(m.kind==="video"){n=document.createElement("video");n.src=m.urls[0];n.controls=true;n.playsInline=true;n.autoplay=true}
       else{n=document.createElement("img");n.src=m.urls[i];n.alt=c.hook||""}
-      stage.appendChild(n);ext.href=m.urls[i];
+      stage.appendChild(n);if(/^(https:\/\/|blob:|data:image\/)/i.test(String(m.urls[i]||"")))ext.href=m.urls[i];else ext.removeAttribute("href");
       if(m.urls.length>1){
         var pv=el("button","vnav p","›"),nx=el("button","vnav n","‹");pv.type=nx.type="button";
         pv.setAttribute("aria-label","התמונה הקודמת");nx.setAttribute("aria-label","התמונה הבאה");
@@ -1145,10 +1155,17 @@ body{padding-top:env(safe-area-inset-top)}
   function clipSheetP(c,oldDate,forceStat,onlyStatus){
     if(!mcp||!(oldDate||c.date))return Promise.resolve("skip");
     var key=oldDate||c.date;
-    return mcp.callTool("Google Sheets","get_values",{spreadsheetId:SHEET,range:"content!A1:A300",valueRenderOption:"FORMATTED_VALUE"},{cache:false}).then(function(r){
-      var p=r.payload!==undefined?r.payload:r,v=(p&&p.values)||[],row=0;
-      for(var i=1;i<v.length;i++){if(v[i]&&v[i][0]===key){row=i+1;break}}
+    return mcp.callTool("Google Sheets","get_values",{spreadsheetId:SHEET,range:"content!A1:Q300",valueRenderOption:"FORMATTED_VALUE"},{cache:false}).then(function(r){
+      var p=r.payload!==undefined?r.payload:r,v=(p&&p.values)||[],row=clipRowOf(v,key,c);
+      if(row===-1)return "ambiguous";
       if(!row)return "notfound";
+      /* bind the clip to the row's content_id the first time it is matched uniquely */
+      var rowId=String((v[row-1]||[])[16]||""),curStat=String((v[row-1]||[])[6]||"");
+      if(!c.contentId&&rowId){c.contentId=rowId;saveClip(c)}
+      /* two devices on the same clip (M13): if the sheet status changed since this app last saw it, and it is not already what we are about to write, stop instead of overwriting */
+      var want=forceStat||statOut(c);
+      if(c.sheetStatus!==undefined&&curStat!==c.sheetStatus&&curStat!==want){c.sheetStatus=curStat;saveClip(c);return "conflict"}
+      c.sheetStatus=want;
       var ch=Promise.resolve();
       if(oldDate&&oldDate!==c.date)ch=mcp.callTool("Google Sheets","update_values",{spreadsheetId:SHEET,range:"content!A"+row,values:[[c.date]]},{cache:false});
       return ch.then(function(){return mcp.callTool("Google Sheets","update_values",{spreadsheetId:SHEET,range:"content!G"+row,values:[[forceStat||statOut(c)]]},{cache:false})}).then(function(){
@@ -1160,6 +1177,8 @@ body{padding-top:env(safe-area-inset-top)}
   function syncClipSheet(c,oldDate,forceStat){
     clipSheetP(c,oldDate,forceStat).then(function(r){
       if(r==="notfound")msg("הקליפ לא נמצא בלשונית content בגיליון, לא עודכן שם");
+      else if(r==="conflict")msg("הסטטוס של הקליפ בגיליון שונה בינתיים (מכשיר אחר או Make). הקליפ לא עודכן. בדוק את הסטטוס בגיליון ונסה שוב אם עדיין רלוונטי.");
+      else if(r==="ambiguous")msg("יש כמה קליפים עם אותו תאריך והוק בגיליון, לא עודכן שם כדי לא לשנות את השורה הלא נכונה");
       else if(view==="cal")render();
     },function(e){msg("עדכון הגיליון נכשל: "+errText(e,"Google Sheets"))});
   }
@@ -1171,7 +1190,7 @@ body{padding-top:env(safe-area-inset-top)}
     if(!db){box.appendChild(el("div","empty",LOCAL?"האישורים לא זמינים כרגע.":"האישורים זמינים כשהעמוד נפתח מתוך claude.ai."));return card("תור אישורים",box)}
     var pend=pendingList();
     if(!M.clips.length)box.appendChild(el("div","empty","אין קליפים שממתינים. הבאים יגיעו אחרי הפקה ב-1.10."));
-    if(!editMode&&pend.length>1&&canWrite){var ab=el("div","bar");ab.style.marginTop="0";var all=el("button","go sm","אשר הכול ("+pend.length+")");all.addEventListener("click",function(){pend.forEach(function(c){c.status="approved";c.decidedAt=new Date().toISOString();saveClip(c);syncClipSheet(c)});render()});ab.appendChild(all);box.appendChild(ab)}
+    if(!editMode&&pend.length>1&&canWrite){var ab=el("div","bar");ab.style.marginTop="0";var all=el("button","go sm","אשר הכול ("+pend.length+")");all.addEventListener("click",function(){confirmBox({title:"אישור כל הקליפים",text:"לאשר לפרסום "+pend.length+" קליפים? אישור מפעיל פרסום אמיתי בתאריך של כל אחד מהם.",ok:"אשר הכול"}).then(function(yes){if(!yes)return;pend.forEach(function(c){c.status="approved";c.decidedAt=new Date().toISOString();saveClip(c);syncClipSheet(c)});render()})});ab.appendChild(all);box.appendChild(ab)}
     var csb=searchBox("clip",M.clips.length);if(csb)box.appendChild(csb);
     M.clips.forEach(function(c){
       if(!qm("clip",[c.hook,c.date,c.product,c.caption,c.template].join(" ")))return;
@@ -1366,6 +1385,18 @@ body{padding-top:env(safe-area-inset-top)}
       rows.forEach(function(c){var tr=document.createElement("tr");tr.appendChild(el("td",null,c.campaignName||c.campaignId));tr.appendChild(el("td","num",eAg(c.spendAgorot)));tr.appendChild(el("td","num",String(c.purchases)));body.appendChild(tr)});
       tb.appendChild(body);t.appendChild(tb);box.appendChild(t);
     }else box.appendChild(el("div","empty",miss?"חסרים נתוני פרסום, לכן אין פירוט קמפיינים.":"לא הייתה הוצאה על פרסום בתקופה הזאת."));
+    try{
+      var at=LorinxEngine.attributeByCampaign(X.ed.data,g,{}),sh=LorinxEngine.shippingSummary(X.ed.data,g,{});
+      if(at.totalOrders){
+        box.appendChild(el("h3",null,"ייחוס הזמנות לקמפיין (לפי campaign_id בהזמנה)"));
+        var t2=el("div","tbl"),tb2=document.createElement("table"),th2=document.createElement("thead"),hr2=document.createElement("tr");
+        ["קמפיין","הוצאה","הזמנות מיוחסות","ROAS מיוחס","עלות להזמנה","רווח אחרי פרסום"].forEach(function(h,i){hr2.appendChild(el("th",i?"num":null,h))});th2.appendChild(hr2);tb2.appendChild(th2);
+        var b2=document.createElement("tbody");
+        at.campaigns.filter(function(c){return c.spendAgorot>0||c.orders>0}).forEach(function(c){var tr=document.createElement("tr");tr.appendChild(el("td",null,c.campaignName||c.campaignId));tr.appendChild(el("td","num",eAg(c.spendAgorot)));tr.appendChild(el("td","num",String(c.orders)));tr.appendChild(el("td","num",c.roas!=null?String(c.roas):"–"));tr.appendChild(el("td","num",c.cacAgorot!=null?eAg(c.cacAgorot):"–"));tr.appendChild(el("td","num",c.profitAfterAdsAgorot!=null?eAg(c.profitAfterAdsAgorot):"–"));b2.appendChild(tr)});
+        tb2.appendChild(b2);t2.appendChild(tb2);box.appendChild(t2);
+        box.appendChild(el("p","note","מיוחסות לקמפיין: "+at.attributedOrders+" מתוך "+at.totalOrders+" הזמנות ("+(at.attributedPct!=null?at.attributedPct:"–")+"%, כולל "+at.orphan.orders+" משיוך לקמפיין שאין לו שורת הוצאה). בלי שיוך: "+at.unattributed.orders+" הזמנות, "+eAg(at.unattributed.netAgorot)+" מכירות נטו. הייחוס הוא הערכה לפי UTM, לא מדידה. משלוח: הכנסה "+eAg(sh.incomeAgorot)+" ב-"+sh.ordersWithShipping+" הזמנות; עלות משלוח מהספק אינה נפרדת בסכום הרכש."));
+      }
+    }catch(e){box.appendChild(el("p","err","ייחוס לקמפיינים נכשל: "+String(e&&e.message||e)))}
     box.appendChild(el("p","note","רכישות לפי Meta הן הייחוס של Meta ולא ספירת ההזמנות. הזמנות והרווח האמיתיים נמצאים בדף הכספים. הפרסום נמשך אוטומטית ב-06:10, קריאה בלבד."));
     box.appendChild(el("p","note",engineFreshNote(X.ed)));
     return [kr,card("פרסום לפי תקופה",box,"span")];
@@ -1566,7 +1597,7 @@ body{padding-top:env(safe-area-inset-top)}
     var dl=el("button","x","מחק מהלוח");dl.type="button";dl.disabled=!canWrite;
     dl.addEventListener("click",function(){removeEntity("clip",c.id)});bar.appendChild(dl);
     bd.appendChild(bar);
-    if(pi&&pi.link){var a=el("a",null,"פתח את הפוסט");a.href=pi.link;a.target="_blank";a.rel="noopener";bd.appendChild(a)}
+    if(pi&&pi.link&&/^https:\/\//i.test(String(pi.link))){var a=el("a",null,"פתח את הפוסט");a.href=pi.link;a.target="_blank";a.rel="noopener";bd.appendChild(a)}
     if(c.caption)bd.appendChild(el("div","cap",c.caption));
     w.appendChild(bd);b.appendChild(w);
     return card("פרטי פרסום",b);
@@ -1781,7 +1812,7 @@ body{padding-top:env(safe-area-inset-top)}
     });
     if(cs&&cs.err)cb.appendChild(el("p","err",cs.err));
     cb.appendChild(el("p","note",LOCAL?"האפליקציה מתחברת רק לגיליון LORINX Brain (דרך Apps Script). ההזמנות נמשכות ישירות מ-Shopify (קריאה בלבד), והשאר מהגיליון.":"חיבור חדש או חיבור מחדש מתבצע ב-claude.ai, הגדרות, מחברים. אחרי זה לחץ \"רענן נתונים\"."));
-    if(window.LORINX_LOGOUT){var lo=el("button","ghost sm","התנתק ממכשיר זה");lo.type="button";lo.addEventListener("click",function(){confirmBox({title:"התנתקות",text:"קוד הגישה והנתונים השמורים יימחקו ממכשיר זה. כדי להיכנס שוב תצטרך להדביק קוד גישה.",ok:"התנתק"}).then(function(ok){if(ok)window.LORINX_LOGOUT()})});cb.appendChild(lo)}
+    if(window.LORINX_LOGOUT){var lo=el("button","ghost sm","התנתק ממכשיר זה");lo.type="button";lo.addEventListener("click",function(){confirmBox({title:"התנתקות",text:"קוד הגישה יבוטל גם בשרת והנתונים השמורים יימחקו ממכשיר זה. כדי להיכנס שוב תצטרך להדביק קוד גישה.",ok:"התנתק"}).then(function(ok){if(ok)window.LORINX_LOGOUT()})});cb.appendChild(lo)}
     /* business params from sheet */
     var pb=el("div"),v=sheetVals();
     if(!v){pb.appendChild(stamp("sheet"));pb.appendChild(el("p","note","הפרמטרים נקראים מהגיליון. אם הגיליון לא נטען, בדוק את חיבור Google Sheets משמאל."))}
@@ -1825,14 +1856,29 @@ body{padding-top:env(safe-area-inset-top)}
       if(h){
         box.appendChild(el("p",h.bad?"err":"note",h.bad?h.bad+" בדיקות נכשלו":(h.warn?"אין תקלות. "+h.warn+" דברים לתשומת לב.":"כל הבדיקות עברו ("+h.checks.length+").")));
         h.checks.forEach(function(c){var r=el("div","hrow");r.appendChild(el("b",null,c.label));r.appendChild(el("span","pill "+c.level,c.level==="ok"?"תקין":(c.level==="warn"?"לתשומת לב":"נכשל")));if(c.detail)r.appendChild(el("div","d",c.detail));box.appendChild(r)});
-        box.appendChild(el("p","note","נבדק עכשיו על הנתונים שבגיליון, בלי שרת: סכומי הזמנות מול שורותיהן, עלות ושער לכל הזמנה, תעריף עמלה, טריות הסנכרון והפרסום."));
+        /* reconciliation with Shopify: the same orders on both sides, the same refund amounts. Sales totals are not compared because the two sides define them differently. */
+        var fd=LIVE.orders&&LIVE.orders.data;
+        if(fd&&Array.isArray(fd.orders)&&Array.isArray(fd.excluded)){
+          var rc=null;try{rc=LorinxEngine.reconcileOrders(ed.data,fd)}catch(e){}
+          if(rc){
+            var rr=el("div","hrow");rr.appendChild(el("b",null,"התאמה ל-Shopify"));rr.appendChild(el("span","pill "+rc.level,rc.level==="ok"?"תקין":(rc.level==="warn"?"לתשומת לב":"נכשל")));
+            var dt="Shopify: "+rc.shopifyCount+" הזמנות · גיליון: "+rc.sheetCount+" הזמנות";
+            if(rc.onlyShopify.length)dt+=" · חסרות בגיליון: "+rc.onlyShopify.join(", ");
+            if(rc.onlySheet.length)dt+=" · בגיליון ולא ב-Shopify: "+rc.onlySheet.join(", ");
+            if(rc.testMismatch.length)dt+=" · סימון בדיקה שונה: "+rc.testMismatch.join(", ");
+            if(rc.refundDiff.length)dt+=" · החזר שונה: "+rc.refundDiff.map(function(x){return x.name+" (גיליון "+eAg(x.sheetAgorot)+", Shopify "+eAg(x.shopifyAgorot)+")"}).join(", ");
+            if(rc.amountDiff&&(rc.shopifyTotalAgorot||rc.sheetTotalAgorot)){dt+=" · סכום הזמנות: Shopify "+eAg(rc.shopifyTotalAgorot)+", גיליון "+eAg(rc.sheetTotalAgorot)+", הפרש "+eAg(rc.diffAgorot);if(rc.amountDiff.length)dt+=" · מסבירות: "+rc.amountDiff.map(function(x){return x.name+" ("+eAg(x.diffAgorot)+")"}).join(", ")}
+            rr.appendChild(el("div","d",dt));box.appendChild(rr);
+          }
+        }
+        box.appendChild(el("p","note","נבדק עכשיו על הנתונים שבגיליון, בלי שרת: סכומי הזמנות מול שורותיהן, עלות ושער לכל הזמנה, תעריף עמלה, טריות הסנכרון והפרסום. גרסת אפליקציה "+APP_BUILD+" · נוסחה "+LorinxEngine.FORMULA_VERSION+"."));
       }
     }
     return card("תקינות נתוני המנוע",box);
   }
   /* ---------- system health: live checks from the server, not decoration ---------- */
-  var HEALTH=null,healthBusy=false;
-  var HLBL={sheet:"גיליון הנתונים",tabs:"לשוניות",expenses_valid:"שורות הוצאה תקינות",fixed_total_match:"סך הקבועות תואם לסכום ההוצאות",settings_numeric:"הגדרות מספריות",appdata_unique:"מפתחות ללא כפילות",appdata_json:"נתוני האפליקציה תקינים",appdata_capacity:"מקום בטבלת הנתונים",content_unique_slot:"קליפ אחד לכל מועד",content_no_weekend:"אין פרסום בשישי ובשבת",timezone:"אזור זמן",shopify:"Shopify",shopify_api_version:"גרסת ה-API של Shopify",shopify_currency:"מטבע החנות",gmail:"Gmail",orders_complete:"רשימת ההזמנות מלאה",ledger:"יומן ההזמנות בגיליון"};
+  var HEALTH=null,healthBusy=false,APP_BUILD="ddb079b 2026-10-10";
+  var HLBL={sheet:"גיליון הנתונים",tabs:"לשוניות",expenses_valid:"שורות הוצאה תקינות",fixed_total_match:"סך הקבועות תואם לסכום ההוצאות",settings_numeric:"הגדרות מספריות",appdata_unique:"מפתחות ללא כפילות",appdata_json:"נתוני האפליקציה תקינים",appdata_capacity:"מקום בטבלת הנתונים",content_unique_slot:"קליפ אחד לכל מועד",content_no_weekend:"אין פרסום בשישי ובשבת",timezone:"אזור זמן",shopify:"Shopify",shopify_api_version:"גרסת ה-API של Shopify",shopify_currency:"מטבע החנות",gmail:"Gmail",orders_complete:"רשימת ההזמנות מלאה",ledger:"יומן ההזמנות בגיליון",backup_fresh:"גיבוי יומי טרי",orders_orphans:"הזמנות שנמחקו ב-Shopify"};
   function runHealth(){
     if(!mcp||healthBusy)return;healthBusy=true;render();
     mcp.callTool("LORINX","health",{},{cache:false}).then(function(r){HEALTH={data:r.payload!==undefined?r.payload:r,at:Date.now(),err:null}},function(e){HEALTH={data:HEALTH&&HEALTH.data,at:HEALTH&&HEALTH.at,err:errText(e,"השרת")}}).then(function(){healthBusy=false;render()});

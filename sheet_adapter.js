@@ -143,7 +143,7 @@ var LorinxSheetAdapter = (function () {
     var T = 'expenses_v2', o = { id: e.id, name: e.name, category: e.category, source: e.source, confidence: enumU(e.confidence) || 'MANUAL' };
     if (e.category === 'OneTime') { o.amountAgorot = num(e.amount_agorot, T, e._row, 'amount_agorot', null); o.date = day(e.date, T, e._row, 'date'); }
     else if (e.category === 'AdCredit') { o.amountAgorot = num(e.amount_agorot, T, e._row, 'amount_agorot', null); o.startDate = day(e.start_date, T, e._row, 'start_date'); o.endDate = day(e.end_date, T, e._row, 'end_date'); }
-    else { o.monthlyAgorot = num(e.monthly_agorot, T, e._row, 'monthly_agorot', null); o.startDate = day(e.start_date, T, e._row, 'start_date'); o.endDate = day(e.end_date, T, e._row, 'end_date'); }
+    else { o.billingDay = num(e.billing_day, T, e._row, 'billing_day', null); o.monthlyAgorot = num(e.monthly_agorot, T, e._row, 'monthly_agorot', null); o.startDate = day(e.start_date, T, e._row, 'start_date'); o.endDate = day(e.end_date, T, e._row, 'end_date'); }
     return o; }); }
 
   // tabs: {orders_v2, order_lines, refunds, order_costs, product_costs, fx_rates, fee_rates, ad_spend, expenses_v2}

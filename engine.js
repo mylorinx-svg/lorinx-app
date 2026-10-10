@@ -909,6 +909,81 @@ var LorinxEngine = (function () {
       basisOrders: rows.length, fixedAgorot: fixed.fixedAgorot, goalAgorot: goalAgorot, beforeAds: !withAds, confidence: worst(conf) };
   }
 
+
+  // ---------- שלב 3: מה-אם, החלטות, תחזית ----------
+  // כל שלושתן טהורות, בלי כתיבה. מה-אם הוא חשבון בלבד (עובד תמיד, מסומן לפי אמינות הבסיס). החלטות ותחזית נעולות עד advancedGate.
+  function baselineUnit(data, basisPeriod, opts) {
+    var rows = orderRows(data, basisPeriod, opts).filter(function (r) { return r.inProfit && r.state === 'OK' && r.profitAgorot != null && r.netAgorot > 0; });
+    if (!rows.length) return null;
+    var n = rows.length, net = 0, cogs = 0, fee = 0;
+    rows.forEach(function (r) { net += r.netAgorot; cogs += r.cogsAgorot; fee += r.feeAgorot; });
+    var ads = null, adsConf = null;
+    if (data.adSpend && data.adSpend.length && data.adSpendCoverage) {
+      var a = calculateAdSpend(data.adSpend, basisPeriod, { coverage: data.adSpendCoverage, now: (opts && opts.now) });
+      if (a.confidence !== 'MISSING') { ads = a.adSpendAgorot / n; adsConf = a.confidence; }
+    }
+    return { orders: n, netPerOrder: net / n, cogsPerOrder: cogs / n, feePerOrder: fee / n, adsPerOrder: ads, confidence: worst(rows.map(function (r) { return r.confidence; }).concat(adsConf ? [adsConf] : [])) };
+  }
+  function unitMath(net, cogs, fee, ads) {
+    var contribution = net - cogs - fee; // לפני פרסום = גם נקודת האיזון של עלות להזמנה
+    var profit = ads == null ? null : contribution - ads;
+    return { netAgorot: roundHalfUp(net), cogsAgorot: roundHalfUp(cogs), feeAgorot: roundHalfUp(fee), adsAgorot: ads == null ? null : roundHalfUp(ads), beforeAdsAgorot: roundHalfUp(contribution), profitAgorot: profit == null ? null : roundHalfUp(profit), breakEvenCpaAgorot: contribution > 0 ? roundHalfUp(contribution) : null };
+  }
+  // scenario: {netPerOrderAgorot, cogsPerOrderAgorot, adsPerOrderAgorot, ordersPerMonth, goalAgorot}. שדה שלא נשלח = הבסיס מהנתונים. העמלה נשארת באותו אחוז מההכנסה.
+  function whatIf(data, basisPeriod, monthPeriod, scenario, opts) {
+    scenario = scenario || {};
+    var b = baselineUnit(data, basisPeriod, opts);
+    if (!b) return { ok: false, reason: 'אין הזמנות רגילות ששולמו בתקופת הבסיס, אין ממה לחשב' };
+    var fixed = calculateFixedCosts(data.expenses, monthPeriod), feeRatio = b.netPerOrder ? b.feePerOrder / b.netPerOrder : 0;
+    var days = periodDays(basisPeriod), baseOrdersMonth = roundHalfUp(b.orders / days * 30);
+    function pick(v, d) { return v == null || v === '' || !isFinite(v) ? d : Number(v); }
+    var sNet = pick(scenario.netPerOrderAgorot, b.netPerOrder), sCogs = pick(scenario.cogsPerOrderAgorot, b.cogsPerOrder), sAds = pick(scenario.adsPerOrderAgorot, b.adsPerOrder);
+    var sOrders = pick(scenario.ordersPerMonth, baseOrdersMonth), goal = pick(scenario.goalAgorot, null);
+    var base = unitMath(b.netPerOrder, b.cogsPerOrder, b.feePerOrder, b.adsPerOrder), sc = unitMath(sNet, sCogs, feeRatio * sNet, sAds);
+    function month(u, orders) { return u.profitAgorot == null ? null : u.profitAgorot * orders - fixed.fixedAgorot; }
+    function need(u) { return goal != null && u.profitAgorot > 0 ? Math.ceil((goal + fixed.fixedAgorot) / u.profitAgorot) : null; }
+    var bm = month(base, baseOrdersMonth), sm = month(sc, sOrders);
+    var changed = ['netPerOrderAgorot', 'cogsPerOrderAgorot', 'adsPerOrderAgorot', 'ordersPerMonth'].filter(function (k) { return scenario[k] != null && scenario[k] !== ''; });
+    return { ok: true, basis: { orders: b.orders, period: basisPeriod, ordersPerMonth: baseOrdersMonth, beforeAds: b.adsPerOrder == null }, fixedAgorot: fixed.fixedAgorot,
+      baseline: { unit: base, monthProfitAgorot: bm, ordersNeeded: need(base) }, scenario: { unit: sc, ordersPerMonth: sOrders, monthProfitAgorot: sm, ordersNeeded: need(sc) },
+      deltaMonthAgorot: bm == null || sm == null ? null : sm - bm, changed: changed,
+      confidence: worst([b.confidence, fixed.confidence || 'MANUAL'].concat(changed.length ? ['ESTIMATED'] : [])),
+      note: 'תרחיש הוא חשבון על הממוצעים של תקופת הבסיס, לא תחזית. ' + (b.adsPerOrder == null ? 'אין נתוני פרסום לתקופה: הרווח להזמנה מוצג לפני פרסום.' : '') };
+  }
+  // החלטות: כללים גלויים בלבד, כל המלצה נושאת את הכלל והמספרים. נעולות עד advancedGate.
+  var DECISION_RULES = { cpaOverFactor: 1.0, campaignMinPurchasesToJudge: 3, minContributionMarginPct: 0 };
+  function decisions(data, now, opts) {
+    var gate = advancedGate(data, now, opts);
+    if (!gate.met) return { locked: true, gate: gate, items: [] };
+    var d = periodDefs(now || new Date()), s = summarize(data, d.d30, opts), k = s.kpis, items = [];
+    function add(id, level, text, rule, numbers) { items.push({ id: id, level: level, text: text, rule: rule, numbers: numbers }); }
+    if (k.blendedCpaAgorot != null && k.breakEvenCpaAgorot != null && k.blendedCpaAgorot > DECISION_RULES.cpaOverFactor * k.breakEvenCpaAgorot)
+      add('cpa-over', 'bad', 'עלות הרכישה (' + fmt(k.blendedCpaAgorot) + ') גבוהה מנקודת האיזון (' + fmt(k.breakEvenCpaAgorot) + '). כל הזמנה מפסידה ' + fmt(k.blendedCpaAgorot - k.breakEvenCpaAgorot) + ' אחרי פרסום.', 'CPA ב-30 הימים האחרונים גדול מנקודת האיזון', { cpa: k.blendedCpaAgorot, breakEven: k.breakEvenCpaAgorot });
+    var camps = s.ads.byCampaign || {};
+    Object.keys(camps).forEach(function (id) {
+      var c = camps[id];
+      if (c.spendAgorot > 0 && c.purchases >= DECISION_RULES.campaignMinPurchasesToJudge && k.breakEvenCpaAgorot != null && c.spendAgorot / c.purchases > k.breakEvenCpaAgorot)
+        add('camp-over-' + id, 'warn', 'בקמפיין "' + (c.campaignName || id) + '" עלות הרכישה לפי מטא ' + fmt(roundHalfUp(c.spendAgorot / c.purchases)) + ', מעל נקודת האיזון ' + fmt(k.breakEvenCpaAgorot) + '. כדאי לבחון הורדת תקציב.', 'עלות רכישה בקמפיין (לפחות ' + DECISION_RULES.campaignMinPurchasesToJudge + ' רכישות) מעל נקודת האיזון', { spend: c.spendAgorot, purchases: c.purchases, breakEven: k.breakEvenCpaAgorot });
+    });
+    if (k.contributionMarginPct != null && k.contributionMarginPct < DECISION_RULES.minContributionMarginPct)
+      add('margin-neg', 'bad', 'רווח התרומה שלילי (' + k.contributionMarginPct + '% מההכנסה) ב-30 הימים האחרונים. כל הזמנה נוספת מעמיקה את ההפסד עד שמחיר, עלות או פרסום משתנים.', 'שולי תרומה מתחת ל-' + DECISION_RULES.minContributionMarginPct + '%', { marginPct: k.contributionMarginPct });
+    var m = ordersNeeded(data, 0, d.fullMonth, d.d30, opts);
+    if (m.needed != null && m.basisOrders >= 1) add('fixed-cover', 'info', 'כדי לכסות את ההוצאות הקבועות של החודש (' + fmt(m.fixedAgorot) + ') צריך ' + m.needed + ' הזמנות בחודש לפי הרווח הממוצע להזמנה ב-30 הימים האחרונים.', 'הוצאות קבועות לחודש ÷ רווח ממוצע להזמנה אחרי פרסום', { fixed: m.fixedAgorot, avgProfit: m.avgProfitAgorot });
+    return { locked: false, gate: gate, confidence: s.netProfit.confidence, items: items };
+  }
+  // תחזית סוף חודש: רק כשהשער פתוח. טווח בין קצב 14 הימים לקצב 30 הימים של רווח התרומה היומי, פחות הוצאות קבועות לחודש.
+  function forecast(data, now, opts) {
+    var gate = advancedGate(data, now, opts);
+    if (!gate.met) return { locked: true, gate: gate };
+    var d = periodDefs(now || new Date()), t = israelDate(now || new Date());
+    var s30 = summarize(data, d.d30, opts), s14 = summarize(data, { from: addDays(t, -14), to: addDays(t, -1), label: '14d' }, opts), mtd = d.mtd.from <= d.mtd.to ? summarize(data, d.mtd, opts) : null;
+    var rate30 = s30.contributionProfit.agorot / periodDays(d.d30), rate14 = s14.contributionProfit.agorot / 14;
+    var rem = periodDays({ from: t, to: d.fullMonth.to }), have = mtd ? mtd.contributionProfit.agorot : 0, fixed = calculateFixedCosts(data.expenses, d.fullMonth).fixedAgorot;
+    var lo = Math.min(rate14, rate30), hi = Math.max(rate14, rate30);
+    return { locked: false, gate: gate, remainingDays: rem, contributionSoFarAgorot: have, fixedAgorot: fixed, lowAgorot: roundHalfUp(have + lo * rem - fixed), highAgorot: roundHalfUp(have + hi * rem - fixed),
+      confidence: worst([s30.contributionProfit.confidence, s14.contributionProfit.confidence]), note: 'המשך הקצב של 14 ו-30 הימים האחרונים. אינה מביאה בחשבון שינוי מחיר, תקציב או עונתיות.' };
+  }
+
   // מה צריך לנעול: שורות רכש עם סכום ותאריך ובלי סכום נעול, שיש להן שער. לא נוגע בשורה שכבר נעולה (גם אם השער השתנה: זה מה שנעילה אומרת)
   function planCostFreeze(orderCosts, fx) {
     var out = [];
@@ -923,7 +998,7 @@ var LorinxEngine = (function () {
   }
 
   return {
-    planCostFreeze: planCostFreeze,
+    planCostFreeze: planCostFreeze, whatIf: whatIf, decisions: decisions, forecast: forecast,
     FORMULA_VERSION: FORMULA_VERSION, VAT_RATE: VAT_RATE,
     israelDate: israelDate, daysInMonth: daysInMonth, addDays: addDays, inPeriod: inPeriod,
     periodDefs: periodDefs, periodMonth: periodMonth, periodLastDays: periodLastDays, periodToday: periodToday, periodAll: periodAll, periodDays: periodDays,

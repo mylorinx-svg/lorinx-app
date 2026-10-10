@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-Gu/vWoyE+vPOJjNPytIXZbwIUPJsDE3NAJ1glorvH7I=' 'sha256-/rMK8/UhZylrbrLeGROxRGdM5yQMmKwG+TKrNScrNNk='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://script.google.com https://script.googleusercontent.com; img-src 'self' data: blob:; media-src 'self' blob: data:; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="theme-color" content="#111111"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" type="image/svg+xml" href="favicon.svg"><link rel="icon" href="favicon.ico" sizes="any"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="LORINX">
+<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-t3dSyVxHmDX7DXMgY4IZ4w/A10g66D0o2nE0slXS434=' 'sha256-/rMK8/UhZylrbrLeGROxRGdM5yQMmKwG+TKrNScrNNk='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://script.google.com https://script.googleusercontent.com; img-src 'self' data: blob:; media-src 'self' blob: data:; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="theme-color" content="#111111"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" type="image/svg+xml" href="favicon.svg"><link rel="icon" href="favicon.ico" sizes="any"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="LORINX">
 <title>LORINX מרכז שליטה</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJhIiB4MT0iMC4yIiB5MT0iMCIgeDI9IjAuOSIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI0ZGRkZGRiIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI0U0RTRFNCIvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJiIiB4MT0iMCIgeTE9IjEiIHgyPSIxIiB5Mj0iMCI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjRThFOEU4Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjRkZGRkZGIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIGZpbGw9IiMwQjBCMEIiIHJ4PSI5NiIvPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKC04NS41MCAtMzEuNTApIHNjYWxlKDAuNSkiPjxwYXRoIGQ9Ik00NDEgNDA0UTQ0MSAzOTMgNDUxIDM4N0w2MTggMjg0VjY1NVE2MTggNzA2IDU4MCA3MzZRNDkyIDc5OCA0NDEgODYyWiIgZmlsbD0idXJsKCNhKSIvPjxwYXRoIGQ9Ik00NDEgODYyUTUxMiA3NzYgNjAyIDc1OEg5MjVMODM2IDg1MlE4MjggODY3IDgxMSA4NjdINDQxWiIgZmlsbD0idXJsKCNiKSIvPjwvZz48L3N2Zz4=">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1680,8 +1680,8 @@ body{padding-top:env(safe-area-inset-top)}
   function exp2Rows(){
     var v=v2Vals("expenses_v2");if(!v)return null;
     return v.slice(1).filter(function(r){return r&&r[0]}).map(function(r){
-      var c=[];for(var i=0;i<10;i++)c.push(r[i]==null?"":String(r[i]));
-      return {id:c[0],name:c[1],cat:c[2],monthly:c[3],amount:c[4],date:c[5],start:c[6],end:c[7],source:c[8],conf:c[9],hash:c.join("\u0001")};
+      var c=[];for(var i=0;i<11;i++)c.push(r[i]==null?"":String(r[i]));
+      return {id:c[0],name:c[1],cat:c[2],monthly:c[3],amount:c[4],date:c[5],start:c[6],end:c[7],source:c[8],conf:c[9],billing:c[10],hash:c.join("\u0001")};
     });
   }
   function exp2Status(r,t){
@@ -1706,7 +1706,7 @@ body{padding-top:env(safe-area-inset-top)}
   function expFormRowObj(f){
     var cat=f.cat,o={name:f.name,category:cat,source:expSource(f.note,f.oldSource)};
     var ag=Math.round(parseFloat(String(f.amount).replace(/,/g,""))*100);
-    if(cat==="Fixed"||cat==="Temporary"){o.monthlyAgorot=ag;o.startDate=f.start;o.endDate=f.end}
+    if(cat==="Fixed"||cat==="Temporary"){o.monthlyAgorot=ag;o.startDate=f.start;o.endDate=f.end;o.billingDay=String(f.billing||"").trim()}
     else if(cat==="OneTime"){o.amountAgorot=ag;o.date=f.date}
     else{o.amountAgorot=ag;o.startDate=f.start;o.endDate=f.end}
     return o;
@@ -1721,6 +1721,7 @@ body{padding-top:env(safe-area-inset-top)}
     if(f.end&&!D.test(f.end))return "תאריך סיום לא תקין";
     if((f.cat==="Temporary"||f.cat==="AdCredit")&&!f.end)return "להוצאה זמנית חובה תאריך סיום";
     if(f.end&&f.end<f.start)return "תאריך הסיום לפני תאריך ההתחלה";
+    var bd=String(f.billing||"").trim();if(bd&&(!/^\d{1,2}$/.test(bd)||+bd<1||+bd>31))return "יום חיוב חייב להיות מספר בין 1 ל-31";
     return null;
   }
   function saveExpForm(btn){
@@ -1752,7 +1753,7 @@ body{padding-top:env(safe-area-inset-top)}
     row("סוג",cs);
     row(f.cat==="OneTime"||f.cat==="AdCredit"?"סכום (₪)":"סכום חודשי (₪)",text("amount","0.00"));
     if(f.cat==="OneTime")row("תאריך התשלום",text("date","","date"));
-    else{row("מתאריך",text("start","","date"));row(f.cat==="Fixed"?"עד תאריך (ריק = ממשיכה)":"עד תאריך (כולל)",text("end","","date"))}
+    else{row("מתאריך",text("start","","date"));row(f.cat==="Fixed"?"עד תאריך (ריק = ממשיכה)":"עד תאריך (כולל)",text("end","","date"));if(f.cat==="Fixed"||f.cat==="Temporary")row("יום חיוב בחודש (1-31, ריק = לא ידוע)",text("billing","למשל 4"))}
     row("מקור / הערה",text("note","מי אמר ומתי, או חשבונית"));
     box.appendChild(g);
     var bar=el("div","bar"),sv=el("button",null,"שמור");sv.type="button";sv.addEventListener("click",function(){saveExpForm(sv)});bar.appendChild(sv);
@@ -1775,12 +1776,12 @@ body{padding-top:env(safe-area-inset-top)}
       var r=x.r;
       if(x.st==="פעילה"&&(r.cat==="Fixed"||r.cat==="Temporary"))active+=exp2Agorot(r);
       if(!qm("exp",[r.name,r.source,CAT_HE[r.cat]].join(" ")))return;
-      var w=el("div","exrow"),c1=el("span");c1.appendChild(el("b",null,r.name));c1.appendChild(el("div","stale",CAT_HE[r.cat]||r.cat));w.appendChild(c1);
+      var w=el("div","exrow"),c1=el("span");c1.appendChild(el("b",null,r.name));c1.appendChild(el("div","stale",(CAT_HE[r.cat]||r.cat)+(r.billing?" · חיוב ב-"+r.billing:"")));w.appendChild(c1);
       var am=el("span",null,eAg(exp2Agorot(r))+(r.cat==="Fixed"||r.cat==="Temporary"?" לחודש":""));am.dir="ltr";w.appendChild(am);
       w.appendChild(el("span",null,r.cat==="OneTime"?dmy(r.date):dmy(r.start)+" – "+(r.end?dmy(r.end):"ממשיכה")));
       var st=el("span"),pl=el("span","pill "+(x.st==="פעילה"?"ok":(x.st==="הסתיימה"?"off":"warn")),x.st);st.appendChild(pl);st.appendChild(el("div","stale",eConf(r.conf)));w.appendChild(st);
       var acts=el("span","acts");
-      var eb=el("button","ghost sm","ערוך");eb.type="button";eb.setAttribute("aria-label","ערוך את "+r.name);eb.addEventListener("click",function(){expForm={id:r.id,hash:r.hash,cat:r.cat,name:r.name,amount:String(exp2Agorot(r)/100),date:r.date,start:r.start,end:r.end,note:"",oldSource:r.source};expDirty=false;render()});acts.appendChild(eb);
+      var eb=el("button","ghost sm","ערוך");eb.type="button";eb.setAttribute("aria-label","ערוך את "+r.name);eb.addEventListener("click",function(){expForm={id:r.id,hash:r.hash,cat:r.cat,name:r.name,amount:String(exp2Agorot(r)/100),date:r.date,start:r.start,end:r.end,billing:r.billing,note:"",oldSource:r.source};expDirty=false;render()});acts.appendChild(eb);
       if(r.cat!=="OneTime"&&x.st!=="הסתיימה"){var nb=delBtn(function(){endExpense(r)},"סיים");nb.setAttribute("aria-label","סיים את "+r.name);acts.appendChild(nb)}
       w.appendChild(acts);box.appendChild(w);
     });

@@ -1,11 +1,15 @@
 /* LORINX phone: access gate. Secrets are never stored in the page, only in this phone's localStorage. */
 (function(){
   var KEY="lorinx_access";
-  function dec(code){try{var o=JSON.parse(decodeURIComponent(escape(atob(String(code).trim()))));if(o&&o.u&&o.t&&/^https:\/\/script\.google\.com\//.test(o.u))return o}catch(e){}return null}
+  function dec(code){try{var o=JSON.parse(decodeURIComponent(escape(atob(String(code).trim()))));if(o&&o.u&&o.t&&/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(o.u))return o}catch(e){}return null}
   /* the access code is accepted only by pasting it below; it is never read from the URL (URLs end up in history and screenshots) */
   try{if(/[#&]k=/.test(location.hash))history.replaceState(null,"",location.pathname+location.search)}catch(e){}
   var cfg=null;try{cfg=JSON.parse(localStorage.getItem(KEY)||"null")}catch(e){}
-  if(cfg&&cfg.u&&cfg.t){window.LORINX_CFG={url:cfg.u,token:cfg.t};window.LORINX_LOGOUT=function(){try{var tk=window.LORINX_CFG&&window.LORINX_CFG.token,u=window.LORINX_CFG&&window.LORINX_CFG.url;if(tk&&u)fetch(u,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({token:tk,action:"logout"}),keepalive:true}).catch(function(){})}catch(e){}try{Object.keys(localStorage).filter(function(k){return k===KEY||k==="lorinx_cache_app"||k.indexOf("lorinx_local_")===0}).forEach(function(k){localStorage.removeItem(k)})}catch(e){}location.reload()};return}
+  if(cfg&&cfg.u&&cfg.t){window.LORINX_CFG={url:cfg.u,token:cfg.t};window.LORINX_LOGOUT=function(){try{var tk=window.LORINX_CFG&&window.LORINX_CFG.token,u=window.LORINX_CFG&&window.LORINX_CFG.url;if(tk&&u){var wipe=function(){try{Object.keys(localStorage).filter(function(k){return k===KEY||k==="lorinx_cache_app"||k.indexOf("lorinx_local_")===0}).forEach(function(k){localStorage.removeItem(k)})}catch(e){}location.reload()};
+    var ctl=window.AbortController?new AbortController():null,tm=ctl?setTimeout(function(){ctl.abort()},6000):null;
+    /* the token is wiped from this phone only after the server confirms it was revoked; if that cannot be confirmed, the user is told and decides */
+    fetch(u,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({token:tk,action:"logout"}),signal:ctl?ctl.signal:undefined}).then(function(r){return r.json()}).then(function(j){if(tm)clearTimeout(tm);if(j&&(j.revoked||j.reason==="master"))wipe();else if(confirm("השרת לא אישר את ביטול הקוד. לנתק מהטלפון בכל זאת? (הקוד ימשיך לעבוד עד שיבוטל בשרת)"))wipe()}).catch(function(){if(tm)clearTimeout(tm);if(confirm("אין חיבור לשרת, אז לא ניתן לבטל את הקוד. לנתק מהטלפון בכל זאת? (הקוד ימשיך לעבוד עד שיבוטל בשרת)"))wipe()});return}
+  }catch(e){}};return}
   window.LORINX_CFG={};window.LORINX_NEEDS_CODE=true;
   document.addEventListener("DOMContentLoaded",function(){
     var d=document.createElement("div");

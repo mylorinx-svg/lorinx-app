@@ -80,7 +80,7 @@
             var ex=rowsCache.filter(function(x){return x.id===p[1]})[0];
             if(!ex){var byDate=rowsCache.filter(function(x){return x.data.date===p[1]});if(byDate.length===1)ex=byDate[0]}   /* an old date-based id: only when it is unambiguous */
             if(ex){
-              return api({action:"update",range:"content!B"+ex.row+":E"+ex.row,values:[[data.product||"",data.template||"",data.hook||"",data.file||""]]});
+              return api({action:"update",range:"content!B"+ex.row+":E"+ex.row,values:[[data.product||"",data.template||"",data.hook||"",data.file||""]],expectId:ex.cid||undefined});   /* the row came from a cache up to 60s old: the server checks it is still the same clip */
             }
             if(!data.date)return Promise.resolve();
             return api({action:"append",sheet:"content",row:[data.date,data.product||"",data.template||"",data.hook||"",data.file||"","",STATUS_OUT[data.status||"pending"],"","","","","","","",data.time||"20:30",data.caption||""]}).then(loadClips);
@@ -171,7 +171,7 @@
         /* a newer server says when the tab has more rows than the range asked for; an older one never sets the flag */
         if(j.truncated&&window.LX_WARN)window.LX_WARN("הלשונית "+String(input.range).split("!")[0]+" ארוכה מהטווח שנקרא ("+j.lastRow+" שורות). חלק מהשורות לא נטען.");
         return {payload:{values:j.values,truncated:!!j.truncated,lastRow:j.lastRow}}});
-      if(server==="Google Sheets"&&tool==="update_values")return api({action:"update",range:input.range,values:input.values,expectOld:input.expectOld,confirmRepublish:input.confirmRepublish}).then(function(){
+      if(server==="Google Sheets"&&tool==="update_values")return api({action:"update",range:input.range,values:input.values,expectOld:input.expectOld,expectId:input.expectId,confirmRepublish:input.confirmRepublish}).then(function(){
         if(/^content!/.test(input.range))return loadClips().then(null,function(){}).then(function(){return {payload:{}}});
         return {payload:{}}});
       if(server==="Google Sheets"&&tool==="exp_v2_ops")return api({action:"expv2ops",ops:input.ops}).then(function(){return {payload:{}}});

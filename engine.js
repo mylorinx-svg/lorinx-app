@@ -355,6 +355,42 @@ var LorinxEngine = (function () {
     });
     return out;
   }
+
+  // Actual vs Allocated: "הוקצה" = חלק יחסי לפי ימים (allocateExpense). "חויב בפועל" = כל חיוב שתאריכו בתוך התקופה, לפי יום חיוב בחודש.
+  // בלי billingDay אי אפשר לדעת מתי חויב: ההוצאה מסומנת MISSING ולא נכנסת להשוואה (לא מנחשים).
+  function chargeDates(e, period) {
+    var from = e.startDate > period.from ? e.startDate : period.from;
+    var to = (e.endDate && e.endDate < period.to) ? e.endDate : period.to;
+    var out = [], cur = from.slice(0, 7) + '-01', guard = 0;
+    while (cur <= to && guard++ < 600) {
+      var ym = monthOf(cur), dim = daysInMonth(ym), bd = Math.min(e.billingDay, dim);
+      var d = ym + '-' + ('0' + bd).slice(-2);
+      if (d >= e.startDate && d >= period.from && d <= to) out.push(d);
+      cur = addDays(ym + '-' + ('0' + dim).slice(-2), 1);
+    }
+    return out;
+  }
+  function calculateFixedActual(expenses, period) {
+    var actual = 0, allocated = 0, per = [], missing = [], labels = [];
+    (expenses || []).forEach(function (e) {
+      if (e.category === 'AdCredit') return;
+      if (e.category === 'OneTime') {
+        if (!e.date || e.amountAgorot == null || !inPeriod(e.date, period)) return;
+        actual += e.amountAgorot; allocated += e.amountAgorot;
+        per.push({ id: e.id, name: e.name, category: e.category, actualAgorot: e.amountAgorot, allocatedAgorot: e.amountAgorot, charges: [e.date], confidence: e.confidence || 'MANUAL' }); labels.push(e.confidence || 'MANUAL');
+        return;
+      }
+      if (!e.startDate || e.monthlyAgorot == null) return; // כבר מסומן MISSING ב-calculateFixedCosts
+      var al = allocateExpense(e, period);
+      if (!(e.billingDay >= 1 && e.billingDay <= 31)) { if (al) missing.push({ id: e.id, name: e.name, allocatedAgorot: al, reason: 'אין יום חיוב' }); return; }
+      var ch = chargeDates(e, period), a = ch.length * e.monthlyAgorot;
+      if (!a && !al) return;
+      actual += a; allocated += al;
+      per.push({ id: e.id, name: e.name, category: e.category, actualAgorot: a, allocatedAgorot: al, charges: ch, confidence: e.confidence || 'MANUAL' }); labels.push(e.confidence || 'MANUAL');
+    });
+    var conf = missing.length ? 'MISSING' : worst(labels.length ? labels : ['MANUAL']);
+    return { metric: 'fixedActual', period: period, actualAgorot: actual, allocatedComparableAgorot: allocated, diffAgorot: actual - allocated, perExpense: per, missing: missing, confidence: conf };
+  }
   function calculateFixedCosts(expenses, period) {
     var total = 0, per = [], labels = [];
     (expenses || []).forEach(function (e) {
@@ -708,7 +744,7 @@ var LorinxEngine = (function () {
     var cogs = calculateCOGS(orders, data.orderCosts, data.productCosts, data.fx, period, opts);
     var fees = calculatePaymentFees(orders, data.feeRates, period, opts);
     var ads = calculateAdSpend(data.adSpend, period, { coverage: data.adSpendCoverage, now: opts.now });
-    var fixed = calculateFixedCosts(data.expenses, period);
+    var fixed = calculateFixedCosts(data.expenses, period), fixedActual = calculateFixedActual(data.expenses, period);
     var adCredit = calculateAdCredit(data.expenses, ads, period);
     var gross = calculateGrossProfit(rev, cogs);
     var contrib = calculateContributionProfit(rev, cogs, fees, ads);
@@ -730,7 +766,7 @@ var LorinxEngine = (function () {
     var beCpa = ordersInProfit ? roundHalfUp(unitProfitBase / ordersInProfit) : null;
     var r = {
       formulaVersion: FORMULA_VERSION, period: period, days: periodDays(period),
-      sales: sales, revenueForProfit: rev, cogs: cogs, fees: fees, ads: ads, fixed: fixed,
+      sales: sales, revenueForProfit: rev, cogs: cogs, fees: fees, ads: ads, fixed: fixed, fixedActual: fixedActual,
       grossProfit: gross, contributionProfit: contrib, netProfit: net, adCredit: adCredit,
       kpis: {
         orders: sales.orderCount,
@@ -894,7 +930,7 @@ var LorinxEngine = (function () {
     normalizeOrder: normalizeOrder, normalizeOrders: normalizeOrders, salesEligible: salesEligible, profitEligible: profitEligible,
     fxRate: fxRate, ilsFromUsd: ilsFromUsd, roundHalfUp: roundHalfUp,
     calculateNetRevenue: calculateNetRevenue, calculateCOGS: calculateCOGS, calculatePaymentFees: calculatePaymentFees, feeForOrder: feeForOrder,
-    reconcileOrders: reconcileOrders, calculateAdSpend: calculateAdSpend, calculateAdCredit: calculateAdCredit, dataHealth: dataHealth, explainChange: explainChange, comparePeriods: comparePeriods, anomalies: anomalies, advancedGate: advancedGate, snapshotRows: snapshotRows, calculateFixedCosts: calculateFixedCosts, allocateExpense: allocateExpense,
+    reconcileOrders: reconcileOrders, calculateAdSpend: calculateAdSpend, calculateAdCredit: calculateAdCredit, dataHealth: dataHealth, explainChange: explainChange, comparePeriods: comparePeriods, anomalies: anomalies, advancedGate: advancedGate, snapshotRows: snapshotRows, calculateFixedCosts: calculateFixedCosts, calculateFixedActual: calculateFixedActual, allocateExpense: allocateExpense,
     calculateGrossProfit: calculateGrossProfit, calculateContributionProfit: calculateContributionProfit, calculateNetProfit: calculateNetProfit,
     confidencePercent: confidencePercent, worst: worst, summarize: summarize, fmt: fmt,
     orderRows: orderRows, attributeByCampaign: attributeByCampaign, shippingSummary: shippingSummary, profitByProduct: profitByProduct, effectiveFeeRate: effectiveFeeRate, unitCosts: unitCosts, ordersNeeded: ordersNeeded, productName: productName, allocate: allocate

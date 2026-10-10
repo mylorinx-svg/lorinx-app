@@ -41,7 +41,7 @@ var LorinxEngine = (function () {
     var lastSunOct = new Date(Date.UTC(y, 9, 31)); lastSunOct.setUTCDate(31 - lastSunOct.getUTCDay());
     var lastSunMar = new Date(Date.UTC(y, 2, 31)); lastSunMar.setUTCDate(31 - lastSunMar.getUTCDay());
     var dstStart = new Date(lastSunMar.getTime() - 2 * 864e5); dstStart.setUTCHours(0); // שישי 02:00 מקומי = 00:00 UTC
-    var dstEnd = new Date(lastSunOct.getTime()); dstEnd.setUTCHours(23); // ראשון 02:00 מקומי = שבת 23:00 UTC
+    var dstEnd = new Date(lastSunOct.getTime() - 3600e3); // שבת 23:00 UTC // ראשון 02:00 מקומי = שבת 23:00 UTC
     var off = (d >= dstStart && d < dstEnd) ? 3 : 2;
     return new Date(d.getTime() + off * 3600e3).toISOString().slice(0, 10);
   }
@@ -289,7 +289,7 @@ var LorinxEngine = (function () {
       if (r.gateway === o.gateway && r.effectiveFrom <= o.date && (!r.effectiveTo || r.effectiveTo >= o.date)) rule = r;
     });
     if (!rule) return { agorot: 0, confidence: 'MISSING', detail: 'אין תעריף לשער ' + o.gateway };
-    if (rule.actualAgorot != null) return { agorot: rule.actualAgorot, confidence: 'VERIFIED', detail: 'עמלה בפועל' };
+    if (rule.actualAgorot != null && rule.orderId != null && String(rule.orderId) === String(o.id)) return { agorot: rule.actualAgorot, confidence: 'VERIFIED', detail: 'עמלה בפועל' };
     var base = o.netAgorot, sum = 0, parts = []; // העמלה נגבית על ההזמנה בתאריכה; החזר לא מחזיר עמלה ולא משנה חודש סגור
     rule.components.forEach(function (c) {
       var a = base * (c.rate || 0) + (c.fixedAgorot || 0);
@@ -895,7 +895,7 @@ var LorinxEngine = (function () {
       var cost = c ? (c.creatorSample ? 0 : c.agorot) : null, sample = c && c.creatorSample ? c.agorot : 0;
       var known = inProfit && c && f && c.confidence !== 'MISSING' && f.confidence !== 'MISSING';
       rows.push({
-        name: o.name, date: o.date, state: o.state, inProfit: inProfit, units: o.units, campaign: o.campaign || null,
+        name: o.name, date: o.date, gateway: o.gateway || null, state: o.state, inProfit: inProfit, units: o.units, campaign: o.campaign || null,
         items: o.lines.map(function (l) { return productName(l, data.productCosts) + (l.qty > 1 ? ' ×' + l.qty : ''); }).join(', '),
         netAgorot: net, cogsAgorot: inProfit && c ? cost : null, sampleAgorot: sample, feeAgorot: inProfit && f ? f.agorot : null,
         profitAgorot: known ? net - cost - sample - f.agorot : null,
@@ -1012,15 +1012,15 @@ var LorinxEngine = (function () {
   function baselineUnit(data, basisPeriod, opts) {
     var rows = orderRows(data, basisPeriod, opts).filter(function (r) { return isRealOrderRow(r) && r.profitAgorot != null && r.netAgorot > 0; });
     if (!rows.length) return null;
-    var n = rows.length, net = 0, cogs = 0, fee = 0, first = rows[0].date;
-    rows.forEach(function (r) { net += r.netAgorot; cogs += r.cogsAgorot; fee += r.feeAgorot; if (r.date < first) first = r.date; });
+    var n = rows.length, net = 0, cogs = 0, fee = 0, feeFixed = 0, first = rows[0].date;
+    rows.forEach(function (r) { var fr = r.gateway ? effectiveFeeRate(data.feeRates, r.gateway, r.date) : null; if (fr && !fr.actual) feeFixed += Math.min(fr.fixedAgorot || 0, r.feeAgorot || 0); net += r.netAgorot; cogs += r.cogsAgorot; fee += r.feeAgorot; if (r.date < first) first = r.date; });
     cogs += calculateCOGS(normalizeOrders(data.orders, data.flags), data.orderCosts, data.productCosts, data.fx, basisPeriod, opts).creatorSamplesAgorot || 0; // כולל דוגמאות ליוצרים
     var ads = null, adsConf = null;
     if (data.adSpend && data.adSpend.length && data.adSpendCoverage) {
       var a = calculateAdSpend(data.adSpend, basisPeriod, { coverage: data.adSpendCoverage, now: (opts && opts.now) });
       if (a.confidence !== 'MISSING') { ads = a.adSpendAgorot / n; adsConf = a.confidence; }
     }
-    return { orders: n, firstDate: first, netPerOrder: net / n, cogsPerOrder: cogs / n, feePerOrder: fee / n, adsPerOrder: ads, confidence: worst(rows.map(function (r) { return r.confidence; }).concat(adsConf ? [adsConf] : [])) };
+    return { orders: n, firstDate: first, netPerOrder: net / n, cogsPerOrder: cogs / n, feePerOrder: fee / n, feeFixedPerOrder: feeFixed / n, adsPerOrder: ads, confidence: worst(rows.map(function (r) { return r.confidence; }).concat(adsConf ? [adsConf] : [])) };
   }
   function unitMath(net, cogs, fee, ads) {
     var contribution = net - cogs - fee; // לפני פרסום = גם נקודת האיזון של עלות להזמנה
@@ -1032,7 +1032,7 @@ var LorinxEngine = (function () {
     scenario = scenario || {};
     var b = baselineUnit(data, basisPeriod, opts);
     if (!b) return { ok: false, reason: 'אין הזמנות רגילות ששולמו בתקופת הבסיס, אין ממה לחשב' };
-    var fixed = calculateFixedCosts(data.expenses, monthPeriod), feeRatio = b.netPerOrder ? b.feePerOrder / b.netPerOrder : 0;
+    var fixed = calculateFixedCosts(data.expenses, monthPeriod), feeFixedPer = b.feeFixedPerOrder || 0, feeRatio = b.netPerOrder ? (b.feePerOrder - feeFixedPer) / b.netPerOrder : 0; // החלק הקבוע של העמלה לא גדל עם ההכנסה
     // בסיס הזמנות בחודש: מהזמנה הראשונה בתקופה (לא מתחילת התקופה) עד אתמול, ולפי אורך החודש של החודש המוצג
     var today = israelDate((opts && opts.now) || new Date()), basisFrom = b.firstDate > basisPeriod.from ? b.firstDate : basisPeriod.from, basisTo0 = addDays(today, -1);
     var basisTo = basisPeriod.to < basisTo0 ? basisPeriod.to : basisTo0; if (basisTo < basisFrom) basisTo = basisFrom;
@@ -1040,7 +1040,7 @@ var LorinxEngine = (function () {
     function pick(v, d) { return v == null || v === '' || !isFinite(v) ? d : Number(v); }
     var sNet = pick(scenario.netPerOrderAgorot, b.netPerOrder), sCogs = pick(scenario.cogsPerOrderAgorot, b.cogsPerOrder), sAds = pick(scenario.adsPerOrderAgorot, b.adsPerOrder);
     var sOrders = pick(scenario.ordersPerMonth, baseOrdersMonth), goal = pick(scenario.goalAgorot, null);
-    var base = unitMath(b.netPerOrder, b.cogsPerOrder, b.feePerOrder, b.adsPerOrder), sc = unitMath(sNet, sCogs, feeRatio * sNet, sAds);
+    var base = unitMath(b.netPerOrder, b.cogsPerOrder, b.feePerOrder, b.adsPerOrder), sc = unitMath(sNet, sCogs, feeRatio * sNet + feeFixedPer, sAds);
     function month(u, orders) { return u.profitAgorot == null ? null : u.profitAgorot * orders - fixed.fixedAgorot; }
     function need(u) { return goal != null && u.profitAgorot > 0 ? Math.ceil((goal + fixed.fixedAgorot) / u.profitAgorot) : null; }
     var bm = month(base, baseOrdersMonth), sm = month(sc, sOrders);

@@ -56,7 +56,7 @@
       video:file?encodeURI("../"+file):""}};
   }
   function loadClips(){
-    return api({action:"get",range:"content!A1:Q300"}).then(function(j){
+    return api({action:"get",range:"content!A1:Q1500"}).then(function(j){
       if(j.truncated)throw {code:"upstream_error",message:"לשונית התוכן ארוכה מ-300 שורות. המסך לא יציג חלק ממנה. נקה שורות ישנות בגיליון."};
       rowsCache=(j.values||[]).map(mapRow).slice(1).filter(Boolean);
       clipListeners.forEach(function(f){f()});

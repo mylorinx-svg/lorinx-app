@@ -629,6 +629,11 @@ var LorinxEngine = (function () {
       if (!o) orphanCost.push(c.orderName + (c.supplierOrder ? ' (' + c.supplierOrder + ')' : ''));
       else if ((o.state === 'UNPAID' || o.state === 'INVALID') && c.amountUsdCents != null) excludedCost.push(o.name + ' (' + o.state + (c.status ? ', ' + c.status : '') + ', $' + (c.amountUsdCents / 100).toFixed(2) + ')');
     });
+    // סטטוס עלות הוא טקסט חופשי שמשפיע על הסימון "לבדיקה" (return/cancel/refund): ערך בעברית או לא סטנדרטי לא יזוהה (audit 6 D-20)
+    var KNOWN_COST_STATUS = /^(not_credited|shipped|delivered|canceled_with_tracking|cancelled_with_tracking|request_return|returned|refunded|credited|canceled|cancelled|ordered|in_transit|processing|pending)$/;
+    var oddStatus = [];
+    (data.orderCosts || []).forEach(function (c) { var st = String(c.status == null ? '' : c.status).trim(); if (st && !KNOWN_COST_STATUS.test(st)) oddStatus.push(c.orderName + ' (' + st + ')'); });
+    add('cost_status_known', 'סטטוס שורת הרכש מוכר (לא טקסט חופשי שהמנוע לא מזהה)', oddStatus.length ? 'warn' : 'ok', oddStatus.length ? 'סטטוס לא מוכר, ייתכן שביטול/החזר לא יסומן: ' + oddStatus.join(', ') : '');
     add('cost_duplicates', 'אין שורת רכש כפולה לאותה הזמנת ספק', dupSup.length ? 'bad' : 'ok', dupSup.join(', '));
     add('cost_orphans', 'לכל שורת רכש יש הזמנה', orphanCost.length ? 'warn' : 'ok', orphanCost.join(', '));
     add('cost_excluded', 'אין עלות רכש על הזמנה שלא נכנסת לרווח', excludedCost.length ? 'warn' : 'ok', excludedCost.length ? 'העלות לא נספרת ברווח: ' + excludedCost.join(', ') : '');

@@ -1,4 +1,4 @@
-const C="lorinx-shell-7c73fb132c",F=["./","index.html","shim.js","gate.js","engine.js","sheet_adapter.js","icon-192.png","icon-512.png","manifest.webmanifest","apple-touch-icon.png","favicon.ico","favicon.svg","favicon-32.png"];
+const C="lorinx-shell-1fc4a76d3a",F=["./","index.html","shim.js","gate.js","engine.js","sheet_adapter.js","icon-192.png","icon-512.png","manifest.webmanifest","apple-touch-icon.png","favicon.ico","favicon.svg","favicon-32.png"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(F)).then(()=>self.skipWaiting()))});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim()))});
 /* network first, but a network that does not answer within 4 seconds falls back to the cache, so a poor connection does not freeze the app */

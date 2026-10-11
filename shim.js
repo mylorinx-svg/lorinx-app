@@ -24,14 +24,18 @@
   function once(body,ms){
     var ctl=window.AbortController?new AbortController():null,t=ctl?setTimeout(function(){ctl.abort()},ms||20000):null;
     return fetch(CFG.url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(Object.assign({token:CFG.token},body)),redirect:"follow",signal:ctl?ctl.signal:undefined})
-      .then(function(r){if(t)clearTimeout(t);return r.json().catch(function(){throw {code:"upstream_error",message:"השרת החזיר תשובה לא תקינה (לא JSON). נסה שוב; אם זה חוזר, בדוק את הפריסה של ה-Web App."}})},function(e){if(t)clearTimeout(t);throw {net:true}});
+      .then(function(r){if(t)clearTimeout(t);return r.json().catch(function(){throw {code:"upstream_error",message:"השרת החזיר תשובה לא תקינה (לא JSON). נסה שוב; אם זה חוזר, בדוק את הפריסה של ה-Web App."}})},function(e){if(t)clearTimeout(t);throw {net:true,timeout:!!(e&&e.name==="AbortError")}});
   }
   function api(body){
     if(!CFG.url)return Promise.reject({code:"local_unavailable",message:"צריך להדביק את כתובת ה-Web App ב-config.js (ראה הוראות ההתקנה)."});
     if(OPID[body.action]&&!body.opId)body=Object.assign({opId:opId()},body);
-    var tries=((IDEMP[body.action]&&!(body.action==="update"&&body.expectId))||body.opId)?3:1   /* an update guarded by expectId is not retried: a lost reply after a successful write would come back as a false conflict */,delay=[0,700,1800];
+    var tries=((IDEMP[body.action]&&!(body.action==="update"&&(body.expectId||body.expectOld)))||body.opId)?3:1   /* an update guarded by expectId / expectOld is not retried: a lost reply after a successful write would come back as a false conflict */,delay=[0,700,1800];
+    var ms=body.action==="orders"?60000:20000;   /* Shopify (several pages) and a cold Apps Script start can be slow */
+    var WRITE={update:1,append:1,appset:1,appdel:1,expv2ops:1};
     function go(i){
-      return once(body).then(function(j){setNet(false);if(j&&j.error)throw {code:/^conflict/.test(j.error)?"conflict":"upstream_error",message:friendly(j.error)};return j},function(e){
+      return once(body,ms).then(function(j){setNet(false);if(j&&j.error)throw {code:/^conflict/.test(j.error)?"conflict":"upstream_error",message:friendly(j.error)};return j},function(e){
+        /* a slow server is not a missing network: no retry storm, no "offline" banner, and a write that timed out is said to be of unknown outcome */
+        if(e&&e.timeout)throw {code:"timeout",message:WRITE[body.action]?"השרת לא ענה בזמן. לא ידוע אם השינוי נשמר: רענן ובדוק לפני שתנסה שוב.":"השרת איטי ולא ענה בזמן. נסה שוב בעוד רגע."};
         if(e&&e.net){if(i+1<tries)return new Promise(function(r){setTimeout(r,delay[i+1])}).then(function(){return go(i+1)});setNet(true);throw {code:"offline",message:"אין חיבור לגיליון. בדוק אינטרנט."}}
         throw e});
     }
@@ -57,7 +61,7 @@
   }
   function loadClips(){
     return api({action:"get",range:"content!A1:Q1500"}).then(function(j){
-      if(j.truncated)throw {code:"upstream_error",message:"לשונית התוכן ארוכה מ-300 שורות. המסך לא יציג חלק ממנה. נקה שורות ישנות בגיליון."};
+      if(j.truncated)throw {code:"upstream_error",message:"לשונית התוכן ארוכה מהטווח שנקרא"+(j.lastRow?" ("+j.lastRow+" שורות)":"")+". המסך לא יציג חלק ממנה. נקה שורות ישנות בגיליון."};
       rowsCache=(j.values||[]).map(mapRow).slice(1).filter(Boolean);
       clipListeners.forEach(function(f){f()});
     });
@@ -77,7 +81,9 @@
         onSnapshot:function(cb){var v=lsGet(path,null);cb({exists:!!v,data:function(){return v}})},
         set:function(data){
           if(p[0]==="clips"){
-            var ex=rowsCache.filter(function(x){return x.id===p[1]})[0];
+            var same=rowsCache.filter(function(x){return x.id===p[1]}),ex=same[0];
+            /* an id that matches several rows (old rows without content_id on the same date) would write into the wrong one: refused */
+            if(same.length>1)return Promise.reject({code:"upstream_error",message:"יש כמה שורות בגיליון עם אותו תאריך ובלי מזהה (עמודה Q), לכן אי אפשר לערוך אחת מהן בבטחה. הוסף מזהה בגיליון."});
             if(!ex){var byDate=rowsCache.filter(function(x){return x.data.date===p[1]});if(byDate.length===1)ex=byDate[0]}   /* an old date-based id: only when it is unambiguous */
             if(ex){
               var main=api({action:"update",range:"content!B"+ex.row+":E"+ex.row,values:[[data.product||"",data.template||"",data.hook||"",data.file||""]],expectId:ex.cid||undefined});
@@ -105,7 +111,8 @@
     try{localStorage.setItem(CACHE_KEY,JSON.stringify(m))}catch(e){}   /* read-only fallback while offline; overwritten on every successful load */
   }
   function fireApp(){appLs.forEach(function(f){try{f()}catch(e){}})}
-  function fetchApp(){return api({action:"get",range:"appdata!A1:C2000"}).then(function(j){var v=j.values||[];if(v.length>1900&&window.LX_WARN)window.LX_WARN("טבלת הנתונים כמעט מלאה ("+v.length+" מתוך 2000 שורות)");parseApp(v)})}
+  var appVer=0;   /* bumped by every write: a read that started before a write must not overwrite what the write just set */
+  function fetchApp(){var v0=appVer;return api({action:"get",range:"appdata!A1:C2000"}).then(function(j){var v=j.values||[];if(v.length>1900&&window.LX_WARN)window.LX_WARN("טבלת הנתונים כמעט מלאה ("+v.length+" מתוך 2000 שורות)");if(APP.loaded&&(v0!==appVer||pend>0))return;parseApp(v)})}
   function loadApp(){
     if(loadingP)return loadingP;
     loadingP=fetchApp().then(migrateLegacy).then(function(){loadingP=null;fireApp()},function(e){
@@ -129,10 +136,10 @@
   }
   function appOp(fn){
     if(window.LX_OFFLINE)return Promise.reject({code:"offline",message:"אין חיבור לגיליון. השינוי לא נשמר."});
-    pend++;
+    pend++;appVer++;
     var p=appChain.catch(function(){}).then(fn);
     appChain=p.catch(function(){});
-    return p.then(function(r){pend--;fireApp();return r},function(e){pend--;throw e});
+    return p.then(function(r){pend--;appVer++;fireApp();return r},function(e){pend--;appVer++;throw e});
   }
   function appCol(name){
     return {orderBy:function(){return this},onSnapshot:function(cb,err){

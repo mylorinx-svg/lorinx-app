@@ -29,7 +29,7 @@
   function api(body){
     if(!CFG.url)return Promise.reject({code:"local_unavailable",message:"צריך להדביק את כתובת ה-Web App ב-config.js (ראה הוראות ההתקנה)."});
     if(OPID[body.action]&&!body.opId)body=Object.assign({opId:opId()},body);
-    var tries=(IDEMP[body.action]||body.opId)?3:1,delay=[0,700,1800];
+    var tries=((IDEMP[body.action]&&!(body.action==="update"&&body.expectId))||body.opId)?3:1   /* an update guarded by expectId is not retried: a lost reply after a successful write would come back as a false conflict */,delay=[0,700,1800];
     function go(i){
       return once(body).then(function(j){setNet(false);if(j&&j.error)throw {code:/^conflict/.test(j.error)?"conflict":"upstream_error",message:friendly(j.error)};return j},function(e){
         if(e&&e.net){if(i+1<tries)return new Promise(function(r){setTimeout(r,delay[i+1])}).then(function(){return go(i+1)});setNet(true);throw {code:"offline",message:"אין חיבור לגיליון. בדוק אינטרנט."}}

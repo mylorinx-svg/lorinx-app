@@ -24,7 +24,7 @@
   function once(body,ms){
     var ctl=window.AbortController?new AbortController():null,t=ctl?setTimeout(function(){ctl.abort()},ms||20000):null;
     return fetch(CFG.url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(Object.assign({token:CFG.token},body)),redirect:"follow",signal:ctl?ctl.signal:undefined})
-      .then(function(r){if(t)clearTimeout(t);return r.json()},function(e){if(t)clearTimeout(t);throw {net:true}});
+      .then(function(r){if(t)clearTimeout(t);return r.json().catch(function(){throw {code:"upstream_error",message:"השרת החזיר תשובה לא תקינה (לא JSON). נסה שוב; אם זה חוזר, בדוק את הפריסה של ה-Web App."}})},function(e){if(t)clearTimeout(t);throw {net:true}});
   }
   function api(body){
     if(!CFG.url)return Promise.reject({code:"local_unavailable",message:"צריך להדביק את כתובת ה-Web App ב-config.js (ראה הוראות ההתקנה)."});
@@ -80,7 +80,11 @@
             var ex=rowsCache.filter(function(x){return x.id===p[1]})[0];
             if(!ex){var byDate=rowsCache.filter(function(x){return x.data.date===p[1]});if(byDate.length===1)ex=byDate[0]}   /* an old date-based id: only when it is unambiguous */
             if(ex){
-              return api({action:"update",range:"content!B"+ex.row+":E"+ex.row,values:[[data.product||"",data.template||"",data.hook||"",data.file||""]],expectId:ex.cid||undefined});   /* the row came from a cache up to 60s old: the server checks it is still the same clip */
+              var main=api({action:"update",range:"content!B"+ex.row+":E"+ex.row,values:[[data.product||"",data.template||"",data.hook||"",data.file||""]],expectId:ex.cid||undefined});
+              /* time and caption live in O:P: written only when they really changed, after the main write succeeded */
+              var o=ex.data||{},tNew=data.time?data.time:o.time,cNew=data.caption?data.caption:o.caption;   /* an empty value never overwrites what the sheet has */
+              if(String(tNew||"")===String(o.time||"")&&String(cNew||"")===String(o.caption||""))return main;
+              return main.then(function(){return api({action:"update",range:"content!O"+ex.row+":P"+ex.row,values:[[tNew||"20:30",cNew||""]],expectId:ex.cid||undefined})});   /* the row came from a cache up to 60s old: the server checks it is still the same clip */
             }
             if(!data.date)return Promise.resolve();
             return api({action:"append",sheet:"content",row:[data.date,data.product||"",data.template||"",data.hook||"",data.file||"","",STATUS_OUT[data.status||"pending"],"","","","","","","",data.time||"20:30",data.caption||""]}).then(loadClips);

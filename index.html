@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-nYdn3eyKXhAjnsv6/jXfm864RKKqWglEi1aEx3wFajs=' 'sha256-/rMK8/UhZylrbrLeGROxRGdM5yQMmKwG+TKrNScrNNk='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://script.google.com https://script.googleusercontent.com; img-src 'self' data: blob:; media-src 'self' blob: data:; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="theme-color" content="#111111"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" type="image/svg+xml" href="favicon.svg"><link rel="icon" href="favicon.ico" sizes="any"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="LORINX">
+<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-xFelbSlU4sa+1zT8tFMQP+nBz+y1ezjbmykM1+jcOJ4=' 'sha256-/rMK8/UhZylrbrLeGROxRGdM5yQMmKwG+TKrNScrNNk='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://script.google.com https://script.googleusercontent.com; img-src 'self' data: blob:; media-src 'self' blob: data:; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="theme-color" content="#111111"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" type="image/svg+xml" href="favicon.svg"><link rel="icon" href="favicon.ico" sizes="any"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="LORINX">
 <title>LORINX מרכז שליטה</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJhIiB4MT0iMC4yIiB5MT0iMCIgeDI9IjAuOSIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI0ZGRkZGRiIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI0U0RTRFNCIvPjwvbGluZWFyR3JhZGllbnQ+PGxpbmVhckdyYWRpZW50IGlkPSJiIiB4MT0iMCIgeTE9IjEiIHgyPSIxIiB5Mj0iMCI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjRThFOEU4Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjRkZGRkZGIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIGZpbGw9IiMwQjBCMEIiIHJ4PSI5NiIvPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKC04NS41MCAtMzEuNTApIHNjYWxlKDAuNSkiPjxwYXRoIGQ9Ik00NDEgNDA0UTQ0MSAzOTMgNDUxIDM4N0w2MTggMjg0VjY1NVE2MTggNzA2IDU4MCA3MzZRNDkyIDc5OCA0NDEgODYyWiIgZmlsbD0idXJsKCNhKSIvPjxwYXRoIGQ9Ik00NDEgODYyUTUxMiA3NzYgNjAyIDc1OEg5MjVMODM2IDg1MlE4MjggODY3IDgxMSA4NjdINDQxWiIgZmlsbD0idXJsKCNiKSIvPjwvZz48L3N2Zz4=">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -809,6 +809,7 @@ body{padding-top:env(safe-area-inset-top)}
   function sheetVals(){var d=LIVE.sheet&&LIVE.sheet.data;return d&&d.values?d.values:null}
   function cell(r,c){var v=sheetVals();return v&&v[r-1]?v[r-1][c-1]:undefined}
   function num(x){var n=parseFloat(String(x==null?"":x).replace(/,/g,""));return isNaN(n)?null:n}
+  function goalNum(x){var t=String(x==null?"":x).replace(/[,₪\s]/g,"");return /^\d+(\.\d+)?$/.test(t)?parseFloat(t):null}   /* a goal like "12abc" is not a goal */
   function bizDays(from,to){ /* Israeli work week: Sun-Thu */
     var d=new Date(from.getTime()),n=0;d.setHours(12,0,0,0);var end=new Date(to.getTime());end.setHours(12,0,0,0);
     while(d<end){d.setDate(d.getDate()+1);var w=d.getDay();if(w>=0&&w<=4)n++}
@@ -824,7 +825,7 @@ body{padding-top:env(safe-area-inset-top)}
       r.total=(LIVE.orders.data&&LIVE.orders.data.totalCount)||o.length;
     }
     /* the monthly profit goal has one source: settings!B2 */
-    var goal=num(cell(2,2));r.goal=goal!=null&&goal>0?goal:null;
+    var goal=goalNum(cell(2,2));r.goal=goal!=null&&goal>0?goal:null;r.goalRaw=cell(2,2);
     return r;
   }
 
@@ -911,7 +912,8 @@ body{padding-top:env(safe-area-inset-top)}
   }
   function kpiRow(){
     var c=calc(),g=el("div","kpis"),en=c.goal!=null?engNeed(c.goal):null;
-    g.appendChild(kpi("הזמנות נדרשות ליעד החודשי",en?String(en.needed):"–",en?"לפי רווח ממוצע "+eAg(en.avgProfitAgorot)+" להזמנה "+(en.beforeAds?"לפני פרסום (אין נתוני פרסום)":"אחרי פרסום")+", מ-"+en.basisOrders+" הזמנות רגילות · יעד "+sh(c.goal):(c.goal==null?"יעד לא הוגדר בהגדרות":"אין עדיין נתוני מנוע לחישוב")));
+    var enN=en?(en.neededThisMonth!=null?en.neededThisMonth:en.needed):null;
+    g.appendChild(kpi("הזמנות נדרשות ליעד החודשי",en?String(enN):"–",en?"לפי רווח ממוצע "+eAg(en.avgProfitAgorot)+" להזמנה "+(en.beforeAds?"לפני פרסום (אין נתוני פרסום)":"אחרי פרסום")+", מ-"+en.basisOrders+" הזמנות רגילות · יעד "+sh(c.goal):(c.goal==null?"יעד לא הוגדר בהגדרות":"אין עדיין נתוני מנוע לחישוב")));
     g.appendChild(kpi("הזמנות באיחור",c.late!=null?String(c.late):"–",c.open?(c.open.length+" הזמנות פתוחות"):"",c.late>0?"bad":(c.late===0?"ok":"")));
     var dr=LIVE.drafts&&LIVE.drafts.data;var dn=dr&&dr.resultCountEstimate!=null?dr.resultCountEstimate:(dr&&dr.threads?dr.threads.length:null);
     g.appendChild(kpi("שרשורים בתווית LORINX-לאישור",dn!=null?String(dn):"–","ספירה מ-Gmail, לא כולל בדיקה אם נשלחו",""));
@@ -919,7 +921,7 @@ body{padding-top:env(safe-area-inset-top)}
   }
   function goalCard(){
     var c=calc(),box=el("div"),s=eng30();
-    if(!s||c.goal==null){box.appendChild(el("div","empty",c.goal==null?"יעד חודשי לא הוגדר בהגדרות.":"ממתין לנתוני המנוע."));return card("התקדמות מול היעד החודשי",box)}
+    if(!s||c.goal==null){box.appendChild(el("div","empty",c.goal==null?(String(c.goalRaw||"").trim()===""?"יעד חודשי לא הוגדר בהגדרות.":"היעד בהגדרות ("+String(c.goalRaw).trim()+") אינו מספר חיובי, תקן את settings!B2."):"ממתין לנתוני המנוע."));return card("התקדמות מול היעד החודשי",box)}
     var nt=s.netProfit;
     if(nt.missing.length){box.appendChild(el("div","empty","הרווח הנקי לא ניתן לחישוב, חסר: "+nt.missing.join(", ")));return card("התקדמות מול היעד החודשי",box)}
     var cur=nt.agorot/100,have=Math.max(0,cur),pct=Math.min(100,Math.round(have/c.goal*100));
@@ -936,7 +938,7 @@ body{padding-top:env(safe-area-inset-top)}
   function jerNow(){var p=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Jerusalem"}).split("-").map(Number);return {y:p[0],m:p[1],d:p[2]}}
   function monthGauge(){
     var box=el("div"),c=calc(),goal=c.goal,em=engMonth();
-    if(!em||goal==null){box.appendChild(el("div","empty",goal==null?"יעד חודשי לא הוגדר בהגדרות.":"ממתין לנתוני המנוע."));box.appendChild(stamp("v2_orders_v2"));return card("מד יעד חודשי",box)}
+    if(!em||goal==null){box.appendChild(el("div","empty",goal==null?(String(c.goalRaw||"").trim()===""?"יעד חודשי לא הוגדר בהגדרות.":"היעד בהגדרות ("+String(c.goalRaw).trim()+") אינו מספר חיובי, תקן את settings!B2."):"ממתין לנתוני המנוע."));box.appendChild(stamp("v2_orders_v2"));return card("מד יעד חודשי",box)}
     var miss=em.netProfit.missing,profit=miss.length?null:em.netProfit.agorot/100,ordersN=em.kpis.realOrders,en=engNeed(goal),need=en?(en.neededThisMonth!=null?en.neededThisMonth:en.needed):null;   /* the gauge compares with this month's net profit, which includes one-time expenses */
     var pct=profit==null?0:Math.max(0,Math.min(1,profit/goal));
     var g=el("div","gauge"),sv=svg("svg",{viewBox:"0 0 200 124",role:"img","aria-label":"התקדמות מול יעד הרווח החודשי"});
@@ -981,7 +983,7 @@ body{padding-top:env(safe-area-inset-top)}
   }
 
   /* ---------- period / product / portfolio cards: engine only ---------- */
-  var STATE_HE={TEST:"בדיקה",CREATOR_SAMPLE:"דוגמה ליוצרת",CANCELLED_NO_REFUND:"בוטלה בלי החזר",CANCELLED:"בוטלה והוחזרה",UNPAID:"לא שולמה"};
+  var STATE_HE={TEST:"בדיקה",CREATOR_SAMPLE:"דוגמה ליוצרת",CANCELLED_NO_REFUND:"בוטלה בלי החזר",CANCELLED_UNPAID:"בוטלה, לא שולמה",CANCELLED:"בוטלה והוחזרה",UNPAID:"לא שולמה"};
   function cardRange(){var p=enginePeriod();return {from:p.from,to:p.to,days:LorinxEngine.periodDays(p),he:p.he}}
   function engineStatsFor(g){
     var ed=engineData();if(!ed.data)return {ed:ed};
@@ -1429,7 +1431,7 @@ body{padding-top:env(safe-area-inset-top)}
     var kr=el("div","kpis");
     kr.appendChild(kpi("הוצאה על פרסום",miss?"–":eAg(a.adSpendAgorot),miss?"חסרים נתוני פרסום ל-"+a.missingDays+" ימים":"ביטחון "+pctTxt(a.confidencePercent)));
     kr.appendChild(kpi("MER (מכירות נטו ÷ הוצאה)",!miss&&k.mer!=null?String(k.mer):"–",k.breakEvenRoas!=null?"נקודת איזון "+k.breakEvenRoas:""));
-    kr.appendChild(kpi("עלות לרכישה (הוצאה ÷ הזמנות)",!miss&&k.blendedCpaAgorot!=null?eAg(k.blendedCpaAgorot):"–",k.breakEvenCpaAgorot!=null?"נקודת איזון "+eAg(k.breakEvenCpaAgorot):""));
+    kr.appendChild(kpi("עלות לרכישה (הוצאה ÷ הזמנות)",!miss&&k.blendedCpaAgorot!=null?eAg(k.blendedCpaAgorot):"–",k.breakEvenCpaAgorot!=null?"נקודת איזון "+eAg(k.breakEvenCpaAgorot)+(k.breakEvenCpaWithFixedAgorot!=null?" · כולל הוצאות קבועות "+eAg(k.breakEvenCpaWithFixedAgorot):""):""));
     kr.appendChild(kpi("ימים עם נתוני פרסום",a.coveredDays+" מתוך "+a.expectedDays,""));
     var rows=Object.keys(a.byCampaign).map(function(x){return a.byCampaign[x]}).filter(function(c){return c.spendAgorot>0||c.purchases>0}).sort(function(x,y){return y.spendAgorot-x.spendAgorot});
     if(rows.length){
@@ -1662,7 +1664,7 @@ body{padding-top:env(safe-area-inset-top)}
     return v.slice(1).filter(function(r){return r&&r[0]&&String(r[6]||"").trim().indexOf("בוטל")===0}).map(function(r){return {date:r[0],product:r[1]||"",template:r[2]||"",hook:r[3]||"",file:r[4]||""}});
   }
   function restoreClip(c){
-    var o={id:c.date,date:c.date,product:c.product,template:c.template,hook:c.hook,file:c.file,status:"pending",time:"20:30",caption:""},b=clone(o);delete b.id;
+    var o={id:c.date,date:c.date,product:c.product,template:c.template,hook:c.hook,file:c.file,status:"pending",time:c.time||"20:30",caption:c.caption||""},b=clone(o);delete b.id;
     clipSheetP(o,null,"ממתין לאישור",true).then(function(){return putP("clips/"+o.id,function(){return db.doc("clips/"+o.id).set(b)})}).then(function(){
       if(!M.clips.some(function(x){return x.id===o.id}))M.clips.push(o);return loadContent()}).then(function(){msg("הקליפ שוחזר וממתין לאישור");render()},function(e){putErr(e);msg("השחזור נכשל")});
   }

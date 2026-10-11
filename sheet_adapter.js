@@ -63,19 +63,20 @@ var LorinxSheetAdapter = (function () {
   }
   function idStr(v, tab, row, field) { // מזהה גדול שהוצג כמספר מאבד ספרות (מעל 2^53)
     if (typeof v === 'number' && !Number.isSafeInteger(v)) { issue(tab, row, field, v, 'מזהה גדול מדי כמספר: חייב להיות טקסט'); return String(v); }
+    if (typeof v === 'string' && /^\s*[+-]?\d+(\.\d+)?[eE][+-]?\d+\s*$/.test(v)) issue(tab, row, field, v, 'מזהה בכתיב מדעי (אקסל קיצר ספרות): חייב להיות טקסט'); // E-27: 1.20248E+17 הוא מזהה שאבד
     return String(v == null ? '' : v);
   }
   var TRUE_SET = { 'true': 1, '1': 1, 'yes': 1, 'y': 1, 'כן': 1, 'v': 1, '✓': 1, '✔': 1, 'x': 1, 'on': 1 };
   var FALSE_SET = { 'false': 1, '0': 1, 'no': 1, 'n': 1, 'לא': 1, 'off': 1 };
   // דגל: ריק = false. ערך לא ריק שאינו בקבוצות המוכרות הוא issue (ונקרא true, השמרני: הזמנת בדיקה/דוגמה לא נספרת כהכנסה אמיתית), לא false בשקט
-  function bool(v, tab, row, field) {
+  function bool(v, tab, row, field, unknownVal) { // unknownVal: מה נקרא כשהערך לא מוכר (ברירת מחדל true; לדגל שכן=לא שמרני, ראו cancelled_in_error)
     if (v === true || v === 1) return true;
     if (v === false || v === 0 || v == null) return false;
     var t = String(v).trim().toLowerCase();
     if (t === '' || FALSE_SET[t]) return false;
     if (TRUE_SET[t]) return true;
     if (tab) issue(tab, row, field, v, 'ערך דגל לא מוכר (צפוי כן/לא, TRUE/FALSE, 1/0)');
-    return true;
+    return unknownVal === undefined ? true : unknownVal;
   }
   var CONF_SET = { VERIFIED: 1, MANUAL: 1, ESTIMATED: 1, STALE: 1, MISSING: 1 };
   // תווית אמינות: ריק = ברירת מחדל; תווית שאינה אחת מחמש היא issue והופכת ל-MISSING (לא מנצחת את MISSING בשקט)
@@ -112,9 +113,12 @@ var LorinxSheetAdapter = (function () {
     }
     return null;
   }
-  function day(v, tab, row, field) {
+  function day(v, tab, row, field, required) {
     var d = parseDay(v);
     if (d === null && v !== '' && v != null) issue(tab, row, field, v, 'תאריך לא תקין');
+    if (required && (v === '' || v == null)) issue(tab, row, field, '', 'תאריך חובה חסר'); // E-8: בלי תאריך תחילה השורה נזרקת במנוע בשקט
+    // E-26: תא תאריך מגיע כ-Date של חצות בשעון הגיליון. אם זו לא חצות לפי שעון ישראל, אזור הזמן של הגיליון אינו Asia/Jerusalem והיום עלול לזוז
+    if (v instanceof Date && d && !isNaN(v.getTime()) && dateOfDate(new Date(v.getTime() - 1)) === d) issue(tab, row, field, v.toISOString(), 'תאריך (Date) לא בחצות לפי שעון ישראל: אזור הזמן של הגיליון חייב להיות Asia/Jerusalem');
     return d;
   }
   // חותמת זמן להזמנה: ISO נשמר כמות שהוא (המנוע ממיר לשעון ישראל); Date -> ISO; תאריך בלבד -> היום
@@ -130,8 +134,11 @@ var LorinxSheetAdapter = (function () {
   var FIN_STATUS = { PAID: 1, PENDING: 1, AUTHORIZED: 1, PARTIALLY_PAID: 1, PARTIALLY_REFUNDED: 1, REFUNDED: 1, VOIDED: 1, EXPIRED: 1 };
   function orders(ordersRows, linesRows, refundsRows) {
     var lines = {}, refunds = {}, seenLine = {}, seenRefund = {}, orderIds = {};
-    var oTable = table(ordersRows);
-    oTable.forEach(function (o) { orderIds[idStr(o.order_id, 'orders_v2', o._row, 'order_id')] = 1; });
+    var oTable = table(ordersRows), idCount = {}, nameCount = {};
+    oTable.forEach(function (o) {
+      var k = idStr(o.order_id, 'orders_v2', o._row, 'order_id'); orderIds[k] = 1; idCount[k] = (idCount[k] || 0) + 1;
+      var nm = String(o.name == null ? '' : o.name).trim(); nameCount[nm] = (nameCount[nm] || 0) + 1;
+    });
     table(linesRows).forEach(function (l) {
       var oid = idStr(l.order_id, 'order_lines', l._row, 'order_id');
       if (bool(l.removed_in_shopify, 'order_lines', l._row, 'removed_in_shopify')) return; // שורה שהוסרה בשופיפיי (עריכת הזמנה): לא נספרת
@@ -154,6 +161,12 @@ var LorinxSheetAdapter = (function () {
     var flags = {}, list = [];
     oTable.forEach(function (o) {
       var T = 'orders_v2', oid = idStr(o.order_id, T, o._row, 'order_id');
+      // E-7: order_id ושם הזמנה חובה וייחודיים. ריק או כפול = ההזמנה לא ניתנת לזיהוי (שורות מוצר והחזרים היו מוצמדים לכולן): issue וההזמנה INVALID
+      var idBad = false, nmv = String(o.name == null ? '' : o.name).trim();
+      if (!oid) { issue(T, o._row, 'order_id', '', 'order_id חסר'); idBad = true; }
+      else if (idCount[oid] > 1) { issue(T, o._row, 'order_id', oid, 'order_id כפול: שתי הזמנות באותו מזהה'); idBad = true; }
+      if (!nmv) { issue(T, o._row, 'name', '', 'שם הזמנה חסר'); idBad = true; }
+      else if (nameCount[nmv] > 1) { issue(T, o._row, 'name', nmv, 'שם הזמנה כפול'); idBad = true; }
       var created = stamp(o.created_at, T, o._row, 'created_at');
       var gross = mnn(o.gross_agorot, T, o._row, 'gross_agorot', undefined, true), disc = mnn(o.discount_agorot, T, o._row, 'discount_agorot'), net = money(o.net_agorot, T, o._row, 'net_agorot', undefined, true);
       var ship = mnn(o.shipping_agorot, T, o._row, 'shipping_agorot');
@@ -161,9 +174,10 @@ var LorinxSheetAdapter = (function () {
       var fin = enumU(o.financial_status);
       if (!FIN_STATUS[fin]) issue(T, o._row, 'financial_status', o.financial_status, 'סטטוס תשלום ריק או לא מוכר (ההזמנה תיחשב כלא שולמה)');
       var ls = lines[oid] || [], rs = refunds[oid] || [];
-      var bad = created == null || gross == null || disc == null || net == null || (cancelled != null && cancelStamp == null) || ls.some(function (l) { return l.invalid; }) || rs.some(function (r) { return r.invalid; });
+      var bad = idBad || created == null || gross == null || disc == null || net == null || (cancelled != null && cancelStamp == null) || ls.some(function (l) { return l.invalid; }) || rs.some(function (r) { return r.invalid; });
       list.push({ id: oid, name: o.name, createdAt: created, cancelledAt: cancelStamp, financialStatus: fin, fulfillmentStatus: enumU(o.fulfillment_status), gateway: nul(o.gateway), city: o.city, customerId: String(o.customer_id == null ? '' : o.customer_id), campaign: nul(idStr(o.campaign_id, T, o._row, 'campaign_id')), source: nul(o.source), tags: o.tags ? String(o.tags).split(',') : [], grossAgorot: gross, discountAgorot: disc, netAgorot: net, shippingAgorot: ship, refunds: rs, lines: ls, invalid: bad });
-      flags[o.name] = { isTest: bool(o.is_test, T, o._row, 'is_test'), cancelledInError: bool(o.cancelled_in_error, T, o._row, 'cancelled_in_error'), creatorSample: bool(o.creator_sample, T, o._row, 'creator_sample'), deletedInShopify: bool(o.deleted_in_shopify, T, o._row, 'deleted_in_shopify'), note: o.note || '' };
+      // E-24: cancelled_in_error לא מוכר = נשאר מבוטל (השמרני; "כן" כאן מחזיר הכנסה), בניגוד לדגלים האחרים שבהם ערך לא מוכר נקרא "כן"
+      flags[o.name] = { isTest: bool(o.is_test, T, o._row, 'is_test'), cancelledInError: bool(o.cancelled_in_error, T, o._row, 'cancelled_in_error', false), creatorSample: bool(o.creator_sample, T, o._row, 'creator_sample'), deletedInShopify: bool(o.deleted_in_shopify, T, o._row, 'deleted_in_shopify'), note: o.note || '' };
     });
     return { orders: list, flags: flags };
   }
@@ -179,9 +193,16 @@ var LorinxSheetAdapter = (function () {
       return { row: c._row, orderName: c.order_name, supplierOrder: nul(c.supplier_order), amountUsdCents: amt, purchaseDate: pd, status: c.status, source: c.source, confidence: conf(c.confidence, 'MANUAL', T, c._row, 'confidence'), rateUsed: ru, rateDate: rd, convertedAgorot: ca };
     });
   }
-  function productCosts(rows) { return table(rows).map(function (p) { var T = 'product_costs'; return { sku: p.sku, name: p.name, unitCostUsdCents: mnn(p.unit_cost_usd_cents, T, p._row, 'unit_cost_usd_cents', null), effectiveFrom: day(p.effective_from, T, p._row, 'effective_from'), effectiveTo: day(p.effective_to, T, p._row, 'effective_to'), source: p.source, confidence: conf(p.confidence, 'MANUAL', T, p._row, 'confidence') }; }); }
+  function productCosts(rows) { return table(rows).map(function (p) { var T = 'product_costs'; return { sku: p.sku, name: p.name, unitCostUsdCents: mnn(p.unit_cost_usd_cents, T, p._row, 'unit_cost_usd_cents', null), effectiveFrom: day(p.effective_from, T, p._row, 'effective_from', true), effectiveTo: day(p.effective_to, T, p._row, 'effective_to'), source: p.source, confidence: conf(p.confidence, 'MANUAL', T, p._row, 'confidence') }; }); }
+  // E-15: מטבע מנורמל (usd / "USD " = USD). חסר נקרא USD עם issue; מטבע אחר נשמר כמות שהוא (המנוע מחשב בדולר בלבד) עם issue
+  function fxCurrency(v, row) {
+    var t = String(v == null ? '' : v).trim().toUpperCase();
+    if (!t) { issue('fx_rates', row, 'currency', '', 'מטבע חסר (נחשב USD)'); return 'USD'; }
+    if (t !== 'USD') issue('fx_rates', row, 'currency', v, 'מטבע לא נתמך (המנוע מחשב בדולר בלבד): השורה לא תשמש לחישוב');
+    return t;
+  }
   function fxRates(rows) {
-    return table(rows).map(function (r) { return { date: day(r.date, 'fx_rates', r._row, 'date'), currency: r.currency, rate: num(r.rate, 'fx_rates', r._row, 'rate', null), source: r.source, confidence: conf(r.confidence, 'VERIFIED', 'fx_rates', r._row, 'confidence'), _row: r._row }; })
+    return table(rows).map(function (r) { return { date: day(r.date, 'fx_rates', r._row, 'date'), currency: fxCurrency(r.currency, r._row), rate: num(r.rate, 'fx_rates', r._row, 'rate', null), source: r.source, confidence: conf(r.confidence, 'VERIFIED', 'fx_rates', r._row, 'confidence'), _row: r._row }; })
       .filter(function (r) {
         var ok = r.date && r.rate != null && r.rate > 0;
         if (!ok) issue('fx_rates', r._row, 'rate', r.rate == null ? '' : r.rate, 'שורת שער לא תקינה – לא נכללה');
@@ -209,7 +230,7 @@ var LorinxSheetAdapter = (function () {
     // שורת "בפועל" (order_id + actual_agorot) יכולה להיות בלי רכיבים. תעריף כללי בלי רכיבים תקינים = שבור (MISSING במנוע), לא עמלה 0
     if (comps !== null && !(isActual && act != null) && !feeCompsOk(comps)) { issue(T, r._row, 'components_json', r.components_json, 'רכיבי עמלה ריקים או לא תקינים (rate בין 0 ל-1, fixedAgorot שלם, vat בוליאני)'); comps = null; }
     if (isActual && act == null) issue(T, r._row, 'actual_agorot', r.actual_agorot, 'שורת עמלה בפועל (יש order_id) בלי סכום');
-    return { gateway: r.gateway, effectiveFrom: day(r.effective_from, T, r._row, 'effective_from'), effectiveTo: day(r.effective_to, T, r._row, 'effective_to'), components: comps, actualAgorot: act, orderId: isActual ? idStr(r.order_id, T, r._row, 'order_id') : null, source: r.source, confidence: conf(r.confidence, 'ESTIMATED', T, r._row, 'confidence'), note: r.note }; }); }
+    return { gateway: r.gateway, effectiveFrom: day(r.effective_from, T, r._row, 'effective_from', true), effectiveTo: day(r.effective_to, T, r._row, 'effective_to'), components: comps, actualAgorot: act, orderId: isActual ? idStr(r.order_id, T, r._row, 'order_id') : null, source: r.source, confidence: conf(r.confidence, 'ESTIMATED', T, r._row, 'confidence'), note: r.note }; }); }
   function adSpend(rows) {
     return table(rows).map(function (r) {
       var T = 'ad_spend', d = day(r.date, T, r._row, 'date');
@@ -219,8 +240,10 @@ var LorinxSheetAdapter = (function () {
       return { date: d, campaignId: idStr(r.campaign_id, T, r._row, 'campaign_id'), campaignName: r.campaign_name, adsetId: nul(r.adset_id), spendAgorot: sp, purchases: mnn(r.purchases, T, r._row, 'purchases', null), purchaseValueAgorot: mnn(r.purchase_value_agorot, T, r._row, 'purchase_value_agorot', null), source: r.source, confidence: conf(r.confidence, 'VERIFIED', T, r._row, 'confidence'), _row: r._row };
     }).filter(function (r) { return r.date; });
   }
+  var EXPENSE_CATS = { Fixed: 1, Temporary: 1, OneTime: 1, AdCredit: 1 };
   function expenses(rows) { return table(rows).map(function (e) {
     var T = 'expenses_v2', o = { id: e.id, name: e.name, category: e.category, source: e.source, confidence: conf(e.confidence, 'MANUAL', T, e._row, 'confidence') };
+    if (!EXPENSE_CATS[e.category]) issue(T, e._row, 'category', e.category, 'קטגוריית הוצאה לא מוכרת (Fixed / Temporary / OneTime / AdCredit, בדיוק כך): ההוצאה לא תיספר'); // E-11
     if (e.category === 'OneTime') { o.amountAgorot = mnn(e.amount_agorot, T, e._row, 'amount_agorot', null); o.date = day(e.date, T, e._row, 'date'); }
     else if (e.category === 'AdCredit') { o.amountAgorot = mnn(e.amount_agorot, T, e._row, 'amount_agorot', null); o.startDate = day(e.start_date, T, e._row, 'start_date'); o.endDate = day(e.end_date, T, e._row, 'end_date'); }
     else { o.billingDay = mnn(e.billing_day, T, e._row, 'billing_day', null); if (o.billingDay != null && (o.billingDay < 1 || o.billingDay > 31)) { issue(T, e._row, 'billing_day', e.billing_day, 'יום חיוב חייב להיות בין 1 ל-31'); o.billingDay = null; } o.monthlyAgorot = mnn(e.monthly_agorot, T, e._row, 'monthly_agorot', null); o.startDate = day(e.start_date, T, e._row, 'start_date'); o.endDate = day(e.end_date, T, e._row, 'end_date'); }
@@ -263,6 +286,6 @@ var LorinxSheetAdapter = (function () {
     data.issues = issues; issues = [];
     return data;
   }
-  return { VERSION: '1.2.0', REQUIRED: REQUIRED, normHeader: normHeader, table: isolated(table), parseNum: parseNum, money: isolated(money), parseDay: parseDay, orders: isolated(orders), orderCosts: isolated(orderCosts), productCosts: isolated(productCosts), fxRates: isolated(fxRates), feeRates: isolated(feeRates), adSpend: isolated(adSpend), expenses: isolated(expenses), build: build };
+  return { VERSION: '1.3.0', REQUIRED: REQUIRED, normHeader: normHeader, table: isolated(table), parseNum: parseNum, money: isolated(money), parseDay: parseDay, orders: isolated(orders), orderCosts: isolated(orderCosts), productCosts: isolated(productCosts), fxRates: isolated(fxRates), feeRates: isolated(feeRates), adSpend: isolated(adSpend), expenses: isolated(expenses), build: build };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = LorinxSheetAdapter;

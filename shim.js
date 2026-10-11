@@ -13,13 +13,35 @@
     if(/^busy/.test(m))return "המערכת עסוקה, נסה שוב בעוד רגע.";
     if(/^conflict/.test(m))return m.replace(/^conflict:\s*/,"");
     if(/^slot taken/.test(m))return "כבר יש קליפ באותו תאריך ושעה. בחר שעה או תאריך אחרים.";
+    if(/^stale.*(expectId|זיהוי)/.test(m))return "אישור פרסום דורש זיהוי של הקליפ (content_id). רענן ונסה שוב.";
+    if(/^stale.*(אותו קליפ|not the clip)/.test(m))return "השורה בגיליון כבר לא אותו קליפ (שורות זזו). רענן ונסה שוב.";
     if(/^stale/.test(m))return "הסטטוס של הקליפ השתנה בינתיים. רענן ונסה שוב.";
+    /* a date/status refusal carries its own reason in Hebrew ("אי אפשר לאשר פרסום בשישי או בשבת"): that reason is shown, not replaced */
+    var br=/^bad (?:date|status):\s*(.+)$/.exec(m);if(br)return /[\u0590-\u05FF]/.test(br[1])?br[1]:"תאריך או סטטוס לא תקינים: "+br[1];
     if(/^bad (status|date)|bad row: content date/.test(m))return "תאריך או סטטוס לא תקינים.";
+    if(/^approved clip: changing its content/.test(m))return "קליפ מאושר: שינוי התוכן שלו מותר רק לבעלים, או אחרי שמחזירים אותו להמתנה.";
+    if(/^bad expense:/.test(m)){
+      if(/name and source/.test(m))return "שם ההוצאה והמקור חייבים להיות טקסט.";
+      if(/: name$/.test(m))return "שם ההוצאה חסר או ארוך מדי (עד 200 תווים).";
+      if(/source/.test(m))return "המקור / ההערה חסרים או ארוכים מדי (עד 400 תווים).";
+      if(/date is more than a year/.test(m))return "תאריך הוצאה חד-פעמית חייב להיות בטווח של שנה מהיום.";
+      if(/end date before/.test(m))return "תאריך הסיום לפני תאריך ההתחלה.";
+      if(/billing day/.test(m))return "יום חיוב חייב להיות מספר בין 1 ל-31.";
+      if(/amount|agorot|out of range/.test(m))return "הסכום לא תקין: מספר גדול מ-0 ועד 1,000,000 ₪.";
+      if(/category/.test(m))return "סוג ההוצאה לא תקין.";
+      if(/date/.test(m))return "תאריך ההוצאה לא תקין.";
+      return "ההוצאה לא תקינה: "+m.replace(/^bad expense:\s*/,"");
+    }
+    if(/^too many expenses/.test(m))return "יש יותר מדי הוצאות בגיליון (עד 300).";
+    if(/^content_id/.test(m))return "מזהה הקליפ (content_id) לא תקין או כבר בשימוש.";
+    if(/^range starts after/.test(m))return "הכתיבה מחוץ לטווח הגיליון. רענן ונסה שוב.";
     if(/^forbidden/.test(m))return "אין לך הרשאה לפעולה הזאת.";
     if(/^clip already published/.test(m))return "הקליפ כבר פורסם. את הסטטוס שלו משנה רק הבעלים.";
     if(/not allowed|not writable|header is read-only|too large/.test(m))return "הפעולה לא מותרת בשרת.";
     return "הגיליון החזיר שגיאה: "+m;
   }
+  /* the role the server reports for this token (a newer server adds "role" to its answers); an older one never does and the app stays in owner mode */
+  function setRole(r){r=String(r);if(window.LX_ROLE===r)return;window.LX_ROLE=r;try{window.dispatchEvent(new Event("lx-role"))}catch(e){}}
   function setNet(off){if(window.LX_OFFLINE===off)return;window.LX_OFFLINE=off;try{window.dispatchEvent(new Event("lx-net"))}catch(e){}}
   function once(body,ms){
     var ctl=window.AbortController?new AbortController():null,t=ctl?setTimeout(function(){ctl.abort()},ms||20000):null;
@@ -33,7 +55,17 @@
     var ms=body.action==="orders"?60000:20000;   /* Shopify (several pages) and a cold Apps Script start can be slow */
     var WRITE={update:1,append:1,appset:1,appdel:1,expv2ops:1};
     function go(i){
-      return once(body,ms).then(function(j){setNet(false);if(j&&j.error)throw {code:/^conflict/.test(j.error)?"conflict":"upstream_error",message:friendly(j.error)};return j},function(e){
+      return once(body,ms).then(function(j){
+        setNet(false);
+        /* null, [] or a bare number is not an answer: it would read as "empty" or crash with an English TypeError */
+        if(!j||typeof j!=="object"||Array.isArray(j))throw {code:"upstream_error",message:"השרת החזיר תשובה לא תקינה (לא JSON של התשובה הצפויה). נסה שוב; אם זה חוזר, בדוק את הפריסה של ה-Web App."};
+        if(j.role)setRole(j.role);
+        if(j.error){
+          /* a token the server no longer knows: back to the access-code screen, there is nothing else the user can do here */
+          if(/^unauthorized/.test(j.error)&&window.LORINX_RELOGIN)window.LORINX_RELOGIN();
+          throw {code:/^conflict/.test(j.error)?"conflict":(/^forbidden/.test(j.error)?"forbidden":"upstream_error"),message:friendly(j.error)};
+        }
+        return j},function(e){
         /* a slow server is not a missing network: no retry storm, no "offline" banner, and a write that timed out is said to be of unknown outcome */
         if(e&&e.timeout)throw {code:"timeout",message:WRITE[body.action]?"השרת לא ענה בזמן. לא ידוע אם השינוי נשמר: רענן ובדוק לפני שתנסה שוב.":"השרת איטי ולא ענה בזמן. נסה שוב בעוד רגע."};
         if(e&&e.net){if(i+1<tries)return new Promise(function(r){setTimeout(r,delay[i+1])}).then(function(){return go(i+1)});setNet(true);throw {code:"offline",message:"אין חיבור לגיליון. בדוק אינטרנט."}}
@@ -48,7 +80,8 @@
   var STATUS_OUT={approved:"מאושר לפרסום",rejected:"נדחה",pending:"ממתין לאישור"};
   /* a status may carry a suffix ("מאושר לפרסום - תמונה", "בוטל - יוחלף בקליפ אחר"): it is read by its beginning. statusRaw keeps the exact approved wording last seen for the row, so a re-approval in the same session writes it back unchanged */
   var approvedAs={};
-  function statusIn(st){if(STATUS_IN[st])return STATUS_IN[st];var k=["מאושר לפרסום","פורסם","נדחה","ממתין לאישור"];for(var i=0;i<k.length;i++)if(st.indexOf(k[i])===0)return STATUS_IN[k[i]];return "pending"}
+  /* an empty or unrecognised status is "unknown": shown for checking, never counted as waiting and never approved in bulk (U-8) */
+  function statusIn(st){if(STATUS_IN[st])return STATUS_IN[st];var k=["מאושר לפרסום","פורסם","נדחה","ממתין לאישור"];for(var i=0;i<k.length;i++)if(st.indexOf(k[i])===0)return STATUS_IN[k[i]];return "unknown"}
   var rowsCache=[];
   function mapRow(r,i){
     var st=(r[6]||"").trim();
@@ -56,15 +89,18 @@
     var file=r[4]||"",base=file.split("/").pop(),ak=r[0]+"|"+file;
     if(st.indexOf("מאושר לפרסום")===0)approvedAs[ak]=st;
     var cid=String(r[16]||"");   /* a stable id from the sheet (column Q); the date alone is not unique */
-    return {id:cid||r[0],cid:cid,row:i+1,data:{date:r[0],product:r[1]||"",template:r[2]||"",hook:r[3]||"",file:file,status:statusIn(st),statusRaw:approvedAs[ak]||st,time:r[14]||"20:30",caption:r[15]||"",
+    return {id:cid||r[0],cid:cid,row:i+1,data:{date:r[0],product:r[1]||"",template:r[2]||"",hook:r[3]||"",file:file,status:statusIn(st),statusRaw:approvedAs[ak]||st,sheetRaw:st,time:r[14]||"20:30",caption:r[15]||"",
       video:file?encodeURI("../"+file):""}};
   }
+  /* every failed read, not only the first one, reaches the screen (audit 7 U-3) */
+  function reportErr(src,e){try{if(window.LX_LOADERR)window.LX_LOADERR(src,e)}catch(x){}}
   function loadClips(){
     return api({action:"get",range:"content!A1:Q1500"}).then(function(j){
+      if(!Array.isArray(j.values))throw {code:"upstream_error",message:"השרת לא החזיר את לשונית התוכן (תשובה בלי רשימת שורות). נסה שוב."};
       if(j.truncated)throw {code:"upstream_error",message:"לשונית התוכן ארוכה מהטווח שנקרא"+(j.lastRow?" ("+j.lastRow+" שורות)":"")+". המסך לא יציג חלק ממנה. נקה שורות ישנות בגיליון."};
       rowsCache=(j.values||[]).map(mapRow).slice(1).filter(Boolean);
       clipListeners.forEach(function(f){f()});
-    });
+    },function(e){reportErr("clips",e);throw e});
   }
   function snapOf(list){return {empty:!list.length,docs:list.map(function(d){return {id:d.id,data:function(){return d.data}}})}}
   var db={
@@ -86,11 +122,13 @@
             if(same.length>1)return Promise.reject({code:"upstream_error",message:"יש כמה שורות בגיליון עם אותו תאריך ובלי מזהה (עמודה Q), לכן אי אפשר לערוך אחת מהן בבטחה. הוסף מזהה בגיליון."});
             if(!ex){var byDate=rowsCache.filter(function(x){return x.data.date===p[1]});if(byDate.length===1)ex=byDate[0]}   /* an old date-based id: only when it is unambiguous */
             if(ex){
-              var main=api({action:"update",range:"content!B"+ex.row+":E"+ex.row,values:[[data.product||"",data.template||"",data.hook||"",data.file||""]],expectId:ex.cid||undefined});
-              /* time and caption live in O:P: written only when they really changed, after the main write succeeded */
+              /* only the cells the user really changed are written, each guarded by the clip's content_id: a stale screen can no longer put an old hook, file or caption back over what the content factory wrote */
               var o=ex.data||{},tNew=data.time?data.time:o.time,cNew=data.caption?data.caption:o.caption;   /* an empty value never overwrites what the sheet has */
-              if(String(tNew||"")===String(o.time||"")&&String(cNew||"")===String(o.caption||""))return main;
-              return main.then(function(){return api({action:"update",range:"content!O"+ex.row+":P"+ex.row,values:[[tNew||"20:30",cNew||""]],expectId:ex.cid||undefined})});   /* the row came from a cache up to 60s old: the server checks it is still the same clip */
+              var cols=[["B",data.product||"",o.product||""],["C",data.template||"",o.template||""],["D",data.hook||"",o.hook||""],["E",data.file||"",o.file||""],["O",tNew||"20:30",o.time||"20:30"],["P",cNew||"",o.caption||""]].filter(function(c){return String(c[1])!==String(c[2])});
+              var chain=Promise.resolve();
+              cols.forEach(function(c){chain=chain.then(function(){return api({action:"update",range:"content!"+c[0]+ex.row,values:[[c[1]]],expectId:ex.cid||undefined})})});
+              /* the cached copy follows what the sheet accepted, so a later edit is compared with the truth */
+              return chain.then(function(){var F={B:"product",C:"template",D:"hook",E:"file",O:"time",P:"caption"};cols.forEach(function(c){ex.data[F[c[0]]]=c[1]})});
             }
             if(!data.date)return Promise.resolve();
             return api({action:"append",sheet:"content",row:[data.date,data.product||"",data.template||"",data.hook||"",data.file||"","",STATUS_OUT[data.status||"pending"],"","","","","","","",data.time||"20:30",data.caption||""]}).then(loadClips);
@@ -112,11 +150,15 @@
   }
   function fireApp(){appLs.forEach(function(f){try{f()}catch(e){}})}
   var appVer=0;   /* bumped by every write: a read that started before a write must not overwrite what the write just set */
-  function fetchApp(){var v0=appVer;return api({action:"get",range:"appdata!A1:C2000"}).then(function(j){var v=j.values||[];if(v.length>1900&&window.LX_WARN)window.LX_WARN("טבלת הנתונים כמעט מלאה ("+v.length+" מתוך 2000 שורות)");if(APP.loaded&&(v0!==appVer||pend>0))return;parseApp(v)})}
+  function fetchApp(){var v0=appVer;return api({action:"get",range:"appdata!A1:C2000"}).then(function(j){var v=j.values;
+    /* an answer without the table header is a broken answer, not an empty store: treating it as empty would make the app write its defaults over everything */
+    if(!Array.isArray(v)||!v[0]||String(v[0][0])!=="key")throw {code:"upstream_error",message:"השרת לא החזיר את טבלת הנתונים של האפליקציה (תשובה ריקה או בלי כותרת). לא נכתב כלום."};
+    if(v.length>1900&&window.LX_WARN)window.LX_WARN("טבלת הנתונים כמעט מלאה ("+v.length+" מתוך 2000 שורות)");if(APP.loaded&&(v0!==appVer||pend>0))return;parseApp(v)})}
   function loadApp(){
     if(loadingP)return loadingP;
     loadingP=fetchApp().then(migrateLegacy).then(function(){loadingP=null;fireApp()},function(e){
       loadingP=null;
+      if(!(e&&e.code==="offline"))reportErr("app",e);
       if(!APP.loaded&&e&&e.code==="offline"){   /* first load failed: show the last known state, read-only */
         try{var c=JSON.parse(localStorage.getItem(CACHE_KEY)||"null");if(c){APP.map=c;APP.loaded=true;fireApp();return}}catch(x){}
       }
@@ -183,7 +225,7 @@
         if(j.truncated&&window.LX_WARN)window.LX_WARN("הלשונית "+String(input.range).split("!")[0]+" ארוכה מהטווח שנקרא ("+j.lastRow+" שורות). חלק מהשורות לא נטען.");
         return {payload:{values:j.values,truncated:!!j.truncated,lastRow:j.lastRow}}});
       if(server==="Google Sheets"&&tool==="update_values")return api({action:"update",range:input.range,values:input.values,expectOld:input.expectOld,expectId:input.expectId,confirmRepublish:input.confirmRepublish}).then(function(){
-        if(/^content!/.test(input.range))return loadClips().then(null,function(){}).then(function(){return {payload:{}}});
+        if(/^content!/.test(input.range)&&!input.noReload)return loadClips().then(null,function(){}).then(function(){return {payload:{}}});   /* a batch asks for one reload at its end */
         return {payload:{}}});
       if(server==="Google Sheets"&&tool==="exp_v2_ops")return api({action:"expv2ops",ops:input.ops}).then(function(){return {payload:{}}});
       if(server==="Shopify"&&tool==="list-orders")return ordersFromShopify();
@@ -195,7 +237,7 @@
   window.claude={use:function(name){
     if(name==="db")return Promise.resolve(db);
     if(name==="mcp")return Promise.resolve(mcp);
-    if(name==="user")return Promise.resolve({can:function(){return true}});
+    if(name==="user")return Promise.resolve({can:function(){return window.LX_ROLE!=="viewer"}});
     return Promise.resolve(null);
   }};
 var nextOk=0,fails=0;

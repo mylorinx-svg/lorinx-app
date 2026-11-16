@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "getlayers": {
+      "source": {
+        "source": "github",
+        "repo": "textura-agency/getlayers-plugin"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "getlayers@getlayers": true
+  }
+}

@@ -14,15 +14,15 @@
       <form action="{{ routes.cart_url }}" method="post" class="lx-cartpage lx-cart" data-lx-cartpage style="padding-bottom:var(--lx-sec)">
         <ul style="border-top:1px solid var(--lx-line)">
           {%- for item in cart.items -%}
-            {%- capture t -%}{% render 'lx2-title', title: item.product.title %}{%- endcapture -%}
+            {%- capture t -%}{% assign line_title = item.product.title | default: item.title %}{% render 'lx2-title', title: line_title %}{%- endcapture -%}
             <li class="lx-line">
               <a class="lx-media lx-line__img" href="{{ item.url }}" tabindex="-1" aria-hidden="true">
                 {%- if item.image -%}{{ item.image | image_url: width: 360 | image_tag: loading: 'lazy', alt: '' }}{%- endif -%}
               </a>
               <div>
                 <a class="lx-line__t" href="{{ item.url }}" style="font-size:17px">{{ t }}</a>
-                {%- unless item.product.has_only_default_variant -%}<p class="lx-line__v">{{ item.variant.title }}</p>{%- endunless -%}
-                {%- for discount in item.line_level_discount_allocations -%}<p class="lx-line__v">{{ discount.discount_application.title }} (−{{ discount.amount | money }})</p>{%- endfor -%}
+                {%- if item.variant.title != blank and item.variant.title != 'Default Title' -%}<p class="lx-line__v">{{ item.variant.title | escape }}</p>{%- endif -%}
+                {%- for discount in item.line_level_discount_allocations -%}<p class="lx-line__v">{{ discount.discount_application.title | escape }} (−{{ discount.amount | money }})</p>{%- endfor -%}
                 <div class="lx-line__row">
                   <div class="lx-qty" role="group" aria-label="כמות">
                     <button type="button" data-lx-qty="{{ item.quantity | minus: 1 }}" data-key="{{ item.key }}" aria-label="הפחתת כמות">−</button>
@@ -40,7 +40,7 @@
         <aside class="lx-cartpage__side" aria-label="סיכום הזמנה">
           <h2 class="lx-h3" style="margin-bottom:18px">סיכום</h2>
           {%- for discount in cart.cart_level_discount_applications -%}
-            <div class="lx-cart__sum" style="font-size:14px;font-weight:400;margin-bottom:8px"><span>{{ discount.title }}</span><span>−{{ discount.total_allocated_amount | money }}</span></div>
+            <div class="lx-cart__sum" style="font-size:14px;font-weight:400;margin-bottom:8px"><span>{{ discount.title | escape }}</span><span>−{{ discount.total_allocated_amount | money }}</span></div>
           {%- endfor -%}
           <div class="lx-cart__sum" style="font-size:15px;font-weight:400;margin-bottom:8px"><span>משלוח</span><span>חינם</span></div>
           <div class="lx-cart__sum" style="padding-top:14px;border-top:1px solid var(--lx-line)"><span>סכום ביניים</span><span>{{ cart.total_price | money }}</span></div>

@@ -5,7 +5,7 @@
     <div class="lx-headrow">
       <div class="lx-head" data-lx-reveal>
         {%- if section.settings.eyebrow != blank -%}<span class="lx-eyebrow">{{ section.settings.eyebrow | escape }}</span>{%- endif -%}
-        <h2 class="lx-h2">{{ section.settings.heading | escape }}</h2>
+        <h2 class="lx-h2" data-lx-split>{{ section.settings.heading | escape }}</h2>
       </div>
       {%- if section.settings.link_label != blank -%}<a class="lx-link" href="{{ col.url | default: routes.all_products_collection_url }}">{{ section.settings.link_label | escape }}{% render 'lx2-icon', name: 'arrow' %}</a>{%- endif -%}
     </div>

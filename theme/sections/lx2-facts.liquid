@@ -1,7 +1,7 @@
 {%- comment -%} lx2 facts strip: up to four short, factual statements with an icon. {%- endcomment -%}
 {%- liquid
   assign show = true
-  if section.settings.only_for != blank and section.settings.only_for.handle != product.handle
+  if section.settings.only_for != blank and section.settings.only_for != product.handle
     assign show = false
   endif
 -%}
@@ -24,7 +24,7 @@
   "name": "LORINX פס עובדות",
   "max_blocks": 4,
   "settings": [
-    { "type": "product", "id": "only_for", "label": "להציג רק במוצר (ריק = תמיד)" },
+    { "type": "text", "id": "only_for", "label": "להציג רק במוצר — handle של המוצר (ריק = בכל מקום)" },
     { "type": "text", "id": "label", "label": "תיאור נגישות", "default": "עיקרי הדברים" },
     { "type": "select", "id": "tone", "label": "רקע", "default": "bg", "options": [
       { "value": "bg", "label": "בהיר" }, { "value": "surface", "label": "לבן חם" }, { "value": "sand", "label": "חול" }, { "value": "dark", "label": "כהה" } ] }

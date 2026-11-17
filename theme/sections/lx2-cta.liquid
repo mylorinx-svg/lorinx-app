@@ -1,15 +1,16 @@
 {%- comment -%} lx2 closing band: one line, one action. On product pages the button scrolls back to the buy box. {%- endcomment -%}
 {%- liquid
   assign show = true
-  if section.settings.only_for != blank and section.settings.only_for.handle != product.handle
+  if section.settings.only_for != blank and section.settings.only_for != product.handle
     assign show = false
   endif
 -%}
 {%- if show -%}
 <section class="lx2 lx-sec lx-cta lx-tone-{{ section.settings.tone }}">
+  {%- if section.settings.aura -%}<div class="lx-aura-wrap" aria-hidden="true"><canvas class="lx-aura" data-lx-aura="0.8"></canvas></div>{%- endif -%}
   <div class="lx-wrap" data-lx-reveal>
     {%- if section.settings.eyebrow != blank -%}<span class="lx-eyebrow">{{ section.settings.eyebrow | escape }}</span>{%- endif -%}
-    <h2 class="lx-h2">{{ section.settings.heading | escape }}</h2>
+    <h2 class="lx-h2" data-lx-split>{{ section.settings.heading | escape }}</h2>
     {%- if section.settings.text != blank -%}<p class="lx-lead">{{ section.settings.text | escape }}</p>{%- endif -%}
     <div class="lx-actions">
       {%- if section.settings.cta_label != blank -%}
@@ -24,7 +25,8 @@
 {
   "name": "LORINX קריאה לפעולה",
   "settings": [
-    { "type": "product", "id": "only_for", "label": "להציג רק במוצר (ריק = תמיד)" },
+    { "type": "text", "id": "only_for", "label": "להציג רק במוצר — handle של המוצר (ריק = בכל מקום)" },
+    { "type": "checkbox", "id": "aura", "label": "רקע זוהר חי", "default": false },
     { "type": "text", "id": "eyebrow", "label": "כותרת עליונה" },
     { "type": "text", "id": "heading", "label": "כותרת", "default": "כותרת" },
     { "type": "textarea", "id": "text", "label": "טקסט" },

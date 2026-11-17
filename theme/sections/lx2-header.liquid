@@ -5,8 +5,9 @@
 {%- endcomment -%}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500&family=Heebo:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600&display=swap" rel="stylesheet">
 {{ 'lx2.css' | asset_url | stylesheet_tag }}
+<script>try { if (sessionStorage.getItem('lxSeen')) document.documentElement.classList.add('lx-seen'); } catch (e) {}</script>
 <script>
   window.lxRoutes = { cart: {{ routes.cart_url | json }}, add: {{ routes.cart_add_url | json }}, change: {{ routes.cart_change_url | json }}, root: {{ routes.root_url | json }} };
 </script>
@@ -24,7 +25,8 @@
 {%- endif -%}
 
 {%- assign menu = section.settings.menu | default: linklists['main-menu'] -%}
-<header class="lx2 lxh">
+{%- if request.page_type == 'index' -%}<div class="lx2 lx-intro" aria-hidden="true"><span>LORINX</span><i></i></div>{%- endif -%}
+<header class="lx2 lxh {% if request.page_type == 'index' %}lx-over-hero{% endif %}">
   {%- if section.blocks.size > 0 -%}
     <div class="lxh-ann" role="region" aria-label="הודעות">
       <ul>
@@ -39,7 +41,7 @@
       <div class="lxh-start">
         <button type="button" class="lxh-icon" data-lx-open="lx-menu-panel" aria-label="פתיחת תפריט" aria-controls="lx-menu-panel">{% render 'lx2-icon', name: 'menu' %}</button>
       </div>
-      <a class="lxh-logo" href="{{ routes.root_url }}" aria-label="{{ shop.name }} — דף הבית">LORINX</a>
+      <a class="lxh-logo" href="{{ routes.root_url }}" aria-label="{{ shop.name | escape }} — דף הבית">LORINX</a>
       <nav class="lxh-nav" aria-label="ניווט ראשי">
         {%- for link in menu.links -%}
           {%- unless link.url == routes.root_url -%}

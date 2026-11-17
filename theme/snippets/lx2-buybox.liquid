@@ -11,7 +11,8 @@
   assign current = product.selected_or_first_available_variant
   assign base_price = product.variants.first.price
   assign is_packs = false
-  if product.has_only_default_variant == false and product.options.size == 1
+  assign first_q = product.variants.first.title | split: ' ' | first | plus: 0
+  if product.has_only_default_variant == false and product.options.size == 1 and first_q == 1
     assign is_packs = true
     assign best_unit = base_price
     for v in product.variants
@@ -37,7 +38,7 @@
     <input type="hidden" name="id" value="{{ current.id }}" data-price="{{ current.price | money }}" data-available="{{ current.available }}" checked>
   {%- elsif is_packs -%}
     <fieldset class="lx-opts">
-      <legend>בחרו כמות <span>המחיר ליחידה יורד ככל שמוסיפים</span></legend>
+      <legend>בחרו כמות {% if best_unit < base_price %}<span>המחיר ליחידה יורד ככל שמוסיפים</span>{% endif %}</legend>
       {%- for v in product.variants -%}
         {%- liquid
           assign q = v.title | split: ' ' | first | plus: 0
@@ -51,8 +52,8 @@
           <span class="lx-opt__box">
             <span class="lx-opt__dot" aria-hidden="true"></span>
             <span class="lx-opt__name">
-              {{ v.title }}
-              {%- if q > 1 and unit == best_unit -%}<span class="lx-opt__tag">הכי משתלם ליחידה</span>{%- endif -%}
+              {{ v.title | escape }}
+              {%- if q > 1 and unit == best_unit and best_unit < base_price -%}<span class="lx-opt__tag">הכי משתלם ליחידה</span>{%- endif -%}
             </span>
             <span class="lx-opt__unit">
               {%- if q > 1 -%}{{ unit | money }} ליחידה{%- else -%}מחיר מלא ליחידה{%- endif -%}
@@ -71,7 +72,7 @@
     <select class="lx-select" name="id" id="{{ form_id }}-select">
       {%- for v in product.variants -%}
         <option value="{{ v.id }}" data-price="{{ v.price | money }}" data-label="{{ v.title | escape }}" data-available="{{ v.available }}" {% if v.id == current.id %}selected{% endif %} {% unless v.available %}disabled{% endunless %}>
-          {{ v.title }} — {{ v.price | money }}
+          {{ v.title | escape }} — {{ v.price | money }}
         </option>
       {%- endfor -%}
     </select>

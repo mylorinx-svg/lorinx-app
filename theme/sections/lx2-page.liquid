@@ -3,7 +3,7 @@
   <div class="lx-wrap {% unless section.settings.wide %}lx-wrap--narrow{% endunless %}">
     <header class="lx-pagehero">
       {%- if section.settings.eyebrow != blank -%}<span class="lx-eyebrow">{{ section.settings.eyebrow | escape }}</span>{%- endif -%}
-      <h1 class="lx-h1">{{ section.settings.heading | default: page.title | escape }}</h1>
+      <h1 class="lx-h1" data-lx-split>{{ section.settings.heading | default: page.title | escape }}</h1>
       {%- if section.settings.text != blank -%}<p class="lx-lead" style="margin-top:20px">{{ section.settings.text | escape }}</p>{%- endif -%}
       {%- if section.settings.cta_label != blank or section.settings.link_label != blank -%}
         <div class="lx-actions">

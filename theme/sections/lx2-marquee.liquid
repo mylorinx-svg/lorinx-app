@@ -1,0 +1,22 @@
+{%- comment -%} lx2 marquee: a slow band of large words. Decorative; the words are duplicated for a seamless loop and the copy is hidden from assistive technology. {%- endcomment -%}
+{%- if section.blocks.size > 0 -%}
+<div class="lx2 lx-marquee" aria-hidden="true" style="--lx-speed: {{ section.settings.speed }}s">
+  <div class="lx-marquee__track">
+    {%- for i in (1..2) -%}
+      <div class="lx-marquee__set">
+        {%- for block in section.blocks -%}<span {% if i == 1 %}{{ block.shopify_attributes }}{% endif %}>{{ block.settings.text | escape }}</span><i></i>{%- endfor -%}
+        {%- for block in section.blocks -%}<span>{{ block.settings.text | escape }}</span><i></i>{%- endfor -%}
+      </div>
+    {%- endfor -%}
+  </div>
+</div>
+{%- endif -%}
+{% schema %}
+{
+  "name": "LORINX פס מילים נע",
+  "max_blocks": 8,
+  "settings": [{ "type": "range", "id": "speed", "label": "משך סיבוב (שניות)", "min": 20, "max": 80, "step": 2, "default": 40 }],
+  "blocks": [{ "type": "word", "name": "מילה", "settings": [{ "type": "text", "id": "text", "label": "טקסט" }] }],
+  "presets": [{ "name": "LORINX פס מילים נע" }]
+}
+{% endschema %}

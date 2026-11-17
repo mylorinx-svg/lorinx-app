@@ -1,7 +1,7 @@
 {%- comment -%} lx2 media + text: editorial image (or muted looping video) beside copy and optional check list. {%- endcomment -%}
 {%- liquid
   assign show = true
-  if section.settings.only_for != blank and section.settings.only_for.handle != product.handle
+  if section.settings.only_for != blank and section.settings.only_for != product.handle
     assign show = false
   endif
 -%}
@@ -9,7 +9,7 @@
 {%- if show -%}
 <section class="lx2 lx-sec lx-tone-{{ section.settings.tone }}" {% if section.settings.anchor != blank %}id="{{ section.settings.anchor | handleize }}"{% endif %}>
   <div class="lx-wrap lx-mt {% if section.settings.flip %}lx-mt--flip{% endif %}">
-    <div class="lx-media lx-mt__media lx-ratio-{{ section.settings.ratio }}" data-lx-reveal>
+    <div class="lx-media lx-mt__media lx-ratio-{{ section.settings.ratio }}" data-lx-unmask {% unless section.settings.video_url != blank %}data-lx-parallax="-0.06"{% endunless %}>
       {%- if section.settings.video_url != blank -%}
         <video src="{{ section.settings.video_url }}" {% if section.settings.image %}poster="{{ section.settings.image | image_url: width: 900 }}"{% endif %} muted loop playsinline controls preload="none" aria-label="{{ section.settings.heading | escape }}"></video>
       {%- elsif section.settings.image -%}
@@ -22,7 +22,7 @@
     </div>
     <div data-lx-reveal>
       {%- if section.settings.eyebrow != blank -%}<span class="lx-eyebrow">{{ section.settings.eyebrow | escape }}</span>{%- endif -%}
-      <h2 class="lx-h2">{{ section.settings.heading | escape }}</h2>
+      <h2 class="lx-h2" data-lx-split>{{ section.settings.heading | escape }}</h2>
       {%- if section.settings.text != blank -%}<div class="lx-lead lx-rte" style="margin-top:18px">{{ section.settings.text }}</div>{%- endif -%}
       {%- if section.blocks.size > 0 -%}
         <ul class="lx-mt__checks">
@@ -44,7 +44,7 @@
   "name": "LORINX תמונה וטקסט",
   "max_blocks": 8,
   "settings": [
-    { "type": "product", "id": "only_for", "label": "להציג רק במוצר (ריק = תמיד)" },
+    { "type": "text", "id": "only_for", "label": "להציג רק במוצר — handle של המוצר (ריק = בכל מקום)" },
     { "type": "text", "id": "anchor", "label": "מזהה עוגן (אנגלית)" },
     { "type": "image_picker", "id": "image", "label": "תמונה" },
     { "type": "text", "id": "video_url", "label": "כתובת וידאו MP4 (מחליף את התמונה)" },

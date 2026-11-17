@@ -15,6 +15,7 @@
     </nav>
 
     <div class="lx-pdp">
+      {%- if product.media.size > 0 -%}
       <div class="lx-gal" data-lx-gallery>
         <div class="lx-gal__track" tabindex="0" aria-label="גלריית תמונות המוצר">
           {%- for media in product.media -%}
@@ -45,16 +46,17 @@
           </div>
         {%- endif -%}
       </div>
+      {%- else -%}<div></div>{%- endif -%}
 
       <div class="lx-buy" id="lx-buy" data-lx-buy data-lx-main>
         <span class="lx-buy__brand">LORINX</span>
-        <h1 class="lx-buy__title">{{ t }}</h1>
+        <h1 class="lx-buy__title" data-lx-split>{{ t }}</h1>
         {%- for block in section.blocks -%}
-          {%- if block.settings.only_for != blank and block.settings.only_for.handle != product.handle -%}{%- continue -%}{%- endif -%}
+          {%- if block.settings.only_for != blank and block.settings.only_for != product.handle -%}{%- continue -%}{%- endif -%}
           {%- case block.type -%}
             {%- when 'rating' -%}
               {%- if block.settings.text != blank -%}
-                <a class="lx-buy__rate" href="#reviews" {{ block.shopify_attributes }}><span class="lx-stars" aria-hidden="true">★★★★★</span>{{ block.settings.text | escape }}</a>
+                <a class="lx-buy__rate" href="#reviews" {{ block.shopify_attributes }}>{{ block.settings.text | escape }}</a>
               {%- endif -%}
             {%- when 'intro' -%}
               <p class="lx-buy__sub" {{ block.shopify_attributes }}>{{ block.settings.text | escape }}</p>
@@ -78,7 +80,7 @@
           {%- endif -%}
           {%- for block in section.blocks -%}
             {%- if block.type != 'detail' -%}{%- continue -%}{%- endif -%}
-            {%- if block.settings.only_for != blank and block.settings.only_for.handle != product.handle -%}{%- continue -%}{%- endif -%}
+            {%- if block.settings.only_for != blank and block.settings.only_for != product.handle -%}{%- continue -%}{%- endif -%}
             <details {{ block.shopify_attributes }}>
               <summary>{{ block.settings.title | escape }}<span class="lx-acc__x" aria-hidden="true"></span></summary>
               <div class="lx-acc__body lx-rte">{{ block.settings.text }}</div>
@@ -93,7 +95,7 @@
     <div class="lx-sticky__in">
       <div class="lx-sticky__info">
         <b>{{ t }}</b>
-        <span data-lx-sticky-price>{% unless product.has_only_default_variant %}{{ current.title }} · {% endunless %}{{ current.price | money }}</span>
+        <span data-lx-sticky-price>{% unless product.has_only_default_variant %}{{ current.title | escape }} · {% endunless %}{{ current.price | money }}</span>
       </div>
       <button type="button" class="lx-btn" data-lx-sticky-add tabindex="-1" {% unless current.available %}disabled{% endunless %}>הוספה לסל</button>
     </div>
@@ -108,15 +110,15 @@
   "settings": [],
   "blocks": [
     { "type": "rating", "name": "שורת דירוג", "settings": [
-      { "type": "product", "id": "only_for", "label": "רק למוצר (ריק = כל המוצרים)" },
+      { "type": "text", "id": "only_for", "label": "רק למוצר — handle (ריק = כל המוצרים)" },
       { "type": "paragraph", "content": "למלא רק אם הדירוג מגובה בביקורות אמיתיות שנאספו." },
       { "type": "text", "id": "text", "label": "טקסט" } ] },
     { "type": "intro", "name": "פתיח ונקודות מפתח", "settings": [
-      { "type": "product", "id": "only_for", "label": "רק למוצר (ריק = כל המוצרים)" },
+      { "type": "text", "id": "only_for", "label": "רק למוצר — handle (ריק = כל המוצרים)" },
       { "type": "textarea", "id": "text", "label": "משפט פתיחה" },
       { "type": "textarea", "id": "points", "label": "נקודות מפתח (שורה לכל נקודה)" } ] },
     { "type": "detail", "name": "פרט מתקפל", "settings": [
-      { "type": "product", "id": "only_for", "label": "רק למוצר (ריק = כל המוצרים)" },
+      { "type": "text", "id": "only_for", "label": "רק למוצר — handle (ריק = כל המוצרים)" },
       { "type": "text", "id": "title", "label": "כותרת" },
       { "type": "richtext", "id": "text", "label": "תוכן" } ] }
   ]

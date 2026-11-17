@@ -1,7 +1,7 @@
 {%- comment -%} lx2 do / don't: correct-use guidance in two columns. One line per item. {%- endcomment -%}
 {%- liquid
   assign show = true
-  if section.settings.only_for != blank and section.settings.only_for.handle != product.handle
+  if section.settings.only_for != blank and section.settings.only_for != product.handle
     assign show = false
   endif
 -%}
@@ -10,14 +10,14 @@
   <div class="lx-wrap">
     <div class="lx-head" data-lx-reveal>
       {%- if section.settings.eyebrow != blank -%}<span class="lx-eyebrow">{{ section.settings.eyebrow | escape }}</span>{%- endif -%}
-      <h2 class="lx-h2">{{ section.settings.heading | escape }}</h2>
+      <h2 class="lx-h2" data-lx-split>{{ section.settings.heading | escape }}</h2>
     </div>
     <div class="lx-dd">
-      <div class="lx-dd__col lx-dd__col--do" data-lx-reveal>
+      <div class="lx-dd__col lx-dd__col--do" data-lx-reveal data-lx-glow>
         <h3>{% render 'lx2-icon', name: 'check' %}{{ section.settings.do_title | escape }}</h3>
         <ul>{%- assign lines = section.settings.do_list | newline_to_br | split: '<br />' -%}{%- for line in lines -%}{%- assign l = line | strip -%}{%- if l != blank -%}<li>{{ l | escape }}</li>{%- endif -%}{%- endfor -%}</ul>
       </div>
-      <div class="lx-dd__col lx-dd__col--dont" data-lx-reveal>
+      <div class="lx-dd__col lx-dd__col--dont" data-lx-reveal data-lx-glow>
         <h3>{% render 'lx2-icon', name: 'x' %}{{ section.settings.dont_title | escape }}</h3>
         <ul>{%- assign lines = section.settings.dont_list | newline_to_br | split: '<br />' -%}{%- for line in lines -%}{%- assign l = line | strip -%}{%- if l != blank -%}<li>{{ l | escape }}</li>{%- endif -%}{%- endfor -%}</ul>
       </div>
@@ -30,7 +30,7 @@
 {
   "name": "LORINX כן ולא",
   "settings": [
-    { "type": "product", "id": "only_for", "label": "להציג רק במוצר (ריק = תמיד)" },
+    { "type": "text", "id": "only_for", "label": "להציג רק במוצר — handle של המוצר (ריק = בכל מקום)" },
     { "type": "text", "id": "eyebrow", "label": "כותרת עליונה" },
     { "type": "text", "id": "heading", "label": "כותרת", "default": "שימוש נכון" },
     { "type": "text", "id": "do_title", "label": "כותרת — כן", "default": "כדאי" },

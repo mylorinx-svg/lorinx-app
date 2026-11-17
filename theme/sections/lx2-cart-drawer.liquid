@@ -16,14 +16,14 @@
     <div class="lx-panel__body">
       <ul>
         {%- for item in cart.items -%}
-          {%- capture t -%}{% render 'lx2-title', title: item.product.title %}{%- endcapture -%}
+          {%- capture t -%}{% assign line_title = item.product.title | default: item.title %}{% render 'lx2-title', title: line_title %}{%- endcapture -%}
           <li class="lx-line">
             <a class="lx-media lx-line__img" href="{{ item.url }}" tabindex="-1" aria-hidden="true">
               {%- if item.image -%}{{ item.image | image_url: width: 240 | image_tag: loading: 'lazy', alt: '' }}{%- endif -%}
             </a>
             <div>
               <a class="lx-line__t" href="{{ item.url }}">{{ t }}</a>
-              {%- unless item.product.has_only_default_variant -%}<p class="lx-line__v">{{ item.variant.title }}</p>{%- endunless -%}
+              {%- if item.variant.title != blank and item.variant.title != 'Default Title' -%}<p class="lx-line__v">{{ item.variant.title | escape }}</p>{%- endif -%}
               <div class="lx-line__row">
                 <div class="lx-qty" role="group" aria-label="כמות">
                   <button type="button" data-lx-qty="{{ item.quantity | minus: 1 }}" data-key="{{ item.key }}" aria-label="הפחתת כמות">−</button>

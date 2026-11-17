@@ -5,7 +5,7 @@
 {%- endcomment -%}
 {%- liquid
   assign show = true
-  if section.settings.only_for != blank and section.settings.only_for.handle != product.handle
+  if section.settings.only_for != blank and section.settings.only_for != product.handle
     assign show = false
   endif
 -%}
@@ -14,9 +14,9 @@
   <div class="lx-wrap">
     <div class="lx-head" data-lx-reveal>
       {%- if section.settings.eyebrow != blank -%}<span class="lx-eyebrow">{{ section.settings.eyebrow | escape }}</span>{%- endif -%}
-      <h2 class="lx-h2">{{ section.settings.heading | escape }}</h2>
+      <h2 class="lx-h2" data-lx-split>{{ section.settings.heading | escape }}</h2>
       {%- if section.settings.rating_line != blank -%}
-        <p class="lx-rev__meta"><span class="lx-stars" aria-hidden="true">★★★★★</span>{{ section.settings.rating_line | escape }}</p>
+        <p class="lx-rev__meta">{{ section.settings.rating_line | escape }}</p>
       {%- endif -%}
     </div>
     {%- assign quotes = section.blocks | where: 'type', 'quote' -%}
@@ -28,7 +28,6 @@
             {%- if block.settings.image -%}
               <div class="lx-media lx-rev__img">{{ block.settings.image | image_url: width: 760 | image_tag: loading: 'lazy', widths: '380, 760', sizes: '380px', alt: 'תמונה ששלח לקוח' }}</div>
             {%- endif -%}
-            <span class="lx-stars" aria-label="חמישה כוכבים">★★★★★</span>
             <blockquote>{{ block.settings.quote | escape }}</blockquote>
             <footer><b>{{ block.settings.author | escape }}</b>{%- if section.settings.verified_label != blank -%}<span>{{ section.settings.verified_label | escape }}</span>{%- endif -%}</footer>
           </figure>
@@ -55,7 +54,7 @@
   "name": "LORINX לקוחות מספרים",
   "max_blocks": 16,
   "settings": [
-    { "type": "product", "id": "only_for", "label": "להציג רק במוצר (ריק = תמיד)" },
+    { "type": "text", "id": "only_for", "label": "להציג רק במוצר — handle של המוצר (ריק = בכל מקום)" },
     { "type": "paragraph", "content": "יש להזין רק ציטוטים אמיתיים של לקוחות. שורת הדירוג ותווית האימות מוצגות רק אם מילאתם אותן." },
     { "type": "text", "id": "eyebrow", "label": "כותרת עליונה" },
     { "type": "text", "id": "heading", "label": "כותרת", "default": "לקוחות מספרים" },

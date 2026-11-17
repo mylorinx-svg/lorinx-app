@@ -3,86 +3,97 @@
     "hero": {
       "type": "lx2-hero",
       "blocks": {
-        "note_1": {
-          "type": "note",
+        "stat_1": {
+          "type": "stat",
           "settings": {
-            "text": "משלוח חינם"
+            "value": "12",
+            "label": "דרגות עוצמה, מתחילים נמוך"
           }
         },
-        "note_2": {
-          "type": "note",
+        "stat_2": {
+          "type": "stat",
           "settings": {
-            "text": "14 יום להחזרה"
+            "value": "15 דק׳",
+            "label": "כיבוי אוטומטי בסוף השימוש"
           }
         },
-        "note_3": {
-          "type": "note",
+        "stat_3": {
+          "type": "stat",
           "settings": {
-            "text": "אחריות לשנה"
+            "value": "חום + אור",
+            "label": "חימום מבוקר ואור אדום"
+          }
+        },
+        "stat_4": {
+          "type": "stat",
+          "settings": {
+            "value": "אלחוטית",
+            "label": "נטענת, בלי כבלים בזמן השימוש"
           }
         }
       },
       "block_order": [
-        "note_1",
-        "note_2",
-        "note_3"
+        "stat_1",
+        "stat_2",
+        "stat_3",
+        "stat_4"
       ],
       "settings": {
-        "image": "shopify://shop_images/Bazaart_1.jpg",
+        "image": "shopify://shop_images/ChatGPT_Image_1.png",
+        "aura": 100,
         "eyebrow": "LORINX · ריקוברי ביתי",
-        "heading": "שחרור לשרירים תפוסים.\nבבית, בזמן שלכם.",
-        "text": "כוס רוח חשמלית עם שאיבה מדורגת, חימום מבוקר ואור אדום. רבע שעה לאזור, בלי לצאת מהבית ובלי לקבוע תור.",
+        "index": "01 — כוס רוח חשמלית",
+        "heading": "רגע של שחרור.\nבבית, בזמן שלכם.",
+        "text": "כוס רוח חשמלית עם שאיבה מדורגת, חימום מבוקר ואור אדום. רבע שעה לאזור, בלי לצאת מהבית.",
         "cta_label": "לכוס הרוח החשמלית",
         "cta_url": "shopify://products/כוס-רוח-חשמלית",
         "link_label": "איך זה עובד",
         "link_url": "#how"
       }
     },
-    "facts": {
-      "type": "lx2-facts",
+    "words": {
+      "type": "lx2-marquee",
       "blocks": {
-        "fact_1": {
-          "type": "fact",
+        "word_1": {
+          "type": "word",
           "settings": {
-            "icon": "levels",
-            "title": "12 דרגות עוצמה",
-            "text": "מתחילים נמוך ועולים בהדרגה."
+            "text": "שחרור"
           }
         },
-        "fact_2": {
-          "type": "fact",
+        "word_2": {
+          "type": "word",
           "settings": {
-            "icon": "heat",
-            "title": "חימום מבוקר ואור אדום",
-            "text": "חום נעים באזור הטיפול."
+            "text": "חום"
           }
         },
-        "fact_3": {
-          "type": "fact",
+        "word_3": {
+          "type": "word",
           "settings": {
-            "icon": "battery",
-            "title": "אלחוטית ונטענת",
-            "text": "בלי כבלים בזמן השימוש."
+            "text": "רוגע"
           }
         },
-        "fact_4": {
-          "type": "fact",
+        "word_4": {
+          "type": "word",
           "settings": {
-            "icon": "clock",
-            "title": "כיבוי אוטומטי",
-            "text": "אחרי 15 דקות."
+            "text": "שגרה"
+          }
+        },
+        "word_5": {
+          "type": "word",
+          "settings": {
+            "text": "בבית"
           }
         }
       },
       "block_order": [
-        "fact_1",
-        "fact_2",
-        "fact_3",
-        "fact_4"
+        "word_1",
+        "word_2",
+        "word_3",
+        "word_4",
+        "word_5"
       ],
       "settings": {
-        "tone": "bg",
-        "label": "מה יש במכשיר"
+        "speed": 44
       }
     },
     "how": {
@@ -106,7 +117,7 @@
           "type": "item",
           "settings": {
             "title": "משחררים",
-            "text": "המכשיר נכבה מעצמו בסוף הטיפול."
+            "text": "המכשיר נכבה מעצמו בסוף השימוש."
           }
         }
       },
@@ -241,7 +252,8 @@
     "story": {
       "type": "lx2-cta",
       "settings": {
-        "tone": "sand",
+        "tone": "bg",
+        "aura": true,
         "eyebrow": "הסיפור שלנו",
         "heading": "לפעמים מותג לא מתחיל במוצר. הוא מתחיל בתחושה.",
         "text": "LORINX בוחרת כל מוצר אחד־אחד: שימושי באמת, איכותי מספיק כדי לעמוד מאחוריו, ונתמך בישראל.",
@@ -305,7 +317,7 @@
           "type": "qa",
           "settings": {
             "q": "כמה זמן לוקח המשלוח?",
-            "a": "<p>המשלוח חינם. זמן האספקה המשוער הוא 7–14 ימי עסקים ממועד שליחת ההזמנה.</p>"
+            "a": "<p>המשלוח חינם. זמן האספקה המשוער הוא 7–14 ימי עסקים.</p>"
           }
         },
         "qa_2": {
@@ -348,7 +360,7 @@
   },
   "order": [
     "hero",
-    "facts",
+    "words",
     "how",
     "featured",
     "moments",

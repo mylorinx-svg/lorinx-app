@@ -100,9 +100,7 @@
   </div>
 </div>
 
-<script type="application/ld+json">
-  {{ product | structured_data }}
-</script>
+{%- comment -%} Product structured data is already output once by the layout; it is not repeated here. {%- endcomment -%}
 
 {% schema %}
 {

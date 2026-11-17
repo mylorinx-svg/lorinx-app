@@ -12,6 +12,16 @@
 </script>
 <script src="{{ 'lx2.js' | asset_url }}" defer></script>
 
+{%- if request.page_type == 'index' -%}
+<script type="application/ld+json">
+{ "@context": "https://schema.org", "@graph": [
+  { "@type": "Organization", "name": {{ shop.name | json }}, "url": {{ request.origin | append: routes.root_url | json }}{% if shop.email != blank %}, "email": {{ shop.email | json }}{% endif %} },
+  { "@type": "WebSite", "name": {{ shop.name | json }}, "url": {{ request.origin | append: routes.root_url | json }}, "inLanguage": "he-IL",
+    "potentialAction": { "@type": "SearchAction", "target": {{ request.origin | append: routes.search_url | append: '?q={search_term_string}' | json }}, "query-input": "required name=search_term_string" } }
+] }
+</script>
+{%- endif -%}
+
 {%- assign menu = section.settings.menu | default: linklists['main-menu'] -%}
 <header class="lx2 lxh">
   {%- if section.blocks.size > 0 -%}

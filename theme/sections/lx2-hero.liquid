@@ -1,4 +1,5 @@
 {%- comment -%} lx2 hero: one message, one image, one primary action. The image is the LCP element. {%- endcomment -%}
+{%- assign hero_alt = section.settings.image.alt | default: section.settings.heading | strip_newlines -%}
 <section class="lx2 lx-hero">
   <div class="lx-wrap lx-hero__grid">
     <div class="lx-media lx-hero__media">
@@ -7,7 +8,7 @@
           widths: '480, 640, 800, 1100, 1600',
           sizes: '(min-width: 990px) 54vw, 100vw',
           loading: 'eager', fetchpriority: 'high',
-          alt: section.settings.image.alt | default: section.settings.heading }}
+          alt: hero_alt }}
       {%- else -%}
         {{ 'lifestyle-1' | placeholder_svg_tag }}
       {%- endif -%}

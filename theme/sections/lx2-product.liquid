@@ -19,6 +19,7 @@
         <div class="lx-gal__track" tabindex="0" aria-label="גלריית תמונות המוצר">
           {%- for media in product.media -%}
             <div class="lx-gal__slide {% if media.media_type == 'image' and media.aspect_ratio != 1 %}lx-gal__slide--contain{% endif %}" id="lx-slide-{{ forloop.index }}">
+              {%- assign media_alt = media.alt | default: t -%}
               {%- case media.media_type -%}
                 {%- when 'video' -%}
                   {{ media | video_tag: controls: true, muted: true, playsinline: true, preload: 'none', image_size: '900x' }}
@@ -26,9 +27,9 @@
                   {{ media | external_video_tag: loading: 'lazy' }}
                 {%- else -%}
                   {%- if forloop.first -%}
-                    {{ media | image_url: width: 1600 | image_tag: widths: '400, 600, 800, 1100, 1600', sizes: '(min-width: 990px) 48vw, 100vw', loading: 'eager', fetchpriority: 'high', alt: media.alt | default: t }}
+                    {{ media | image_url: width: 1600 | image_tag: widths: '400, 600, 800, 1100, 1600', sizes: '(min-width: 990px) 48vw, 100vw', loading: 'eager', fetchpriority: 'high', alt: media_alt }}
                   {%- else -%}
-                    {{ media | image_url: width: 1600 | image_tag: widths: '400, 600, 800, 1100, 1600', sizes: '(min-width: 990px) 48vw, 100vw', loading: 'lazy', alt: media.alt | default: t }}
+                    {{ media | image_url: width: 1600 | image_tag: widths: '400, 600, 800, 1100, 1600', sizes: '(min-width: 990px) 48vw, 100vw', loading: 'lazy', alt: media_alt }}
                   {%- endif -%}
               {%- endcase -%}
             </div>

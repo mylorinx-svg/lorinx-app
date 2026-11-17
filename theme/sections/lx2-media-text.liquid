@@ -5,6 +5,7 @@
     assign show = false
   endif
 -%}
+{%- assign mt_alt = section.settings.image.alt | default: section.settings.heading -%}
 {%- if show -%}
 <section class="lx2 lx-sec lx-tone-{{ section.settings.tone }}" {% if section.settings.anchor != blank %}id="{{ section.settings.anchor | handleize }}"{% endif %}>
   <div class="lx-wrap lx-mt {% if section.settings.flip %}lx-mt--flip{% endif %}">
@@ -14,7 +15,7 @@
       {%- elsif section.settings.image -%}
         {{ section.settings.image | image_url: width: 1400 | image_tag:
           widths: '400, 600, 800, 1100, 1400', sizes: '(min-width: 900px) 46vw, 100vw', loading: 'lazy',
-          alt: section.settings.image.alt | default: section.settings.heading }}
+          alt: mt_alt }}
       {%- else -%}
         {{ 'lifestyle-2' | placeholder_svg_tag }}
       {%- endif -%}

@@ -1,5 +1,6 @@
 {%- comment -%} lx2 product card. Params: product, eager (boolean), sizes {%- endcomment -%}
 {%- capture t -%}{% render 'lx2-title', title: product.title %}{%- endcapture -%}
+{%- assign card_alt = product.featured_media.alt | default: t -%}
 <a class="lx-card" href="{{ product.url }}">
   <div class="lx-media lx-ratio-45">
     {%- if product.featured_media -%}
@@ -7,7 +8,7 @@
         widths: '300, 450, 600, 900',
         sizes: sizes | default: '(min-width: 750px) 25vw, 50vw',
         loading: 'lazy',
-        alt: product.featured_media.alt | default: t }}
+        alt: card_alt }}
     {%- endif -%}
   </div>
   <div>

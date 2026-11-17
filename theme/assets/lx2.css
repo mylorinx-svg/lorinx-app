@@ -489,7 +489,7 @@ body.lx-has-sticky .lx2-footer { padding-bottom: 76px; }
 .lx-hero__stage { display: grid; grid-template-columns: minmax(0, 1fr); align-content: end; gap: 8px; padding-block: 12px 28px; }
 .lx-hero__media { position: relative; justify-self: center; width: min(112%, 560px); margin-inline: -6%; aspect-ratio: 16 / 10; transform: translate3d(0, var(--lx-py, 0px), 0); }
 .lx-hero__media img { width: 100%; height: 100%; object-fit: contain; -webkit-mask-image: radial-gradient(closest-side, #000 58%, transparent 100%); mask-image: radial-gradient(closest-side, #000 58%, transparent 100%); }
-.lx-hero .lx-h1 { font-size: clamp(42px, 8.6vw, 124px); line-height: 0.98; letter-spacing: -0.04em; font-weight: 300; max-width: 11em; }
+.lx-hero .lx-h1 { font-size: clamp(42px, 6.3vw, 104px); line-height: 1; letter-spacing: -0.04em; font-weight: 300; }
 .lx-hero .lx-lead { margin-top: 20px; color: var(--lx-ink-2); max-width: 30em; }
 .lx-hero__rail { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--lx-glass-line); }
 .lx-hero__stat { padding: 16px 0 18px; border-bottom: 1px solid var(--lx-glass-line); }
@@ -499,8 +499,8 @@ body.lx-has-sticky .lx2-footer { padding-bottom: 76px; }
 .lx-hero__stat span { display: block; font-size: 13px; color: var(--lx-ink-2); margin-top: 4px; }
 @media (min-width: 990px) {
   .lx-hero { margin-top: calc((var(--lx-header-h) + 37px) * -1); padding-top: calc(var(--lx-header-h) + 37px); }
-  .lx-hero__stage { grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); align-items: end; gap: 40px; padding-block: 24px 44px; }
-  .lx-hero__media { grid-column: 2; grid-row: 1; width: 128%; margin-inline: -14%; align-self: center; }
+  .lx-hero__stage { grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr); align-items: end; gap: 40px; padding-block: 24px 44px; }
+  .lx-hero__media { grid-column: 2; grid-row: 1; width: 150%; margin-inline: -25%; align-self: center; }
   .lx-hero__copy { grid-column: 1; grid-row: 1; }
   .lx-hero__rail { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .lx-hero__stat { border-bottom: 0; padding: 22px 24px 26px; border-inline-end: 1px solid var(--lx-glass-line); }
@@ -526,10 +526,11 @@ body.lx-has-sticky .lx2-footer { padding-bottom: 76px; }
 .is-in .lx-w > span, .lx-ready [data-lx-hero] .lx-w > span { transform: none; }
 .lx-js [data-lx-reveal] { opacity: 0; transform: translateY(26px); transition: opacity 0.9s var(--lx-ease), transform 1.1s var(--lx-out); }
 .lx-js [data-lx-reveal].is-in { opacity: 1; transform: none; }
-.lx-js [data-lx-unmask] { clip-path: inset(0 0 100% 0 round var(--lx-radius)); transition: clip-path 1.3s var(--lx-out); }
-.lx-js [data-lx-unmask].is-in { clip-path: inset(0 0 0 0 round var(--lx-radius)); }
-.lx-js [data-lx-unmask] > img, .lx-js [data-lx-unmask] > video { transform: scale(1.12); transition: transform 1.8s var(--lx-out); }
-.lx-js [data-lx-unmask].is-in > img, .lx-js [data-lx-unmask].is-in > video { transform: scale(1); }
+/* The mask is on the media element, not on the observed container: a clipped container
+   reports no intersection to IntersectionObserver and would never reveal. */
+.lx-js [data-lx-unmask] { background: transparent; }
+.lx-js [data-lx-unmask] > img, .lx-js [data-lx-unmask] > video { clip-path: inset(0 0 100% 0); transform: scale(1.12); transition: clip-path 1.3s var(--lx-out), transform 1.8s var(--lx-out); }
+.lx-js [data-lx-unmask].is-in > img, .lx-js [data-lx-unmask].is-in > video { clip-path: inset(0 0 0 0); transform: scale(1); }
 /* hero choreography: starts when the intro curtain lifts (or at once on later pages) */
 .lx-js [data-lx-hero] { --lx-d: 1050ms; }
 .lx-js.lx-seen [data-lx-hero] { --lx-d: 120ms; }
@@ -596,7 +597,7 @@ body.lx-has-sticky .lx2-footer { padding-bottom: 76px; }
   .lx2 *, .lx2 *::before, .lx2 *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
   .lx-intro { display: none; }
   .lx-js [data-lx-reveal], .lx-js [data-lx-hero] [data-lx-in], .lx-js [data-lx-hero] .lx-hero__media img { opacity: 1; transform: none; }
-  .lx-js [data-lx-unmask] { clip-path: none; }
+  .lx-js [data-lx-unmask] > img, .lx-js [data-lx-unmask] > video { clip-path: none; transform: none; }
   .lx-w > span { transform: none; }
   .lx-marquee__track { animation: none; }
 }

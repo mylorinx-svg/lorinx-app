@@ -52,7 +52,7 @@
             <span class="lx-opt__dot" aria-hidden="true"></span>
             <span class="lx-opt__name">
               {{ v.title }}
-              {%- if q > 1 and unit == best_unit -%}<span class="lx-opt__tag">המחיר הנמוך ביותר ליחידה</span>{%- endif -%}
+              {%- if q > 1 and unit == best_unit -%}<span class="lx-opt__tag">הכי משתלם ליחידה</span>{%- endif -%}
             </span>
             <span class="lx-opt__unit">
               {%- if q > 1 -%}{{ unit | money }} ליחידה{%- else -%}מחיר מלא ליחידה{%- endif -%}

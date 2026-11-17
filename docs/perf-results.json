@@ -1,0 +1,110 @@
+{
+ "home:live": {
+  "themeId": 151965958188,
+  "lcp_ms": [
+   440,
+   564,
+   1108
+  ],
+  "fcp_ms": 564,
+  "cls": [
+   0.009,
+   0.009,
+   0.009
+  ],
+  "lcpElement": "IMG.",
+  "domNodes": 619,
+  "inlineCssChars": 56749,
+  "requests": 151,
+  "kb": {
+   "total": 2081,
+   "image": 1046,
+   "script": 254,
+   "stylesheet": 13,
+   "font": 149,
+   "document": 41,
+   "other": 579
+  }
+ },
+ "home:preview": {
+  "themeId": 153195577388,
+  "lcp_ms": [
+   284,
+   352,
+   376
+  ],
+  "fcp_ms": 352,
+  "cls": [
+   0,
+   0,
+   0
+  ],
+  "lcpElement": "IMG.",
+  "domNodes": 634,
+  "inlineCssChars": 36145,
+  "requests": 159,
+  "kb": {
+   "total": 1451,
+   "image": 200,
+   "script": 337,
+   "stylesheet": 22,
+   "font": 239,
+   "document": 0,
+   "other": 654
+  }
+ },
+ "product:live": {
+  "themeId": 151965958188,
+  "lcp_ms": [
+   452,
+   472,
+   484
+  ],
+  "fcp_ms": 416,
+  "cls": [
+   0.005,
+   0.005,
+   0.005
+  ],
+  "lcpElement": "IMG.lxb-main",
+  "domNodes": 699,
+  "inlineCssChars": 60144,
+  "requests": 155,
+  "kb": {
+   "total": 17543,
+   "image": 3016,
+   "script": 244,
+   "stylesheet": 13,
+   "font": 149,
+   "document": 44,
+   "other": 14078
+  }
+ },
+ "product:preview": {
+  "themeId": 153195577388,
+  "lcp_ms": [
+   452,
+   480,
+   488
+  ],
+  "fcp_ms": 480,
+  "cls": [
+   0,
+   0,
+   0
+  ],
+  "lcpElement": "IMG.",
+  "domNodes": 750,
+  "inlineCssChars": 36145,
+  "requests": 175,
+  "kb": {
+   "total": 1554,
+   "image": 295,
+   "script": 382,
+   "stylesheet": 22,
+   "font": 171,
+   "document": 0,
+   "other": 685
+  }
+ }
+}

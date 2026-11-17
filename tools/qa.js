@@ -34,7 +34,7 @@ function url(path) { return BASE + path + (path.includes('?') ? '&' : '?') + 'pr
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 
   // ---- 1. Layout: horizontal overflow + basic page facts at every width
   for (const w of WIDTHS) {

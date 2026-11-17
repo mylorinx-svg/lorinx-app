@@ -1,5 +1,7 @@
 # LORINX — Final Handoff
 
+> **Version 2:** the draft theme now carries the cinematic direction with motion and the fixes from the independent review. Read `LORINX_V2_CINEMATIC.md` together with this file. Section 3 below describes version 1.
+
 Date: 17 November 2026. Everything below describes an **unpublished draft**. The live store was not changed.
 
 ## 1. Where things are

@@ -1,5 +1,7 @@
 # LORINX — Design System (`lx2`)
 
+> **Updated direction:** the palette, typography and shape tokens below describe version 1. The draft now runs version 2 (dark, cinematic, with motion); see `LORINX_V2_CINEMATIC.md` for the current tokens. Components and rules are unchanged.
+
 Source of truth: `theme/assets/lx2.css`. Everything is scoped under `.lx2`, so Dawn's own CSS, the Sense RTL app and any app block are unaffected.
 
 ## 1. Colour

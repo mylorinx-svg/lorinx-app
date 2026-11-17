@@ -1,5 +1,7 @@
 # LORINX — Brand Strategy
 
+> **Updated direction:** after owner feedback the visual direction moved from "Quiet Recovery" to a dark cinematic style with motion; see `LORINX_V2_CINEMATIC.md`. Positioning, audience, voice and open decisions below are unchanged.
+
 ## 1. Positioning
 
 **For** people whose bodies work hard all day — at a desk, on their feet, in training — **LORINX is** the home-recovery brand **that** turns relief into a short, quiet routine at home, **because** every device is chosen one by one, explained honestly, and backed by a one-year warranty and Hebrew-speaking service.

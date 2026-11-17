@@ -1,0 +1,6 @@
+{%- comment -%}
+  Display title: the catalogue titles end with " מבית — ™LORINX" for SEO. On screen the brand
+  already appears as an eyebrow, so the suffix is trimmed for a cleaner heading.
+  The <title> tag and structured data keep the full product title.
+{%- endcomment -%}
+{{- title | split: ' מבית' | first | strip -}}

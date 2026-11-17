@@ -1,0 +1,36 @@
+{%- comment -%} lx2 page: page title, optional intro, and the page's own content from the admin. {%- endcomment -%}
+<div class="lx2">
+  <div class="lx-wrap {% unless section.settings.wide %}lx-wrap--narrow{% endunless %}">
+    <header class="lx-pagehero">
+      {%- if section.settings.eyebrow != blank -%}<span class="lx-eyebrow">{{ section.settings.eyebrow | escape }}</span>{%- endif -%}
+      <h1 class="lx-h1">{{ section.settings.heading | default: page.title | escape }}</h1>
+      {%- if section.settings.text != blank -%}<p class="lx-lead" style="margin-top:20px">{{ section.settings.text | escape }}</p>{%- endif -%}
+      {%- if section.settings.cta_label != blank or section.settings.link_label != blank -%}
+        <div class="lx-actions">
+          {%- if section.settings.cta_label != blank -%}<a class="lx-btn" href="{{ section.settings.cta_url }}">{{ section.settings.cta_label | escape }}</a>{%- endif -%}
+          {%- if section.settings.link_label != blank -%}<a class="lx-link" href="{{ section.settings.link_url }}">{{ section.settings.link_label | escape }}{% render 'lx2-icon', name: 'arrow' %}</a>{%- endif -%}
+        </div>
+      {%- endif -%}
+    </header>
+    {%- if page.content != blank and section.settings.show_content -%}
+      <div class="lx-rte" style="padding-bottom:var(--lx-sec);font-size:17px;line-height:1.8">{{ page.content }}</div>
+    {%- endif -%}
+  </div>
+</div>
+{% schema %}
+{
+  "name": "LORINX כותרת עמוד",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "כותרת עליונה" },
+    { "type": "text", "id": "heading", "label": "כותרת (ריק = שם העמוד)" },
+    { "type": "textarea", "id": "text", "label": "פתיח" },
+    { "type": "text", "id": "cta_label", "label": "כפתור" },
+    { "type": "url", "id": "cta_url", "label": "קישור כפתור" },
+    { "type": "text", "id": "link_label", "label": "קישור משני" },
+    { "type": "url", "id": "link_url", "label": "כתובת קישור משני" },
+    { "type": "checkbox", "id": "show_content", "label": "הצגת תוכן העמוד מהאדמין", "default": true },
+    { "type": "checkbox", "id": "wide", "label": "רוחב מלא", "default": false }
+  ],
+  "presets": [{ "name": "LORINX כותרת עמוד" }]
+}
+{% endschema %}

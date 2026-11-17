@@ -1,0 +1,48 @@
+{%- comment -%} lx2 hero: one message, one image, one primary action. The image is the LCP element. {%- endcomment -%}
+<section class="lx2 lx-hero">
+  <div class="lx-wrap lx-hero__grid">
+    <div class="lx-media lx-hero__media">
+      {%- if section.settings.image -%}
+        {{ section.settings.image | image_url: width: 1600 | image_tag:
+          widths: '480, 640, 800, 1100, 1600',
+          sizes: '(min-width: 990px) 54vw, 100vw',
+          loading: 'eager', fetchpriority: 'high',
+          alt: section.settings.image.alt | default: section.settings.heading }}
+      {%- else -%}
+        {{ 'lifestyle-1' | placeholder_svg_tag }}
+      {%- endif -%}
+    </div>
+    <div class="lx-hero__copy">
+      {%- if section.settings.eyebrow != blank -%}<span class="lx-eyebrow">{{ section.settings.eyebrow | escape }}</span>{%- endif -%}
+      <h1 class="lx-h1">{{ section.settings.heading | newline_to_br }}</h1>
+      {%- if section.settings.text != blank -%}<p class="lx-lead" style="margin-top:22px">{{ section.settings.text | escape }}</p>{%- endif -%}
+      <div class="lx-actions">
+        {%- if section.settings.cta_label != blank -%}<a class="lx-btn" href="{{ section.settings.cta_url | default: routes.all_products_collection_url }}">{{ section.settings.cta_label | escape }}</a>{%- endif -%}
+        {%- if section.settings.link_label != blank -%}<a class="lx-link" href="{{ section.settings.link_url }}">{{ section.settings.link_label | escape }}{% render 'lx2-icon', name: 'arrow' %}</a>{%- endif -%}
+      </div>
+      {%- if section.blocks.size > 0 -%}
+        <div class="lx-hero__note">
+          {%- for block in section.blocks -%}<span {{ block.shopify_attributes }}>{% render 'lx2-icon', name: 'check' %}{{ block.settings.text | escape }}</span>{%- endfor -%}
+        </div>
+      {%- endif -%}
+    </div>
+  </div>
+</section>
+{% schema %}
+{
+  "name": "LORINX הירו",
+  "max_blocks": 3,
+  "settings": [
+    { "type": "image_picker", "id": "image", "label": "תמונה" },
+    { "type": "text", "id": "eyebrow", "label": "כותרת עליונה" },
+    { "type": "textarea", "id": "heading", "label": "כותרת ראשית", "default": "שגרת שחרור.\nבבית, בזמן שלכם." },
+    { "type": "textarea", "id": "text", "label": "טקסט" },
+    { "type": "text", "id": "cta_label", "label": "כפתור ראשי" },
+    { "type": "url", "id": "cta_url", "label": "קישור כפתור" },
+    { "type": "text", "id": "link_label", "label": "קישור משני" },
+    { "type": "url", "id": "link_url", "label": "כתובת קישור משני" }
+  ],
+  "blocks": [{ "type": "note", "name": "הערת אמון", "settings": [{ "type": "text", "id": "text", "label": "טקסט" }] }],
+  "presets": [{ "name": "LORINX הירו" }]
+}
+{% endschema %}

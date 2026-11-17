@@ -1,0 +1,125 @@
+{%- comment -%}
+  lx2 main product: gallery + buy box. All commerce data (title, media, variants, prices,
+  availability, payment types) comes from Shopify. Copy that is not product data (sub-headline,
+  key points, rating line) is entered per product through blocks, so nothing is hardcoded here.
+{%- endcomment -%}
+{%- capture t -%}{% render 'lx2-title', title: product.title %}{%- endcapture -%}
+{%- assign form_id = 'lx-form-' | append: section.id -%}
+{%- assign current = product.selected_or_first_available_variant -%}
+<div class="lx2">
+  <div class="lx-wrap">
+    <nav class="lx-crumbs" aria-label="פירורי לחם">
+      <a href="{{ routes.root_url }}">דף הבית</a><span aria-hidden="true">/</span>
+      <a href="{{ routes.all_products_collection_url }}">כל המוצרים</a><span aria-hidden="true">/</span>
+      <span aria-current="page">{{ t }}</span>
+    </nav>
+
+    <div class="lx-pdp">
+      <div class="lx-gal" data-lx-gallery>
+        <div class="lx-gal__track" tabindex="0" aria-label="גלריית תמונות המוצר">
+          {%- for media in product.media -%}
+            <div class="lx-gal__slide {% if media.media_type == 'image' and media.aspect_ratio != 1 %}lx-gal__slide--contain{% endif %}" id="lx-slide-{{ forloop.index }}">
+              {%- case media.media_type -%}
+                {%- when 'video' -%}
+                  {{ media | video_tag: controls: true, muted: true, playsinline: true, preload: 'none', image_size: '900x' }}
+                {%- when 'external_video' -%}
+                  {{ media | external_video_tag: loading: 'lazy' }}
+                {%- else -%}
+                  {%- if forloop.first -%}
+                    {{ media | image_url: width: 1600 | image_tag: widths: '400, 600, 800, 1100, 1600', sizes: '(min-width: 990px) 48vw, 100vw', loading: 'eager', fetchpriority: 'high', alt: media.alt | default: t }}
+                  {%- else -%}
+                    {{ media | image_url: width: 1600 | image_tag: widths: '400, 600, 800, 1100, 1600', sizes: '(min-width: 990px) 48vw, 100vw', loading: 'lazy', alt: media.alt | default: t }}
+                  {%- endif -%}
+              {%- endcase -%}
+            </div>
+          {%- endfor -%}
+        </div>
+        {%- if product.media.size > 1 -%}
+          <div class="lx-gal__thumbs">
+            {%- for media in product.media -%}
+              <button type="button" class="lx-gal__thumb" aria-label="תמונה {{ forloop.index }} מתוך {{ product.media.size }}" aria-current="{% if forloop.first %}true{% else %}false{% endif %}">
+                {{ media.preview_image | image_url: width: 160 | image_tag: loading: 'lazy', alt: '' }}
+              </button>
+            {%- endfor -%}
+          </div>
+        {%- endif -%}
+      </div>
+
+      <div class="lx-buy" id="lx-buy" data-lx-buy data-lx-main>
+        <span class="lx-buy__brand">LORINX</span>
+        <h1 class="lx-buy__title">{{ t }}</h1>
+        {%- for block in section.blocks -%}
+          {%- if block.settings.only_for != blank and block.settings.only_for.handle != product.handle -%}{%- continue -%}{%- endif -%}
+          {%- case block.type -%}
+            {%- when 'rating' -%}
+              {%- if block.settings.text != blank -%}
+                <a class="lx-buy__rate" href="#reviews" {{ block.shopify_attributes }}><span class="lx-stars" aria-hidden="true">★★★★★</span>{{ block.settings.text | escape }}</a>
+              {%- endif -%}
+            {%- when 'intro' -%}
+              <p class="lx-buy__sub" {{ block.shopify_attributes }}>{{ block.settings.text | escape }}</p>
+              {%- assign lines = block.settings.points | newline_to_br | split: '<br />' -%}
+              {%- if block.settings.points != blank -%}
+                <ul class="lx-buy__pts">
+                  {%- for line in lines -%}{%- assign l = line | strip -%}{%- if l != blank -%}<li>{% render 'lx2-icon', name: 'check' %}<span>{{ l | escape }}</span></li>{%- endif -%}{%- endfor -%}
+                </ul>
+              {%- endif -%}
+          {%- endcase -%}
+        {%- endfor -%}
+
+        {% render 'lx2-buybox', product: product, form_id: form_id, main: true %}
+
+        <div class="lx-acc lx-acc--sm">
+          {%- if product.description != blank -%}
+            <details open>
+              <summary>על המוצר<span class="lx-acc__x" aria-hidden="true"></span></summary>
+              <div class="lx-acc__body lx-rte">{{ product.description }}</div>
+            </details>
+          {%- endif -%}
+          {%- for block in section.blocks -%}
+            {%- if block.type != 'detail' -%}{%- continue -%}{%- endif -%}
+            {%- if block.settings.only_for != blank and block.settings.only_for.handle != product.handle -%}{%- continue -%}{%- endif -%}
+            <details {{ block.shopify_attributes }}>
+              <summary>{{ block.settings.title | escape }}<span class="lx-acc__x" aria-hidden="true"></span></summary>
+              <div class="lx-acc__body lx-rte">{{ block.settings.text }}</div>
+            </details>
+          {%- endfor -%}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lx-sticky" id="lx-sticky" aria-hidden="true">
+    <div class="lx-sticky__in">
+      <div class="lx-sticky__info">
+        <b>{{ t }}</b>
+        <span data-lx-sticky-price>{% unless product.has_only_default_variant %}{{ current.title }} · {% endunless %}{{ current.price | money }}</span>
+      </div>
+      <button type="button" class="lx-btn" data-lx-sticky-add tabindex="-1" {% unless current.available %}disabled{% endunless %}>הוספה לסל</button>
+    </div>
+  </div>
+</div>
+
+<script type="application/ld+json">
+  {{ product | structured_data }}
+</script>
+
+{% schema %}
+{
+  "name": "LORINX מוצר ראשי",
+  "settings": [],
+  "blocks": [
+    { "type": "rating", "name": "שורת דירוג", "settings": [
+      { "type": "product", "id": "only_for", "label": "רק למוצר (ריק = כל המוצרים)" },
+      { "type": "paragraph", "content": "למלא רק אם הדירוג מגובה בביקורות אמיתיות שנאספו." },
+      { "type": "text", "id": "text", "label": "טקסט" } ] },
+    { "type": "intro", "name": "פתיח ונקודות מפתח", "settings": [
+      { "type": "product", "id": "only_for", "label": "רק למוצר (ריק = כל המוצרים)" },
+      { "type": "textarea", "id": "text", "label": "משפט פתיחה" },
+      { "type": "textarea", "id": "points", "label": "נקודות מפתח (שורה לכל נקודה)" } ] },
+    { "type": "detail", "name": "פרט מתקפל", "settings": [
+      { "type": "product", "id": "only_for", "label": "רק למוצר (ריק = כל המוצרים)" },
+      { "type": "text", "id": "title", "label": "כותרת" },
+      { "type": "richtext", "id": "text", "label": "תוכן" } ] }
+  ]
+}
+{% endschema %}

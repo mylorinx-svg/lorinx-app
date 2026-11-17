@@ -1,0 +1,93 @@
+{%- comment -%} lx2 footer: newsletter, navigation, policies, payment methods. {%- endcomment -%}
+<footer class="lx2 lx2-footer">
+  <div class="lx-wrap">
+    {%- if section.settings.show_newsletter -%}
+      <div class="lxf-news">
+        <div>
+          <h2 class="lx-h3">{{ section.settings.news_heading | escape }}</h2>
+          <p>{{ section.settings.news_text | escape }}</p>
+        </div>
+        <div>
+          {%- form 'customer', id: 'lxf-newsletter' -%}
+            <input type="hidden" name="contact[tags]" value="newsletter">
+            {%- if form.posted_successfully? -%}
+              <p class="lx-note lx-note--ok" role="status" tabindex="-1" autofocus>תודה, נרשמתם בהצלחה.</p>
+            {%- else -%}
+              {%- if form.errors -%}<p class="lx-note lx-note--err" role="alert">{{ form.errors.messages['email'] | default: 'כתובת המייל אינה תקינה.' }}</p>{%- endif -%}
+              <div style="display:flex;gap:10px">
+                <label class="lx-sr" for="lxf-email">כתובת מייל</label>
+                <input id="lxf-email" type="email" name="contact[email]" placeholder="כתובת המייל שלכם" autocomplete="email" required dir="ltr" style="text-align:right">
+                <button type="submit" class="lx-btn lx-btn--light">הרשמה</button>
+              </div>
+              <small>{{ section.settings.news_small | escape }}</small>
+            {%- endif -%}
+          {%- endform -%}
+        </div>
+      </div>
+    {%- endif -%}
+
+    <div class="lxf-cols">
+      <div class="lxf-brand">
+        <a class="lxh-logo" href="{{ routes.root_url }}">LORINX</a>
+        <p>{{ section.settings.about | escape }}</p>
+      </div>
+      {%- for block in section.blocks -%}
+        <nav class="lxf-col" aria-label="{{ block.settings.heading | escape }}" {{ block.shopify_attributes }}>
+          <h3>{{ block.settings.heading | escape }}</h3>
+          <ul>
+            {%- case block.type -%}
+              {%- when 'menu' -%}
+                {%- for link in block.settings.menu.links -%}<li><a href="{{ link.url }}">{{ link.title | escape }}</a></li>{%- endfor -%}
+              {%- when 'policies' -%}
+                {%- for policy in shop.policies -%}<li><a href="{{ policy.url }}">{{ policy.title | escape }}</a></li>{%- endfor -%}
+              {%- when 'links' -%}
+                {%- for i in (1..4) -%}
+                  {%- assign l = 'label_' | append: i -%}{%- assign u = 'url_' | append: i -%}
+                  {%- if block.settings[l] != blank and block.settings[u] != blank -%}<li><a href="{{ block.settings[u] }}">{{ block.settings[l] | escape }}</a></li>{%- endif -%}
+                {%- endfor -%}
+            {%- endcase -%}
+          </ul>
+        </nav>
+      {%- endfor -%}
+    </div>
+
+    <div class="lxf-base">
+      <span>© {{ 'now' | date: '%Y' }} {{ shop.name }}. כל הזכויות שמורות.</span>
+      {%- if shop.enabled_payment_types.size > 0 -%}
+        <div class="lx-pay" aria-label="אמצעי תשלום">
+          {%- for type in shop.enabled_payment_types -%}{{ type | payment_type_svg_tag }}{%- endfor -%}
+        </div>
+      {%- endif -%}
+    </div>
+  </div>
+</footer>
+
+{% schema %}
+{
+  "name": "LORINX פוטר",
+  "max_blocks": 3,
+  "settings": [
+    { "type": "textarea", "id": "about", "label": "טקסט מותג", "default": "מכשירי ריקוברי ורווחה לבית. נבחרים אחד־אחד, נבדקים, ונתמכים בישראל." },
+    { "type": "checkbox", "id": "show_newsletter", "label": "הצגת הרשמה לניוזלטר", "default": true },
+    { "type": "text", "id": "news_heading", "label": "כותרת ניוזלטר", "default": "עדכונים שקטים, רק כשיש מה לספר" },
+    { "type": "textarea", "id": "news_text", "label": "טקסט ניוזלטר", "default": "מוצרים חדשים וטיפים לשימוש נכון. בלי הצפה." },
+    { "type": "text", "id": "news_small", "label": "הערה קטנה", "default": "אפשר להסיר את עצמכם מהרשימה בכל רגע." }
+  ],
+  "blocks": [
+    { "type": "menu", "name": "עמודת תפריט", "settings": [
+      { "type": "text", "id": "heading", "label": "כותרת", "default": "ניווט" },
+      { "type": "link_list", "id": "menu", "label": "תפריט", "default": "main-menu" }
+    ] },
+    { "type": "links", "name": "עמודת קישורים", "settings": [
+      { "type": "text", "id": "heading", "label": "כותרת", "default": "שירות" },
+      { "type": "text", "id": "label_1", "label": "קישור 1" }, { "type": "url", "id": "url_1", "label": "כתובת 1" },
+      { "type": "text", "id": "label_2", "label": "קישור 2" }, { "type": "url", "id": "url_2", "label": "כתובת 2" },
+      { "type": "text", "id": "label_3", "label": "קישור 3" }, { "type": "url", "id": "url_3", "label": "כתובת 3" },
+      { "type": "text", "id": "label_4", "label": "קישור 4" }, { "type": "url", "id": "url_4", "label": "כתובת 4" }
+    ] },
+    { "type": "policies", "name": "עמודת מדיניות", "limit": 1, "settings": [
+      { "type": "text", "id": "heading", "label": "כותרת", "default": "מדיניות" }
+    ] }
+  ]
+}
+{% endschema %}

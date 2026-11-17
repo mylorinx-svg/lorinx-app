@@ -1,0 +1,95 @@
+{%- comment -%}
+  lx2 buy box: price, variant / multi-unit selector, add-to-cart form, assurances.
+  Params: product (required), form_id (unique string), main (boolean — true on the product page).
+
+  Multi-unit offers: when every variant title starts with a number ("1 יחידה", "2 יחידות"…)
+  the variants are shown as unit packs with the real total, the per-unit price and the
+  saving versus buying single units. All numbers are computed from Shopify variant prices —
+  nothing is hardcoded and no compare-at price is invented.
+{%- endcomment -%}
+{%- liquid
+  assign current = product.selected_or_first_available_variant
+  assign base_price = product.variants.first.price
+  assign is_packs = false
+  if product.has_only_default_variant == false and product.options.size == 1
+    assign is_packs = true
+    assign best_unit = base_price
+    for v in product.variants
+      assign q = v.title | split: ' ' | first | plus: 0
+      if q < 1
+        assign is_packs = false
+      else
+        assign u = v.price | divided_by: q
+        if u < best_unit
+          assign best_unit = u
+        endif
+      endif
+    endfor
+  endif
+-%}
+<div class="lx-buy__price">
+  <b data-lx-price>{{ current.price | money }}</b>
+  <span>משלוח חינם לכל הארץ</span>
+</div>
+
+{%- form 'product', product, id: form_id, class: 'lx-form', novalidate: 'novalidate', data-lx-product-form: '' -%}
+  {%- if product.has_only_default_variant -%}
+    <input type="hidden" name="id" value="{{ current.id }}" data-price="{{ current.price | money }}" data-available="{{ current.available }}" checked>
+  {%- elsif is_packs -%}
+    <fieldset class="lx-opts">
+      <legend>בחרו כמות <span>המחיר ליחידה יורד ככל שמוסיפים</span></legend>
+      {%- for v in product.variants -%}
+        {%- liquid
+          assign q = v.title | split: ' ' | first | plus: 0
+          assign unit = v.price | divided_by: q
+          assign saving = base_price | times: q | minus: v.price
+        -%}
+        <label class="lx-opt">
+          <input type="radio" name="id" value="{{ v.id }}"
+            data-price="{{ v.price | money }}" data-label="{{ v.title | escape }}" data-available="{{ v.available }}"
+            {% if v.id == current.id %}checked{% endif %} {% unless v.available %}disabled{% endunless %}>
+          <span class="lx-opt__box">
+            <span class="lx-opt__dot" aria-hidden="true"></span>
+            <span class="lx-opt__name">
+              {{ v.title }}
+              {%- if q > 1 and unit == best_unit -%}<span class="lx-opt__tag">המחיר הנמוך ביותר ליחידה</span>{%- endif -%}
+            </span>
+            <span class="lx-opt__unit">
+              {%- if q > 1 -%}{{ unit | money }} ליחידה{%- else -%}מחיר מלא ליחידה{%- endif -%}
+              {%- unless v.available %} · אזל מהמלאי{% endunless -%}
+            </span>
+            <span class="lx-opt__total">
+              {{ v.price | money }}
+              {%- if saving > 0 -%}<small>חוסכים {{ saving | money }}</small>{%- endif -%}
+            </span>
+          </span>
+        </label>
+      {%- endfor -%}
+    </fieldset>
+  {%- else -%}
+    <label class="lx-sr" for="{{ form_id }}-select">בחירת אפשרות</label>
+    <select class="lx-select" name="id" id="{{ form_id }}-select">
+      {%- for v in product.variants -%}
+        <option value="{{ v.id }}" data-price="{{ v.price | money }}" data-label="{{ v.title | escape }}" data-available="{{ v.available }}" {% if v.id == current.id %}selected{% endif %} {% unless v.available %}disabled{% endunless %}>
+          {{ v.title }} — {{ v.price | money }}
+        </option>
+      {%- endfor -%}
+    </select>
+  {%- endif -%}
+  <input type="hidden" name="quantity" value="1">
+  <button type="submit" name="add" class="lx-btn lx-btn--block" data-lx-cta data-add="הוספה לסל" data-soldout="אזל מהמלאי" {% unless current.available %}disabled{% endunless %}>
+    {%- if current.available -%}הוספה לסל · {{ current.price | money }}{%- else -%}אזל מהמלאי{%- endif -%}
+  </button>
+  <p class="lx-form__err" role="alert" hidden></p>
+{%- endform -%}
+
+<ul class="lx-buy__assure">
+  <li>{% render 'lx2-icon', name: 'truck' %}<span>משלוח חינם לכל הארץ · אספקה משוערת 7–14 ימי עסקים. <a href="{{ shop.shipping_policy.url | default: '/policies/shipping-policy' }}">מדיניות משלוחים</a></span></li>
+  <li>{% render 'lx2-icon', name: 'return' %}<span>14 יום להחזרה מרגע קבלת המוצר, בלי דמי ביטול. <a href="{{ shop.refund_policy.url | default: '/policies/refund-policy' }}">מדיניות החזרות</a></span></li>
+  <li>{% render 'lx2-icon', name: 'shield' %}<span>אחריות לשנה על המכשיר, ושירות בעברית לפני ואחרי הרכישה.</span></li>
+</ul>
+{%- if shop.enabled_payment_types.size > 0 -%}
+  <div class="lx-pay" aria-label="אמצעי תשלום">
+    {%- for type in shop.enabled_payment_types -%}{{ type | payment_type_svg_tag }}{%- endfor -%}
+  </div>
+{%- endif -%}

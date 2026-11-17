@@ -1,0 +1,25 @@
+{
+  "sections": {
+    "main": {
+      "type": "lx2-page",
+      "settings": {
+        "show_content": true
+      }
+    },
+    "products": {
+      "type": "lx2-products",
+      "settings": {
+        "collection": "המוצר-שלנו",
+        "tone": "surface",
+        "eyebrow": "הקולקציה",
+        "heading": "המוצרים שלנו.",
+        "link_label": "לכל המוצרים",
+        "limit": 4
+      }
+    }
+  },
+  "order": [
+    "main",
+    "products"
+  ]
+}

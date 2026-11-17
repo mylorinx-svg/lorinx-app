@@ -1,0 +1,167 @@
+{
+  "sections": {
+    "main": {
+      "type": "lx2-page",
+      "settings": {
+        "eyebrow": "כמויות לחברות",
+        "heading": "הזמנות בכמויות גדולות לעסקים.",
+        "text": "מחפשים מתנה איכותית ושימושית לעובדים, ללקוחות או לשותפים עסקיים? נבנה לכם הצעה מותאמת, כולל מיתוג ואספקה מרוכזת.",
+        "cta_label": "קבלו הצעת מחיר",
+        "cta_url": "#contact-form",
+        "link_label": "לכל המוצרים",
+        "link_url": "shopify://collections/all",
+        "show_content": false,
+        "wide": true
+      }
+    },
+    "audience": {
+      "type": "lx2-list",
+      "blocks": {
+        "item_1": {
+          "type": "item",
+          "settings": {
+            "title": "מתנות לעובדים",
+            "text": "מתנה שימושית ומפנקת מהחברה."
+          }
+        },
+        "item_2": {
+          "type": "item",
+          "settings": {
+            "title": "חברות וארגונים",
+            "text": "פתרון נוח להזמנות מרוכזות לצוותים."
+          }
+        },
+        "item_3": {
+          "type": "item",
+          "settings": {
+            "title": "לקוחות ושותפים",
+            "text": "דרך להודות לאנשים שעובדים איתכם."
+          }
+        },
+        "item_4": {
+          "type": "item",
+          "settings": {
+            "title": "אירועים וכנסים",
+            "text": "ימי גיבוש, אירועי חברה וכנסים."
+          }
+        },
+        "item_5": {
+          "type": "item",
+          "settings": {
+            "title": "מועדוני לקוחות",
+            "text": "רכישה מרוכזת לקהילות ולמסגרות גדולות."
+          }
+        }
+      },
+      "block_order": [
+        "item_1",
+        "item_2",
+        "item_3",
+        "item_4",
+        "item_5"
+      ],
+      "settings": {
+        "tone": "surface",
+        "layout": "cols-3",
+        "numbered": false,
+        "eyebrow": "למי זה מתאים",
+        "heading": "מתנה שמשתמשים בה."
+      }
+    },
+    "terms": {
+      "type": "lx2-facts",
+      "blocks": {
+        "fact_1": {
+          "type": "fact",
+          "settings": {
+            "icon": "check",
+            "title": "מחירים מיוחדים",
+            "text": "להזמנות בכמויות גדולות."
+          }
+        },
+        "fact_2": {
+          "type": "fact",
+          "settings": {
+            "icon": "chat",
+            "title": "שירות אישי",
+            "text": "ליווי אישי לעסקים."
+          }
+        },
+        "fact_3": {
+          "type": "fact",
+          "settings": {
+            "icon": "truck",
+            "title": "הזמנה מרוכזת",
+            "text": "הכול במקום אחד."
+          }
+        },
+        "fact_4": {
+          "type": "fact",
+          "settings": {
+            "icon": "levels",
+            "title": "התאמה לכמות",
+            "text": "פתרונות לפי היקף ההזמנה."
+          }
+        }
+      },
+      "block_order": [
+        "fact_1",
+        "fact_2",
+        "fact_3",
+        "fact_4"
+      ],
+      "settings": {
+        "tone": "dark",
+        "label": "מה מקבלים"
+      }
+    },
+    "products": {
+      "type": "lx2-products",
+      "settings": {
+        "collection": "המוצר-שלנו",
+        "tone": "bg",
+        "heading": "המוצרים שלנו.",
+        "limit": 4
+      }
+    },
+    "form": {
+      "type": "lx2-contact",
+      "blocks": {
+        "detail_1": {
+          "type": "detail",
+          "settings": {
+            "label": "אימייל",
+            "value": "mylorinx@gmail.com",
+            "url": "mailto:mylorinx@gmail.com",
+            "text": "ספרו לנו על הכמות, התקציב והמועד, ונחזור עם הצעה, זמני אספקה ואפשרויות מיתוג."
+          }
+        },
+        "detail_2": {
+          "type": "detail",
+          "settings": {
+            "label": "זמני מענה",
+            "value": "ימים א׳–ה׳ · 09:00–18:00",
+            "text": ""
+          }
+        }
+      },
+      "block_order": [
+        "detail_1",
+        "detail_2"
+      ],
+      "settings": {
+        "heading": "נבנה לכם הצעה מותאמת",
+        "tone": "surface",
+        "name_label": "שם החברה / איש קשר",
+        "body_label": "כמות מבוקשת והודעה"
+      }
+    }
+  },
+  "order": [
+    "main",
+    "audience",
+    "terms",
+    "products",
+    "form"
+  ]
+}

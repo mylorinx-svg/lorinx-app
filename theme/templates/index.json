@@ -1,0 +1,361 @@
+{
+  "sections": {
+    "hero": {
+      "type": "lx2-hero",
+      "blocks": {
+        "note_1": {
+          "type": "note",
+          "settings": {
+            "text": "משלוח חינם"
+          }
+        },
+        "note_2": {
+          "type": "note",
+          "settings": {
+            "text": "14 יום להחזרה"
+          }
+        },
+        "note_3": {
+          "type": "note",
+          "settings": {
+            "text": "אחריות לשנה"
+          }
+        }
+      },
+      "block_order": [
+        "note_1",
+        "note_2",
+        "note_3"
+      ],
+      "settings": {
+        "image": "shopify://shop_images/Bazaart_1.jpg",
+        "eyebrow": "LORINX · ריקוברי ביתי",
+        "heading": "שחרור לשרירים תפוסים.\nבבית, בזמן שלכם.",
+        "text": "כוס רוח חשמלית עם שאיבה מדורגת, חימום מבוקר ואור אדום. רבע שעה לאזור, בלי לצאת מהבית ובלי לקבוע תור.",
+        "cta_label": "לכוס הרוח החשמלית",
+        "cta_url": "shopify://products/כוס-רוח-חשמלית",
+        "link_label": "איך זה עובד",
+        "link_url": "#how"
+      }
+    },
+    "facts": {
+      "type": "lx2-facts",
+      "blocks": {
+        "fact_1": {
+          "type": "fact",
+          "settings": {
+            "icon": "levels",
+            "title": "12 דרגות עוצמה",
+            "text": "מתחילים נמוך ועולים בהדרגה."
+          }
+        },
+        "fact_2": {
+          "type": "fact",
+          "settings": {
+            "icon": "heat",
+            "title": "חימום מבוקר ואור אדום",
+            "text": "חום נעים באזור הטיפול."
+          }
+        },
+        "fact_3": {
+          "type": "fact",
+          "settings": {
+            "icon": "battery",
+            "title": "אלחוטית ונטענת",
+            "text": "בלי כבלים בזמן השימוש."
+          }
+        },
+        "fact_4": {
+          "type": "fact",
+          "settings": {
+            "icon": "clock",
+            "title": "כיבוי אוטומטי",
+            "text": "אחרי 15 דקות."
+          }
+        }
+      },
+      "block_order": [
+        "fact_1",
+        "fact_2",
+        "fact_3",
+        "fact_4"
+      ],
+      "settings": {
+        "tone": "bg",
+        "label": "מה יש במכשיר"
+      }
+    },
+    "how": {
+      "type": "lx2-list",
+      "blocks": {
+        "item_1": {
+          "type": "item",
+          "settings": {
+            "title": "מצמידים",
+            "text": "מניחים את הכוס על האזור התפוס. היא נצמדת לבד."
+          }
+        },
+        "item_2": {
+          "type": "item",
+          "settings": {
+            "title": "בוחרים עוצמה",
+            "text": "דרגת שאיבה וחימום בלחיצה אחת, לפי מה שנעים לכם."
+          }
+        },
+        "item_3": {
+          "type": "item",
+          "settings": {
+            "title": "משחררים",
+            "text": "המכשיר נכבה מעצמו בסוף הטיפול."
+          }
+        }
+      },
+      "block_order": [
+        "item_1",
+        "item_2",
+        "item_3"
+      ],
+      "settings": {
+        "anchor": "how",
+        "tone": "dark",
+        "layout": "steps",
+        "numbered": true,
+        "eyebrow": "איך זה עובד",
+        "heading": "שלושה צעדים, רבע שעה.",
+        "text": "בלי הכנות ובלי עזרה של אדם נוסף."
+      }
+    },
+    "featured": {
+      "type": "lx2-featured-product",
+      "settings": {
+        "product": "כוס-רוח-חשמלית",
+        "tone": "surface",
+        "eyebrow": "המוצר המוביל שלנו",
+        "text": "ואקום שמושך וחום שמרפה, במכשיר אחד שנכנס לכף היד."
+      }
+    },
+    "moments": {
+      "type": "lx2-media-text",
+      "blocks": {
+        "check_1": {
+          "type": "check",
+          "settings": {
+            "text": "בבוקר, על הגב התחתון, לפני שהיום מתחיל."
+          }
+        },
+        "check_2": {
+          "type": "check",
+          "settings": {
+            "text": "אחרי יום מול המחשב, על הכתפיים, מול הטלוויזיה."
+          }
+        },
+        "check_3": {
+          "type": "check",
+          "settings": {
+            "text": "אחרי אימון או ריצה, על השוקיים והירכיים."
+          }
+        }
+      },
+      "block_order": [
+        "check_1",
+        "check_2",
+        "check_3"
+      ],
+      "settings": {
+        "image": "shopify://shop_images/ChatGPT_Image_Jul_28_2026_10_48_27_PM.png",
+        "ratio": "45",
+        "tone": "bg",
+        "eyebrow": "מתי משתמשים",
+        "heading": "רבע שעה שנכנסת לשגרה.",
+        "text": "<p>לא צריך להתארגן, לנסוע או לתאם. מניחים, בוחרים עוצמה וממשיכים בערב שלכם.</p>",
+        "link_label": "לכל הפרטים על כוס הרוח",
+        "link_url": "shopify://products/כוס-רוח-חשמלית"
+      }
+    },
+    "products": {
+      "type": "lx2-products",
+      "settings": {
+        "collection": "המוצר-שלנו",
+        "tone": "surface",
+        "eyebrow": "הקולקציה",
+        "heading": "ריקוברי ביתי, מכשיר לכל צורך.",
+        "link_label": "לכל המוצרים",
+        "limit": 4
+      }
+    },
+    "messages": {
+      "type": "lx2-reviews",
+      "blocks": {
+        "screenshot_1": {
+          "type": "screenshot",
+          "settings": {
+            "image": "shopify://shop_images/WhatsApp_Image_2026-09-05_at_14.35.47_5.jpg"
+          }
+        },
+        "screenshot_2": {
+          "type": "screenshot",
+          "settings": {
+            "image": "shopify://shop_images/WhatsApp_Image_2026-09-05_at_14.35.47_1.jpg"
+          }
+        },
+        "screenshot_3": {
+          "type": "screenshot",
+          "settings": {
+            "image": "shopify://shop_images/WhatsApp_Image_2026-09-05_at_14.35.47_4.jpg"
+          }
+        },
+        "screenshot_4": {
+          "type": "screenshot",
+          "settings": {
+            "image": "shopify://shop_images/WhatsApp_Image_2026-09-05_at_14.35.47_3.jpg"
+          }
+        },
+        "screenshot_5": {
+          "type": "screenshot",
+          "settings": {
+            "image": "shopify://shop_images/WhatsApp_Image_2026-09-05_at_14.35.47_2.jpg"
+          }
+        },
+        "screenshot_6": {
+          "type": "screenshot",
+          "settings": {
+            "image": "shopify://shop_images/WhatsApp_Image_2026-09-05_at_14.35.47.jpg"
+          }
+        }
+      },
+      "block_order": [
+        "screenshot_1",
+        "screenshot_2",
+        "screenshot_3",
+        "screenshot_4",
+        "screenshot_5",
+        "screenshot_6"
+      ],
+      "settings": {
+        "tone": "bg",
+        "eyebrow": "מהלקוחות שלנו",
+        "heading": "הודעות שקיבלנו.",
+        "shots_heading": ""
+      }
+    },
+    "story": {
+      "type": "lx2-cta",
+      "settings": {
+        "tone": "sand",
+        "eyebrow": "הסיפור שלנו",
+        "heading": "לפעמים מותג לא מתחיל במוצר. הוא מתחיל בתחושה.",
+        "text": "LORINX בוחרת כל מוצר אחד־אחד: שימושי באמת, איכותי מספיק כדי לעמוד מאחוריו, ונתמך בישראל.",
+        "cta_label": "לסיפור המלא",
+        "cta_url": "shopify://pages/קצת-עלינו",
+        "link_label": "כמויות לחברות",
+        "link_url": "shopify://pages/כמויות-לחברות"
+      }
+    },
+    "assure": {
+      "type": "lx2-facts",
+      "blocks": {
+        "fact_1": {
+          "type": "fact",
+          "settings": {
+            "icon": "truck",
+            "title": "משלוח חינם",
+            "text": "לכל הארץ, 7–14 ימי עסקים."
+          }
+        },
+        "fact_2": {
+          "type": "fact",
+          "settings": {
+            "icon": "return",
+            "title": "14 יום להחזרה",
+            "text": "מרגע קבלת המוצר, בלי דמי ביטול."
+          }
+        },
+        "fact_3": {
+          "type": "fact",
+          "settings": {
+            "icon": "shield",
+            "title": "אחריות לשנה",
+            "text": "על המכשיר, ישירות מ־LORINX."
+          }
+        },
+        "fact_4": {
+          "type": "fact",
+          "settings": {
+            "icon": "chat",
+            "title": "שירות בעברית",
+            "text": "לפני ואחרי הרכישה."
+          }
+        }
+      },
+      "block_order": [
+        "fact_1",
+        "fact_2",
+        "fact_3",
+        "fact_4"
+      ],
+      "settings": {
+        "tone": "surface",
+        "label": "התחייבויות השירות שלנו"
+      }
+    },
+    "faq": {
+      "type": "lx2-faq",
+      "blocks": {
+        "qa_1": {
+          "type": "qa",
+          "settings": {
+            "q": "כמה זמן לוקח המשלוח?",
+            "a": "<p>המשלוח חינם. זמן האספקה המשוער הוא 7–14 ימי עסקים ממועד שליחת ההזמנה.</p>"
+          }
+        },
+        "qa_2": {
+          "type": "qa",
+          "settings": {
+            "q": "אפשר להחזיר מוצר?",
+            "a": "<p>כן. אפשר להחזיר תוך 14 יום מקבלת המוצר, בלי דמי ביטול. פנו אלינו ונלווה את התהליך.</p>"
+          }
+        },
+        "qa_3": {
+          "type": "qa",
+          "settings": {
+            "q": "מה כוללת האחריות?",
+            "a": "<p>אחריות לשנה על המכשיר, כולל מענה ותמיכה בעברית.</p>"
+          }
+        },
+        "qa_4": {
+          "type": "qa",
+          "settings": {
+            "q": "יש הזמנות בכמויות?",
+            "a": "<p>כן. לחברות ולארגונים יש מחירים מיוחדים ושירות אישי, בעמוד כמויות לחברות.</p>"
+          }
+        }
+      },
+      "block_order": [
+        "qa_1",
+        "qa_2",
+        "qa_3",
+        "qa_4"
+      ],
+      "settings": {
+        "tone": "bg",
+        "eyebrow": "שאלות נפוצות",
+        "heading": "לפני שמזמינים.",
+        "text": "לא מצאתם תשובה? נשמח לעזור.",
+        "link_label": "דברו איתנו",
+        "link_url": "shopify://pages/contact"
+      }
+    }
+  },
+  "order": [
+    "hero",
+    "facts",
+    "how",
+    "featured",
+    "moments",
+    "products",
+    "messages",
+    "story",
+    "assure",
+    "faq"
+  ]
+}

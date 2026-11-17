@@ -1,0 +1,35 @@
+{%- comment -%} lx2 featured product: the hero product with its real buy box, usable on any page. {%- endcomment -%}
+{%- assign p = section.settings.product -%}
+{%- if p != blank -%}
+{%- capture t -%}{% render 'lx2-title', title: p.title %}{%- endcapture -%}
+{%- assign form_id = 'lx-form-' | append: section.id -%}
+<section class="lx2 lx-sec lx-tone-{{ section.settings.tone }}" id="featured">
+  <div class="lx-wrap lx-mt">
+    <div class="lx-media lx-ratio-1" data-lx-reveal>
+      {%- assign img = section.settings.image | default: p.featured_media -%}
+      {{ img | image_url: width: 1400 | image_tag: widths: '400, 600, 800, 1100, 1400', sizes: '(min-width: 900px) 46vw, 100vw', loading: 'lazy', alt: t }}
+    </div>
+    <div class="lx-buy" data-lx-buy data-lx-reveal>
+      {%- if section.settings.eyebrow != blank -%}<span class="lx-eyebrow">{{ section.settings.eyebrow | escape }}</span>{%- endif -%}
+      <h2 class="lx-h2"><a href="{{ p.url }}">{{ t }}</a></h2>
+      {%- if section.settings.text != blank -%}<p class="lx-buy__sub">{{ section.settings.text | escape }}</p>{%- endif -%}
+      {% render 'lx2-buybox', product: p, form_id: form_id, main: false %}
+      <div class="lx-actions" style="margin-top:22px"><a class="lx-link" href="{{ p.url }}">לכל הפרטים על המוצר{% render 'lx2-icon', name: 'arrow' %}</a></div>
+    </div>
+  </div>
+</section>
+{%- endif -%}
+{% schema %}
+{
+  "name": "LORINX מוצר מוביל",
+  "settings": [
+    { "type": "product", "id": "product", "label": "מוצר" },
+    { "type": "image_picker", "id": "image", "label": "תמונה (ריק = תמונת המוצר)" },
+    { "type": "text", "id": "eyebrow", "label": "כותרת עליונה" },
+    { "type": "textarea", "id": "text", "label": "טקסט" },
+    { "type": "select", "id": "tone", "label": "רקע", "default": "surface", "options": [
+      { "value": "bg", "label": "בהיר" }, { "value": "surface", "label": "לבן חם" }, { "value": "sand", "label": "חול" } ] }
+  ],
+  "presets": [{ "name": "LORINX מוצר מוביל" }]
+}
+{% endschema %}

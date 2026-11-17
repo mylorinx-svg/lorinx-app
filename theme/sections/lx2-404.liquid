@@ -1,0 +1,15 @@
+{%- comment -%} lx2 404. {%- endcomment -%}
+<div class="lx2 lx-404">
+  <div class="lx-wrap">
+    <p class="lx-404__n" aria-hidden="true">404</p>
+    <h1 class="lx-h2" style="margin-top:8px">העמוד הזה לא נמצא</h1>
+    <p class="lx-lead" style="margin:16px auto 0">ייתכן שהכתובת השתנתה. אפשר לחזור לדף הבית או לעבור לכל המוצרים.</p>
+    <div class="lx-actions" style="justify-content:center">
+      <a class="lx-btn" href="{{ routes.all_products_collection_url }}">לכל המוצרים</a>
+      <a class="lx-link" href="{{ routes.root_url }}">לדף הבית{% render 'lx2-icon', name: 'arrow' %}</a>
+    </div>
+  </div>
+</div>
+{% schema %}
+{ "name": "LORINX 404", "settings": [] }
+{% endschema %}

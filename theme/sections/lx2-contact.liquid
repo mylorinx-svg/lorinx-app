@@ -1,0 +1,48 @@
+{%- comment -%} lx2 contact: Shopify contact form + contact details. Used for the contact and B2B pages. {%- endcomment -%}
+<section class="lx2 lx-sec lx-tone-{{ section.settings.tone }}" id="contact-form">
+  <div class="lx-wrap lx-contact">
+    <div>
+      <h2 class="lx-h2" style="margin-bottom:28px">{{ section.settings.heading | escape }}</h2>
+      {%- form 'contact', id: 'lx-contact' -%}
+        {%- if form.posted_successfully? -%}
+          <p class="lx-note lx-note--ok" role="status" tabindex="-1" autofocus>תודה. ההודעה התקבלה ונחזור אליכם בהקדם.</p>
+        {%- elsif form.errors -%}
+          <p class="lx-note lx-note--err" role="alert">חלק מהפרטים חסרים או שגויים. בדקו את כתובת המייל ונסו שוב.</p>
+        {%- endif -%}
+        <div class="lx-field"><label for="lx-c-name">{{ section.settings.name_label | escape }}</label><input id="lx-c-name" type="text" name="contact[name]" autocomplete="name" value="{{ form.name }}"></div>
+        <div class="lx-field"><label for="lx-c-email">כתובת מייל <span aria-hidden="true">*</span></label><input id="lx-c-email" type="email" name="contact[email]" autocomplete="email" required aria-required="true" dir="ltr" style="text-align:right" value="{{ form.email }}"></div>
+        <div class="lx-field"><label for="lx-c-phone">מספר טלפון</label><input id="lx-c-phone" type="tel" name="contact[phone]" autocomplete="tel" dir="ltr" style="text-align:right" value="{{ form.phone }}"></div>
+        <div class="lx-field"><label for="lx-c-body">{{ section.settings.body_label | escape }}</label><textarea id="lx-c-body" name="contact[body]">{{ form.body }}</textarea></div>
+        <button type="submit" class="lx-btn">שליחה</button>
+      {%- endform -%}
+    </div>
+    <div class="lx-contact__info">
+      {%- for block in section.blocks -%}
+        <div {{ block.shopify_attributes }}>
+          <h3>{{ block.settings.label | escape }}</h3>
+          {%- if block.settings.url != blank -%}<b><a href="{{ block.settings.url }}" dir="ltr">{{ block.settings.value | escape }}</a></b>{%- else -%}<b>{{ block.settings.value | escape }}</b>{%- endif -%}
+          {%- if block.settings.text != blank -%}<p>{{ block.settings.text | escape }}</p>{%- endif -%}
+        </div>
+      {%- endfor -%}
+    </div>
+  </div>
+</section>
+{% schema %}
+{
+  "name": "LORINX טופס יצירת קשר",
+  "max_blocks": 5,
+  "settings": [
+    { "type": "text", "id": "heading", "label": "כותרת", "default": "כתבו לנו" },
+    { "type": "text", "id": "name_label", "label": "תווית שדה שם", "default": "שם מלא" },
+    { "type": "text", "id": "body_label", "label": "תווית שדה הודעה", "default": "הודעה" },
+    { "type": "select", "id": "tone", "label": "רקע", "default": "surface", "options": [
+      { "value": "bg", "label": "בהיר" }, { "value": "surface", "label": "לבן חם" }, { "value": "sand", "label": "חול" } ] }
+  ],
+  "blocks": [{ "type": "detail", "name": "פרט קשר", "settings": [
+    { "type": "text", "id": "label", "label": "תווית" },
+    { "type": "text", "id": "value", "label": "ערך" },
+    { "type": "url", "id": "url", "label": "קישור (אופציונלי)" },
+    { "type": "textarea", "id": "text", "label": "הסבר" } ] }],
+  "presets": [{ "name": "LORINX טופס יצירת קשר" }]
+}
+{% endschema %}

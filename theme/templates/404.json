@@ -1,0 +1,21 @@
+{
+  "sections": {
+    "main": {
+      "type": "lx2-404",
+      "settings": {}
+    },
+    "products": {
+      "type": "lx2-products",
+      "settings": {
+        "collection": "המוצר-שלנו",
+        "tone": "surface",
+        "heading": "אולי חיפשתם את אלה.",
+        "limit": 4
+      }
+    }
+  },
+  "order": [
+    "main",
+    "products"
+  ]
+}

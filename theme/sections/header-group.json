@@ -1,0 +1,40 @@
+{
+  "type": "header",
+  "name": "Header group",
+  "sections": {
+    "lx2_header": {
+      "type": "lx2-header",
+      "blocks": {
+        "announcement_1": {
+          "type": "announcement",
+          "settings": {
+            "text": "משלוח חינם לכל הארץ"
+          }
+        },
+        "announcement_2": {
+          "type": "announcement",
+          "settings": {
+            "text": "14 יום להחזרה"
+          }
+        },
+        "announcement_3": {
+          "type": "announcement",
+          "settings": {
+            "text": "אחריות לשנה"
+          }
+        }
+      },
+      "block_order": [
+        "announcement_1",
+        "announcement_2",
+        "announcement_3"
+      ],
+      "settings": {
+        "menu": "main-menu"
+      }
+    }
+  },
+  "order": [
+    "lx2_header"
+  ]
+}

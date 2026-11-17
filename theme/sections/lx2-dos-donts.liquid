@@ -1,0 +1,46 @@
+{%- comment -%} lx2 do / don't: correct-use guidance in two columns. One line per item. {%- endcomment -%}
+{%- liquid
+  assign show = true
+  if section.settings.only_for != blank and section.settings.only_for.handle != product.handle
+    assign show = false
+  endif
+-%}
+{%- if show -%}
+<section class="lx2 lx-sec lx-tone-{{ section.settings.tone }}">
+  <div class="lx-wrap">
+    <div class="lx-head" data-lx-reveal>
+      {%- if section.settings.eyebrow != blank -%}<span class="lx-eyebrow">{{ section.settings.eyebrow | escape }}</span>{%- endif -%}
+      <h2 class="lx-h2">{{ section.settings.heading | escape }}</h2>
+    </div>
+    <div class="lx-dd">
+      <div class="lx-dd__col lx-dd__col--do" data-lx-reveal>
+        <h3>{% render 'lx2-icon', name: 'check' %}{{ section.settings.do_title | escape }}</h3>
+        <ul>{%- assign lines = section.settings.do_list | newline_to_br | split: '<br />' -%}{%- for line in lines -%}{%- assign l = line | strip -%}{%- if l != blank -%}<li>{{ l | escape }}</li>{%- endif -%}{%- endfor -%}</ul>
+      </div>
+      <div class="lx-dd__col lx-dd__col--dont" data-lx-reveal>
+        <h3>{% render 'lx2-icon', name: 'x' %}{{ section.settings.dont_title | escape }}</h3>
+        <ul>{%- assign lines = section.settings.dont_list | newline_to_br | split: '<br />' -%}{%- for line in lines -%}{%- assign l = line | strip -%}{%- if l != blank -%}<li>{{ l | escape }}</li>{%- endif -%}{%- endfor -%}</ul>
+      </div>
+    </div>
+    {%- if section.settings.note != blank -%}<p class="lx-dd__note">{{ section.settings.note | escape }}</p>{%- endif -%}
+  </div>
+</section>
+{%- endif -%}
+{% schema %}
+{
+  "name": "LORINX כן ולא",
+  "settings": [
+    { "type": "product", "id": "only_for", "label": "להציג רק במוצר (ריק = תמיד)" },
+    { "type": "text", "id": "eyebrow", "label": "כותרת עליונה" },
+    { "type": "text", "id": "heading", "label": "כותרת", "default": "שימוש נכון" },
+    { "type": "text", "id": "do_title", "label": "כותרת — כן", "default": "כדאי" },
+    { "type": "textarea", "id": "do_list", "label": "רשימה — כן (שורה לכל פריט)" },
+    { "type": "text", "id": "dont_title", "label": "כותרת — לא", "default": "להימנע" },
+    { "type": "textarea", "id": "dont_list", "label": "רשימה — לא (שורה לכל פריט)" },
+    { "type": "textarea", "id": "note", "label": "הערת בטיחות" },
+    { "type": "select", "id": "tone", "label": "רקע", "default": "bg", "options": [
+      { "value": "bg", "label": "בהיר" }, { "value": "surface", "label": "לבן חם" }, { "value": "sand", "label": "חול" }, { "value": "dark", "label": "כהה" } ] }
+  ],
+  "presets": [{ "name": "LORINX כן ולא" }]
+}
+{% endschema %}

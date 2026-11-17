@@ -1,0 +1,36 @@
+{%- comment -%} lx2 products: a calm grid of products from one collection. {%- endcomment -%}
+{%- assign col = section.settings.collection | default: collections.all -%}
+<section class="lx2 lx-sec lx-tone-{{ section.settings.tone }}" id="products">
+  <div class="lx-wrap">
+    <div class="lx-headrow">
+      <div class="lx-head" data-lx-reveal>
+        {%- if section.settings.eyebrow != blank -%}<span class="lx-eyebrow">{{ section.settings.eyebrow | escape }}</span>{%- endif -%}
+        <h2 class="lx-h2">{{ section.settings.heading | escape }}</h2>
+      </div>
+      {%- if section.settings.link_label != blank -%}<a class="lx-link" href="{{ col.url | default: routes.all_products_collection_url }}">{{ section.settings.link_label | escape }}{% render 'lx2-icon', name: 'arrow' %}</a>{%- endif -%}
+    </div>
+    <ul class="lx-grid lx-grid--4">
+      {%- for p in col.products limit: section.settings.limit -%}
+        {%- unless section.settings.hide_current and p.handle == product.handle -%}
+          <li data-lx-reveal>{% render 'lx2-card', product: p %}</li>
+        {%- endunless -%}
+      {%- endfor -%}
+    </ul>
+  </div>
+</section>
+{% schema %}
+{
+  "name": "LORINX מוצרים",
+  "settings": [
+    { "type": "collection", "id": "collection", "label": "קולקציה" },
+    { "type": "text", "id": "eyebrow", "label": "כותרת עליונה" },
+    { "type": "text", "id": "heading", "label": "כותרת", "default": "המוצרים שלנו" },
+    { "type": "text", "id": "link_label", "label": "קישור לכל המוצרים" },
+    { "type": "range", "id": "limit", "label": "מספר מוצרים", "min": 2, "max": 12, "step": 1, "default": 4 },
+    { "type": "checkbox", "id": "hide_current", "label": "להסתיר את המוצר הנוכחי (בדף מוצר)", "default": false },
+    { "type": "select", "id": "tone", "label": "רקע", "default": "bg", "options": [
+      { "value": "bg", "label": "בהיר" }, { "value": "surface", "label": "לבן חם" }, { "value": "sand", "label": "חול" }, { "value": "dark", "label": "כהה" } ] }
+  ],
+  "presets": [{ "name": "LORINX מוצרים" }]
+}
+{% endschema %}

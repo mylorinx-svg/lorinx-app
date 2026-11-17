@@ -1,0 +1,106 @@
+{%- comment -%}
+  lx2 header: announcement, navigation, search, mobile menu and cart-drawer mount.
+  It also loads the lx2 stylesheet, fonts and script so layout/theme.liquid is left untouched
+  (analytics, app embeds and Shopify's own scripts keep working exactly as on the live theme).
+{%- endcomment -%}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500&family=Heebo:wght@300;400;500;600&display=swap" rel="stylesheet">
+{{ 'lx2.css' | asset_url | stylesheet_tag }}
+<script>
+  window.lxRoutes = { cart: {{ routes.cart_url | json }}, add: {{ routes.cart_add_url | json }}, change: {{ routes.cart_change_url | json }}, root: {{ routes.root_url | json }} };
+</script>
+<script src="{{ 'lx2.js' | asset_url }}" defer></script>
+
+{%- assign menu = section.settings.menu | default: linklists['main-menu'] -%}
+<header class="lx2 lxh">
+  {%- if section.blocks.size > 0 -%}
+    <div class="lxh-ann" role="region" aria-label="הודעות">
+      <ul>
+        {%- for block in section.blocks -%}
+          <li {{ block.shopify_attributes }}>{{ block.settings.text | escape }}</li>
+        {%- endfor -%}
+      </ul>
+    </div>
+  {%- endif -%}
+  <div class="lxh-bar">
+    <div class="lx-wrap lxh-in">
+      <div class="lxh-start">
+        <button type="button" class="lxh-icon" data-lx-open="lx-menu-panel" aria-label="פתיחת תפריט" aria-controls="lx-menu-panel">{% render 'lx2-icon', name: 'menu' %}</button>
+      </div>
+      <a class="lxh-logo" href="{{ routes.root_url }}" aria-label="{{ shop.name }} — דף הבית">LORINX</a>
+      <nav class="lxh-nav" aria-label="ניווט ראשי">
+        {%- for link in menu.links -%}
+          {%- unless link.url == routes.root_url -%}
+            <a href="{{ link.url }}" {% if link.current %}aria-current="page"{% endif %}>{{ link.title | escape }}</a>
+          {%- endunless -%}
+        {%- endfor -%}
+      </nav>
+      <div class="lxh-tools">
+        <button type="button" class="lxh-icon" data-lx-search aria-label="חיפוש" aria-expanded="false">{% render 'lx2-icon', name: 'search' %}</button>
+        <a class="lxh-icon" href="{{ routes.cart_url }}" data-lx-open="lx-cart-panel" aria-label="סל הקניות">
+          {% render 'lx2-icon', name: 'bag' %}
+          <span class="lxh-count" data-lx-count {% if cart.item_count == 0 %}hidden{% endif %}>{{ cart.item_count }}</span>
+        </a>
+      </div>
+    </div>
+  </div>
+  <div class="lxh-search">
+    <div class="lx-wrap">
+      <form action="{{ routes.search_url }}" method="get" role="search">
+        <label class="lx-sr" for="lxh-q">חיפוש באתר</label>
+        <input id="lxh-q" type="search" name="q" placeholder="מה מחפשים?" value="{{ search.terms | escape }}" autocomplete="off">
+        <input type="hidden" name="type" value="product">
+        <button class="lx-btn" type="submit">חיפוש</button>
+      </form>
+    </div>
+  </div>
+</header>
+
+<div class="lx2 lx-panel lx-panel--start" id="lx-menu-panel" role="dialog" aria-modal="true" aria-label="תפריט" aria-hidden="true">
+  <div class="lx-panel__veil" data-lx-close></div>
+  <div class="lx-panel__box">
+    <div class="lx-panel__head">
+      <span class="lxh-logo">LORINX</span>
+      <button type="button" class="lxh-icon" data-lx-close aria-label="סגירת תפריט">{% render 'lx2-icon', name: 'close' %}</button>
+    </div>
+    <div class="lx-panel__body">
+      <nav class="lxm-nav" aria-label="ניווט ראשי">
+        {%- for link in menu.links -%}
+          <a href="{{ link.url }}" {% if link.current %}aria-current="page"{% endif %}>{{ link.title | escape }}{% render 'lx2-icon', name: 'arrow' %}</a>
+        {%- endfor -%}
+      </nav>
+      <div class="lxm-meta">
+        {%- for block in section.blocks -%}<span>{{ block.settings.text | escape }}</span>{%- endfor -%}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="lx2 lx-panel lx-panel--end" id="lx-cart-panel" role="dialog" aria-modal="true" aria-label="סל הקניות" aria-hidden="true">
+  <div class="lx-panel__veil" data-lx-close></div>
+  <div class="lx-panel__box">
+    <div class="lx-panel__head">
+      <span class="lx-panel__title">הסל שלכם</span>
+      <button type="button" class="lxh-icon" data-lx-close aria-label="סגירת הסל">{% render 'lx2-icon', name: 'close' %}</button>
+    </div>
+    <div id="lx-cart-mount" style="display:flex;flex-direction:column;flex:1;min-height:0" aria-live="polite"></div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "LORINX כותרת עליונה",
+  "max_blocks": 3,
+  "settings": [
+    { "type": "link_list", "id": "menu", "label": "תפריט ראשי", "default": "main-menu" }
+  ],
+  "blocks": [
+    {
+      "type": "announcement",
+      "name": "הודעה בפס העליון",
+      "settings": [{ "type": "text", "id": "text", "label": "טקסט", "default": "משלוח חינם לכל הארץ" }]
+    }
+  ]
+}
+{% endschema %}

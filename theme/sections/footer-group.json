@@ -1,0 +1,45 @@
+{
+  "type": "footer",
+  "name": "Footer group",
+  "sections": {
+    "lx2_footer": {
+      "type": "lx2-footer",
+      "blocks": {
+        "menu_1": {
+          "type": "menu",
+          "settings": {
+            "heading": "ניווט",
+            "menu": "main-menu"
+          }
+        },
+        "links_2": {
+          "type": "links",
+          "settings": {
+            "heading": "שירות",
+            "label_1": "צרו קשר",
+            "url_1": "shopify://pages/contact",
+            "label_2": "כמויות לחברות",
+            "url_2": "shopify://pages/כמויות-לחברות",
+            "label_3": "הסיפור שלנו",
+            "url_3": "shopify://pages/קצת-עלינו"
+          }
+        },
+        "policies_3": {
+          "type": "policies",
+          "settings": {
+            "heading": "מדיניות"
+          }
+        }
+      },
+      "block_order": [
+        "menu_1",
+        "links_2",
+        "policies_3"
+      ],
+      "settings": {}
+    }
+  },
+  "order": [
+    "lx2_footer"
+  ]
+}

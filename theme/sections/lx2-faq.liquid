@@ -1,0 +1,56 @@
+{%- comment -%} lx2 FAQ: native <details> accordion + FAQPage structured data. {%- endcomment -%}
+{%- liquid
+  assign show = true
+  if section.settings.only_for != blank and section.settings.only_for.handle != product.handle
+    assign show = false
+  endif
+-%}
+{%- if show -%}
+<section class="lx2 lx-sec lx-tone-{{ section.settings.tone }}" id="faq">
+  <div class="lx-wrap lx-split">
+    <div class="lx-head" data-lx-reveal>
+      {%- if section.settings.eyebrow != blank -%}<span class="lx-eyebrow">{{ section.settings.eyebrow | escape }}</span>{%- endif -%}
+      <h2 class="lx-h2">{{ section.settings.heading | escape }}</h2>
+      {%- if section.settings.text != blank -%}<p class="lx-lead">{{ section.settings.text | escape }}</p>{%- endif -%}
+      {%- if section.settings.link_label != blank -%}<div class="lx-actions"><a class="lx-link" href="{{ section.settings.link_url }}">{{ section.settings.link_label | escape }}{% render 'lx2-icon', name: 'arrow' %}</a></div>{%- endif -%}
+    </div>
+    <div class="lx-acc">
+      {%- for block in section.blocks -%}
+        <details {{ block.shopify_attributes }}>
+          <summary>{{ block.settings.q | escape }}<span class="lx-acc__x" aria-hidden="true"></span></summary>
+          <div class="lx-acc__body lx-rte">{{ block.settings.a }}</div>
+        </details>
+      {%- endfor -%}
+    </div>
+  </div>
+</section>
+{%- if section.blocks.size > 0 -%}
+<script type="application/ld+json">
+{ "@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
+  {%- for block in section.blocks -%}
+  { "@type": "Question", "name": {{ block.settings.q | json }}, "acceptedAnswer": { "@type": "Answer", "text": {{ block.settings.a | strip_html | json }} } }{% unless forloop.last %},{% endunless %}
+  {%- endfor -%}
+] }
+</script>
+{%- endif -%}
+{%- endif -%}
+{% schema %}
+{
+  "name": "LORINX שאלות נפוצות",
+  "max_blocks": 12,
+  "settings": [
+    { "type": "product", "id": "only_for", "label": "להציג רק במוצר (ריק = תמיד)" },
+    { "type": "text", "id": "eyebrow", "label": "כותרת עליונה", "default": "שאלות נפוצות" },
+    { "type": "text", "id": "heading", "label": "כותרת", "default": "לפני שמזמינים" },
+    { "type": "textarea", "id": "text", "label": "טקסט" },
+    { "type": "text", "id": "link_label", "label": "קישור" },
+    { "type": "url", "id": "link_url", "label": "כתובת קישור" },
+    { "type": "select", "id": "tone", "label": "רקע", "default": "bg", "options": [
+      { "value": "bg", "label": "בהיר" }, { "value": "surface", "label": "לבן חם" }, { "value": "sand", "label": "חול" }, { "value": "dark", "label": "כהה" } ] }
+  ],
+  "blocks": [{ "type": "qa", "name": "שאלה", "settings": [
+    { "type": "text", "id": "q", "label": "שאלה" },
+    { "type": "richtext", "id": "a", "label": "תשובה" } ] }],
+  "presets": [{ "name": "LORINX שאלות נפוצות" }]
+}
+{% endschema %}

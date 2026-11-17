@@ -1,0 +1,158 @@
+{
+  "sections": {
+    "main": {
+      "type": "lx2-page",
+      "settings": {
+        "eyebrow": "הסיפור שלנו",
+        "heading": "לפעמים מותג לא מתחיל במוצר. הוא מתחיל בתחושה.",
+        "text": "לפני ש־LORINX הייתה אתר, לוגו, אריזות או הזמנות, היה רעיון.",
+        "show_content": false,
+        "wide": true
+      }
+    },
+    "start": {
+      "type": "lx2-list",
+      "blocks": {
+        "item_1": {
+          "type": "item",
+          "settings": {
+            "title": "",
+            "text": "הרעיון נולד מתוך שנים של עבודה, ניסיון והיכרות עם עולם המוצרים, ומתוך שאלה אחת שחזרה על עצמה."
+          }
+        },
+        "item_2": {
+          "type": "item",
+          "settings": {
+            "title": "",
+            "text": "בדרך ראינו מוצרים שנראים מעולה מבחוץ אבל לא מספקים את מה שהבטיחו, וראינו מוצרים פשוטים שנשארו בבית שנים. שם התחיל להתגבש הרעיון של LORINX."
+          }
+        }
+      },
+      "block_order": [
+        "item_1",
+        "item_2"
+      ],
+      "settings": {
+        "tone": "surface",
+        "layout": "split",
+        "numbered": false,
+        "eyebrow": "01 · ההתחלה",
+        "heading": "למה כל כך קשה למצוא מוצרים שבאמת מרגישים שנבחרו בשבילנו?"
+      }
+    },
+    "idea": {
+      "type": "lx2-list",
+      "blocks": {
+        "item_1": {
+          "type": "item",
+          "settings": {
+            "title": "האם הוא באמת שימושי?",
+            "text": ""
+          }
+        },
+        "item_2": {
+          "type": "item",
+          "settings": {
+            "title": "האם הוא הופך את היום לנוח יותר?",
+            "text": ""
+          }
+        },
+        "item_3": {
+          "type": "item",
+          "settings": {
+            "title": "האם האיכות מספיקה כדי לעמוד מאחוריו?",
+            "text": ""
+          }
+        },
+        "item_4": {
+          "type": "item",
+          "settings": {
+            "title": "היינו שמחים לקבל אותו הביתה?",
+            "text": ""
+          }
+        }
+      },
+      "block_order": [
+        "item_1",
+        "item_2",
+        "item_3",
+        "item_4"
+      ],
+      "settings": {
+        "tone": "bg",
+        "layout": "split",
+        "numbered": true,
+        "eyebrow": "02 · הרעיון",
+        "heading": "לא רצינו להקים עוד חנות. רצינו לבנות מותג עם אופי.",
+        "text": "החלק הקל הוא למצוא מוצר. החלק הקשה הוא למצוא מוצר שראוי להיות חלק מהמותג. לפני שמוצר נכנס, אנחנו שואלים ארבע שאלות.",
+        "note": "אם התשובה לא הייתה ״כן״ אמיתי, המשכנו הלאה."
+      }
+    },
+    "values": {
+      "type": "lx2-list",
+      "blocks": {
+        "item_1": {
+          "type": "item",
+          "settings": {
+            "title": "איכות לפני כמות",
+            "text": "אנחנו מעדיפים לבחור נכון מאשר לבחור הרבה."
+          }
+        },
+        "item_2": {
+          "type": "item",
+          "settings": {
+            "title": "ערך לפני טרנד",
+            "text": "לא כל דבר פופולרי הוא דבר שאנחנו צריכים."
+          }
+        },
+        "item_3": {
+          "type": "item",
+          "settings": {
+            "title": "אמינות לפני הבטחות",
+            "text": "מוצר צריך לדבר בעד עצמו."
+          }
+        },
+        "item_4": {
+          "type": "item",
+          "settings": {
+            "title": "אנשים לפני הכול",
+            "text": "מאחורי כל הזמנה עומד אדם שנתן לנו את האמון שלו."
+          }
+        }
+      },
+      "block_order": [
+        "item_1",
+        "item_2",
+        "item_3",
+        "item_4"
+      ],
+      "settings": {
+        "tone": "dark",
+        "layout": "cols-2",
+        "numbered": false,
+        "eyebrow": "03 · הערכים שלנו",
+        "heading": "מה חשוב לנו באמת."
+      }
+    },
+    "trust": {
+      "type": "lx2-cta",
+      "settings": {
+        "tone": "sand",
+        "eyebrow": "04 · אמון",
+        "heading": "כשמישהו בוחר לקנות מאיתנו, הוא נותן לנו משהו שאי אפשר למדוד בכסף.",
+        "text": "אמון שהמוצר שווה את הכסף, שהוא באמת כמו שתיארנו אותו, ושנהיה שם אם תצטרכו אותנו. מבחינתנו, זו אחריות.",
+        "cta_label": "לכל המוצרים",
+        "cta_url": "shopify://collections/all",
+        "link_label": "דברו איתנו",
+        "link_url": "shopify://pages/contact"
+      }
+    }
+  },
+  "order": [
+    "main",
+    "start",
+    "idea",
+    "values",
+    "trust"
+  ]
+}

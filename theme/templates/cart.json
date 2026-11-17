@@ -1,0 +1,59 @@
+{
+  "sections": {
+    "main": {
+      "type": "lx2-cart",
+      "settings": {}
+    },
+    "assure": {
+      "type": "lx2-facts",
+      "blocks": {
+        "fact_1": {
+          "type": "fact",
+          "settings": {
+            "icon": "truck",
+            "title": "משלוח חינם",
+            "text": "לכל הארץ, 7–14 ימי עסקים."
+          }
+        },
+        "fact_2": {
+          "type": "fact",
+          "settings": {
+            "icon": "return",
+            "title": "14 יום להחזרה",
+            "text": "מרגע קבלת המוצר, בלי דמי ביטול."
+          }
+        },
+        "fact_3": {
+          "type": "fact",
+          "settings": {
+            "icon": "shield",
+            "title": "אחריות לשנה",
+            "text": "על המכשיר, ישירות מ־LORINX."
+          }
+        },
+        "fact_4": {
+          "type": "fact",
+          "settings": {
+            "icon": "chat",
+            "title": "שירות בעברית",
+            "text": "לפני ואחרי הרכישה."
+          }
+        }
+      },
+      "block_order": [
+        "fact_1",
+        "fact_2",
+        "fact_3",
+        "fact_4"
+      ],
+      "settings": {
+        "tone": "surface",
+        "label": "התחייבויות השירות שלנו"
+      }
+    }
+  },
+  "order": [
+    "main",
+    "assure"
+  ]
+}

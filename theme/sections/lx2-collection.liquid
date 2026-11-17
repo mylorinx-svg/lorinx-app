@@ -1,0 +1,48 @@
+{%- comment -%} lx2 collection: heading, sort, product grid, pagination. {%- endcomment -%}
+<div class="lx2">
+  <div class="lx-wrap">
+    <header class="lx-pagehero">
+      <span class="lx-eyebrow">{{ section.settings.eyebrow | escape }}</span>
+      <h1 class="lx-h1">{% if collection.handle == 'all' %}{{ section.settings.all_title | escape }}{% else %}{{ collection.title | escape }}{% endif %}</h1>
+      <p class="lx-lead" style="margin-top:18px">{% if collection.description != blank %}{{ collection.description | strip_html }}{% else %}{{ section.settings.text | escape }}{% endif %}</p>
+    </header>
+    {%- paginate collection.products by 12 -%}
+      <div class="lx-toolbar">
+        <span>{{ collection.products_count }} מוצרים</span>
+        <label>
+          <span class="lx-sr">מיון</span>
+          <select data-lx-sort aria-label="מיון מוצרים">
+            {%- assign sort_by = collection.sort_by | default: collection.default_sort_by -%}
+            {%- for option in collection.sort_options -%}
+              <option value="{{ option.value }}" {% if option.value == sort_by %}selected{% endif %}>{{ option.name }}</option>
+            {%- endfor -%}
+          </select>
+        </label>
+      </div>
+      {%- if collection.products.size == 0 -%}
+        <div class="lx-cart__empty"><h2 class="lx-h3">עוד אין כאן מוצרים</h2><p>נסו לחזור לכל המוצרים.</p><a class="lx-btn" href="{{ routes.all_products_collection_url }}">לכל המוצרים</a></div>
+      {%- else -%}
+        <ul class="lx-grid lx-grid--4" style="padding-bottom:var(--lx-sec)">
+          {%- for p in collection.products -%}<li>{% render 'lx2-card', product: p %}</li>{%- endfor -%}
+        </ul>
+      {%- endif -%}
+      {%- if paginate.pages > 1 -%}
+        <nav class="lx-pager" aria-label="עמודים" style="margin:-40px 0 var(--lx-sec)">
+          {%- for part in paginate.parts -%}
+            {%- if part.is_link -%}<a href="{{ part.url }}">{{ part.title }}</a>{%- else -%}<span class="{% if part.title == paginate.current_page %}is-cur{% endif %}">{{ part.title }}</span>{%- endif -%}
+          {%- endfor -%}
+        </nav>
+      {%- endif -%}
+    {%- endpaginate -%}
+  </div>
+</div>
+{% schema %}
+{
+  "name": "LORINX קולקציה",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "כותרת עליונה", "default": "הקולקציה" },
+    { "type": "text", "id": "all_title", "label": "כותרת לעמוד כל המוצרים", "default": "כל המוצרים" },
+    { "type": "textarea", "id": "text", "label": "טקסט ברירת מחדל", "default": "מכשירים לשחרור והרפיה בבית, עם אחריות לשנה ושירות בעברית." }
+  ]
+}
+{% endschema %}

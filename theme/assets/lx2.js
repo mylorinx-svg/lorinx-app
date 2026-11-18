@@ -372,6 +372,11 @@
     }, { passive: true });
   }
 
+  // The header is transparent over the hero and gains its glass bar once the page scrolls.
+  var setScrolled = function () { root.classList.toggle('lx-scrolled', window.scrollY > 24); };
+  window.addEventListener('scroll', setScrolled, { passive: true });
+  setScrolled();
+
   /* ==========================================================================
      Motion 4b — "move to focus": the hero photograph sits under a soft blur and the
      pointer opens a sharp window that trails behind it, so the picture seems to drag

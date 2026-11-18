@@ -508,8 +508,9 @@ body.lx-has-sticky .lx2-footer { padding-bottom: 76px; }
   .lx-hero__stat:last-child { border-inline-end: 0; }
 }
 /* the header sits transparently over the hero on the home page */
-.lx-over-hero .lxh-bar { background: rgba(8, 8, 8, 0.28); border-bottom-color: transparent; }
-.lx-over-hero .lxh-ann { background: transparent; border-bottom-color: var(--lx-glass-line); }
+.lxh-bar, .lxh-ann { transition: background 0.4s var(--lx-ease), border-color 0.4s var(--lx-ease); }
+html:not(.lx-scrolled) .lx-over-hero .lxh-bar { background: transparent; border-bottom-color: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; }
+html:not(.lx-scrolled) .lx-over-hero .lxh-ann { background: transparent; border-bottom-color: rgba(255, 255, 255, 0.14); color: rgba(244, 241, 234, 0.85); }
 
 /* ---------- Intro curtain (first page view of a session, pure CSS) ---------- */
 .lx-intro { position: fixed; inset: 0; z-index: 200; background: #050505; display: grid; place-items: center; pointer-events: none; animation: lx-intro-out 0.7s var(--lx-out) 0.95s forwards; }
@@ -603,12 +604,13 @@ body.lx-has-sticky .lx2-footer { padding-bottom: 76px; }
 }
 
 /* ---------- Hero with a full-bleed photograph (people in motion) ---------- */
-.lx-hero__bg { position: absolute; inset: -6% 0; z-index: 0; overflow: hidden; }
-.lx-hero__bg > img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 35%; translate: 0 var(--lx-py, 0px); scale: 1.06; animation: lx-drift 22s ease-in-out infinite alternate; }
-.lx-hero--photo::before { content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+.lx-hero--photo { background: #0a1436; }
+.lx-hero__bg { position: absolute; inset: 64px 0 -8% 0; z-index: 0; overflow: hidden; -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 120px); mask-image: linear-gradient(180deg, transparent 0, #000 120px); }
+.lx-hero__bg > img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 0%; translate: 0 var(--lx-py, 0px); scale: 1.06; animation: lx-drift 22s ease-in-out infinite alternate; }
+.lx-hero--photo::after { content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(8, 8, 8, 0.62) 0%, rgba(8, 8, 8, 0.12) 24%, rgba(8, 8, 8, 0.18) 48%, rgba(8, 8, 8, 0.78) 82%, var(--lx-bg) 100%),
-    linear-gradient(270deg, rgba(8, 8, 8, 0.55) 0%, rgba(8, 8, 8, 0) 62%); }
+    linear-gradient(180deg, rgba(6, 10, 26, 0.5) 0%, rgba(8, 8, 8, 0) 20%, rgba(8, 8, 8, 0.1) 45%, rgba(8, 8, 8, 0.72) 80%, var(--lx-bg) 100%),
+    linear-gradient(270deg, rgba(8, 8, 8, 0.6) 0%, rgba(8, 8, 8, 0.12) 55%, rgba(8, 8, 8, 0) 75%); }
 .lx-hero--photo .lx-hero__in { z-index: 1; }
 .lx-hero--photo .lx-hero__stage { grid-template-columns: minmax(0, 1fr); align-content: end; }
 .lx-hero--photo .lx-hero__copy { max-width: 760px; }
@@ -621,7 +623,7 @@ body.lx-has-sticky .lx2-footer { padding-bottom: 76px; }
 .lx-js .lx-hero__bg > img { opacity: 0; transition: opacity 1.8s var(--lx-ease); transition-delay: calc(var(--lx-d, 0ms) - 200ms); }
 .lx-js.lx-ready .lx-hero__bg > img { opacity: 1; }
 @keyframes lx-drift { from { transform: scale(1) translate3d(0, 0, 0); } to { transform: scale(1.07) translate3d(-1.2%, 0, 0); } }
-@media (max-width: 749px) { .lx-hero__bg > img { object-position: 62% 35%; } }
+@media (max-width: 749px) { .lx-hero__bg > img { object-position: 60% 0%; } }
 @media (prefers-reduced-motion: reduce) { .lx-hero__bg > img { animation: none; opacity: 1 !important; } }
 
 /* "Move to focus": a blur veil over the hero photograph with a sharp window at the pointer */

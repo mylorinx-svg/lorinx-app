@@ -373,6 +373,42 @@
   }
 
   /* ==========================================================================
+     Motion 4b — "move to focus": the hero photograph sits under a soft blur and the
+     pointer opens a sharp window that trails behind it, so the picture seems to drag
+     with the movement. Fine pointers only; touch devices get the plain sharp image.
+     ========================================================================== */
+  var focus = q('[data-lx-focus]');
+  if (focus && finePointer && !reduce) {
+    var hero = focus.closest('[data-lx-hero]') || focus.parentElement;
+    var fx = 0.5, fy = 0.45, gx = 0.5, gy = 0.45, fr = 0, grow = 0, target = 0, live = false, idleAt = 0, fraf = 0;
+    var paint = function (now) {
+      fraf = 0;
+      if (now - idleAt > 2600) { // nobody moving: let the window wander slowly
+        gx = 0.5 + 0.28 * Math.sin(now / 5200);
+        gy = 0.46 + 0.14 * Math.cos(now / 4100);
+        target = 0.8;
+      }
+      fx += (gx - fx) * 0.075; fy += (gy - fy) * 0.075;
+      grow += (target - grow) * 0.06;
+      focus.style.setProperty('--fx', (fx * 100).toFixed(2) + '%');
+      focus.style.setProperty('--fy', (fy * 100).toFixed(2) + '%');
+      focus.style.setProperty('--fr', (150 + grow * 190).toFixed(0) + 'px');
+      if (live && !d.hidden) fraf = requestAnimationFrame(paint);
+    };
+    var kick = function () { if (!fraf && live) fraf = requestAnimationFrame(paint); };
+    hero.addEventListener('pointermove', function (e) {
+      var r = hero.getBoundingClientRect();
+      gx = (e.clientX - r.left) / r.width; gy = (e.clientY - r.top) / r.height;
+      target = 1; idleAt = performance.now();
+    }, { passive: true });
+    focus.classList.add('is-on');
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (es) { live = es[0].isIntersecting; kick(); }).observe(hero);
+    } else { live = true; kick(); }
+    d.addEventListener('visibilitychange', kick);
+  }
+
+  /* ==========================================================================
      Motion 5 — "ember" aura: an original WebGL fragment shader (domain-warped noise in
      the device's own red light). Drawn at reduced resolution, capped at ~30fps, paused
      when off-screen or when the tab is hidden. Falls back to a CSS gradient.

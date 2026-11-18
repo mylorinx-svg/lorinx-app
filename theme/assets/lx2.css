@@ -601,3 +601,36 @@ body.lx-has-sticky .lx2-footer { padding-bottom: 76px; }
   .lx-w > span { transform: none; }
   .lx-marquee__track { animation: none; }
 }
+
+/* ---------- Hero with a full-bleed photograph (people in motion) ---------- */
+.lx-hero__bg { position: absolute; inset: -6% 0; z-index: 0; overflow: hidden; }
+.lx-hero__bg > img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 35%; translate: 0 var(--lx-py, 0px); scale: 1.06; animation: lx-drift 22s ease-in-out infinite alternate; }
+.lx-hero--photo::before { content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(8, 8, 8, 0.62) 0%, rgba(8, 8, 8, 0.12) 24%, rgba(8, 8, 8, 0.18) 48%, rgba(8, 8, 8, 0.78) 82%, var(--lx-bg) 100%),
+    linear-gradient(270deg, rgba(8, 8, 8, 0.55) 0%, rgba(8, 8, 8, 0) 62%); }
+.lx-hero--photo .lx-hero__in { z-index: 1; }
+.lx-hero--photo .lx-hero__stage { grid-template-columns: minmax(0, 1fr); align-content: end; }
+.lx-hero--photo .lx-hero__copy { max-width: 760px; }
+.lx-hero--photo .lx-h1 { font-weight: 400; text-shadow: 0 2px 40px rgba(0, 0, 0, 0.35); }
+.lx-hero--photo .lx-lead { color: rgba(244, 241, 234, 0.86); }
+.lx-hero--photo .lx-hero__meta { color: rgba(244, 241, 234, 0.8); }
+.lx-hero--photo .lx-hero__rail { border-top-color: rgba(255, 255, 255, 0.18); }
+.lx-hero--photo .lx-hero__stat, .lx-hero--photo .lx-hero__stat:nth-child(odd) { border-color: rgba(255, 255, 255, 0.18); }
+.lx-hero--photo .lx-hero__stat span { color: rgba(244, 241, 234, 0.74); }
+.lx-js .lx-hero__bg > img { opacity: 0; transition: opacity 1.8s var(--lx-ease); transition-delay: calc(var(--lx-d, 0ms) - 200ms); }
+.lx-js.lx-ready .lx-hero__bg > img { opacity: 1; }
+@keyframes lx-drift { from { transform: scale(1) translate3d(0, 0, 0); } to { transform: scale(1.07) translate3d(-1.2%, 0, 0); } }
+@media (max-width: 749px) { .lx-hero__bg > img { object-position: 62% 35%; } }
+@media (prefers-reduced-motion: reduce) { .lx-hero__bg > img { animation: none; opacity: 1 !important; } }
+
+/* "Move to focus": a blur veil over the hero photograph with a sharp window at the pointer */
+.lx-hero__focus { position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: 0; transition: opacity 1.4s var(--lx-ease) 1.2s;
+  -webkit-backdrop-filter: blur(9px) saturate(1.05); backdrop-filter: blur(9px) saturate(1.05);
+  -webkit-mask-image: radial-gradient(circle var(--fr, 220px) at var(--fx, 50%) var(--fy, 45%), transparent 0, transparent 42%, #000 100%);
+  mask-image: radial-gradient(circle var(--fr, 220px) at var(--fx, 50%) var(--fy, 45%), transparent 0, transparent 42%, #000 100%); }
+.lx-ready .lx-hero__focus.is-on { opacity: 1; }
+.lx-hero__hint { display: none; align-items: center; gap: 8px; }
+.lx-hero__hint::before { content: ''; width: 9px; height: 9px; border-radius: 50%; border: 1px solid currentColor; box-shadow: 0 0 0 3px rgba(244, 241, 234, 0.12); }
+@media (hover: hover) and (pointer: fine) { .lx-hero__hint { display: inline-flex; } }
+@media (prefers-reduced-motion: reduce) { .lx-hero__focus, .lx-hero__hint { display: none !important; } }

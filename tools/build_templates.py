@@ -115,16 +115,16 @@ footer.dump('sections/footer-group.json', OrderedDict(type='footer', name='Foote
 # --------------------------------------------------------------------------- home
 home = Template()
 home.add('hero', 'lx2-hero', {
-    'image': img('ChatGPT_Image_1.png'), 'aura': 100,
-    'eyebrow': 'LORINX · ריקוברי ביתי', 'index': '01 — כוס רוח חשמלית',
-    'heading': 'רגע של שחרור.\nבבית, בזמן שלכם.',
-    'text': 'כוס רוח חשמלית עם שאיבה מדורגת, חימום מבוקר ואור אדום. רבע שעה לאזור, בלי לצאת מהבית.',
-    'cta_label': 'לכוס הרוח החשמלית', 'cta_url': CUP_URL,
+    'bg_asset': 'lx2-hero-runners.jpg', 'aura': 0, 'focus': True, 'focus_hint': 'הזיזו כדי למקד',
+    'eyebrow': 'LORINX · התאוששות, כושר, ספורט',
+    'heading': 'כל אימון\nנגמר ברגע\nשל שחרור.',
+    'text': 'מכשירי התאוששות לבית: לפני האימון, אחריו, ובסוף יום ארוך.',
+    'cta_label': 'לכל המוצרים', 'cta_url': ALL_URL,
     'link_label': 'איך זה עובד', 'link_url': '#how',
-}, [('stat', {'value': '12', 'label': 'דרגות עוצמה, מתחילים נמוך'}),
-    ('stat', {'value': '15 דק׳', 'label': 'כיבוי אוטומטי בסוף השימוש'}),
-    ('stat', {'value': 'חום + אור', 'label': 'חימום מבוקר ואור אדום'}),
-    ('stat', {'value': 'אלחוטית', 'label': 'נטענת, בלי כבלים בזמן השימוש'})])
+}, [('stat', {'value': 'משלוח חינם', 'label': 'לכל הארץ, 7–14 ימי עסקים'}),
+    ('stat', {'value': '14 יום', 'label': 'להחזרה, בלי דמי ביטול'}),
+    ('stat', {'value': 'שנה', 'label': 'אחריות על כל מכשיר'}),
+    ('stat', {'value': 'בעברית', 'label': 'שירות לפני ואחרי הרכישה'})])
 home.add('words', 'lx2-marquee', {'speed': 44}, [('word', {'text': t}) for t in ('שחרור', 'חום', 'רוגע', 'שגרה', 'בבית')])
 home.add('how', 'lx2-list', {
     'anchor': 'how', 'tone': 'dark', 'layout': 'steps', 'numbered': True,

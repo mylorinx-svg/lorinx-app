@@ -83,3 +83,17 @@ Not changed, for the owner to confirm: the six WhatsApp screenshots (genuine, sh
 ## Files added or changed in version 2
 
 Added: `sections/lx2-marquee.liquid`. Changed: `assets/lx2.css`, `assets/lx2.js`, `sections/lx2-hero`, `lx2-header`, `lx2-cta`, `lx2-list`, `lx2-media-text`, `lx2-featured-product`, `lx2-product`, `lx2-products`, `lx2-reviews`, `lx2-faq`, `lx2-facts`, `lx2-dos-donts`, `lx2-page`, `lx2-footer`, `lx2-cart`, `lx2-cart-drawer`, `snippets/lx2-buybox`, `snippets/lx2-title`, `templates/index.json`, `templates/product.json`, `templates/page.contact.json`.
+
+## Update, 18 November 2026 — hero with people in motion
+
+After seeing the GetLayers "Stride Nine" layer, the owner asked for that idea only: athletes in motion across the whole hero, fitting a recovery, fitness and sport store. Everything else stays as it is. The cupping product and the extra widgets of that layer were explicitly not wanted.
+
+- The home hero is now a full-bleed photograph of two sprinters at dusk. The floating product image, the ember shader in the hero and the product fact rail were removed; the rail now carries the four service assurances.
+- Copy is brand-level: "כל אימון נגמר ברגע של שחרור." with "מכשירי התאוששות לבית: לפני האימון, אחריו, ובסוף יום ארוך." Primary button goes to all products.
+- Motion: the photograph drifts slowly, moves a little against scroll, and sits under a soft blur that opens into a sharp window which trails the pointer ("move to focus", an original take on the interaction in the reference). On touch screens and under reduced motion the image is simply sharp.
+- The header is transparent over the hero and becomes the glass bar once the page scrolls.
+- The photograph (`assets/lx2-hero-runners.jpg`, 1920×1080, 195 KB) was generated with Canva's image generator at the owner's request. It shows no product, no text and no brand; two logo-like marks on the shoes were painted out. It lives only in the draft theme's assets. It is an AI-generated image of fictional people, not a photo of real athletes or customers.
+- The layer itself was not copied: no asset, code or layout from GetLayers is in the theme (its MCP still needs the owner's sign-in).
+- The section accepts a background image from the theme editor, so the picture can be replaced without code.
+
+**Not done:** a moving video background. The reference uses real video; this version animates a still image. A 6–10 second looping clip of the same scene would be the next step. It needs a video generator (the owner offered Kling access) or the Canva video tool, which requires the owner's explicit approval because it uses the account's AI limit and outputs 720p at most.

@@ -390,7 +390,7 @@
     var heroEl = hv.closest('[data-lx-hero]') || hv.parentElement;
     var bgEl = hv.parentElement;
     var frozen = false, started = false, glOk = false;
-    var TRAIL = 24;
+    var TRAIL = 12;
 
     var plainFreeze = function () { frozen = true; };
     var slowDown = function () {
@@ -404,8 +404,8 @@
     /* ---- WebGL drag layer ---- */
     var cv = null, gl = null, tex = null, U = {}, ring = [], pos = { x: 0.5, y: 0.5 }, raw = { x: 0.5, y: 0.5 };
     var lastMove = 0, drawRaf = 0, energy = 0, haveFrame = false;
-    var VERT = 'attribute vec2 p;varying vec2 v;void main(){v=p*.5+.5;gl_Position=vec4(p,0.,1.);}';
-    var FRAG = [
+    var DRAG_VERT = 'attribute vec2 p;varying vec2 v;void main(){v=p*.5+.5;gl_Position=vec4(p,0.,1.);}';
+    var DRAG_FRAG = [
       'precision mediump float;',
       'varying vec2 v; uniform sampler2D tex; uniform vec2 cov; uniform vec2 opos; uniform float asp;',
       'uniform vec2 tp[' + TRAIL + ']; uniform vec2 tv[' + TRAIL + '];',
@@ -433,8 +433,8 @@
         if (!gl) return false;
         var mk = function (t, src) { var sh = gl.createShader(t); gl.shaderSource(sh, src); gl.compileShader(sh); return sh; };
         var prg = gl.createProgram();
-        gl.attachShader(prg, mk(gl.VERTEX_SHADER, VERT));
-        gl.attachShader(prg, mk(gl.FRAGMENT_SHADER, FRAG));
+        gl.attachShader(prg, mk(gl.VERTEX_SHADER, DRAG_VERT));
+        gl.attachShader(prg, mk(gl.FRAGMENT_SHADER, DRAG_FRAG));
         gl.linkProgram(prg);
         if (!gl.getProgramParameter(prg, gl.LINK_STATUS)) return false;
         gl.useProgram(prg);

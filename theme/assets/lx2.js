@@ -378,8 +378,9 @@
   setScrolled();
 
   /* ==========================================================================
-     Hero motion: the 3.2 s clip of the runners loops forever and cuts straight back to the
-     start when it ends (no fade, and the echo is reset so no ghost carries over). It is drawn through a small WebGL pipeline: pass 1 keeps a short per-channel
+     Hero motion: the 5 s clip loops forever. The runners sprint in from the left edge, run in
+     place, then sprint out of the right edge onto an empty track; its last frame equals its first,
+     so the wrap is invisible (the echo is also reset on the wrap as a safeguard). It is drawn through a small WebGL pipeline: pass 1 keeps a short per-channel
      "echo" of the previous frames, so moving things leave a soft colour smear (red lags most,
      blue least) while the still background stays sharp; pass 2 adds a gentle blur that grows
      toward the edges. Nothing reacts to the pointer. Without WebGL the plain looping video is

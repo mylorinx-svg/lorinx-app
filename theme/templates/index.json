@@ -40,7 +40,7 @@
       ],
       "settings": {
         "bg_asset": "lx2-hero-runners.jpg",
-        "bg_video": "lx2-hero-runners.mp4",
+        "bg_video": "https://cdn.shopify.com/videos/c/vp/f8a204ef1347444e8980b4eb4fb4c952/f8a204ef1347444e8980b4eb4fb4c952.HD-720p-1.6Mbps-102022456.mp4",
         "aura": 0,
         "focus": true,
         "focus_hint": "הזיזו כדי למקד",

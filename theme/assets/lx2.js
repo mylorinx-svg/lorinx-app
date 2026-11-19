@@ -496,7 +496,7 @@
       lastDraw = now;
       var ca = w / h, ia = (hv.videoWidth || 16) / (hv.videoHeight || 9);
       var sx = ca > ia ? 1 : ca / ia, sy = ca > ia ? ia / ca : 1;
-      var Z = small ? 1.1 : 1.28; sx /= Z; sy /= Z; // move in closer to the runners
+      var Z = small ? 1.08 : 1.18; sx /= Z; sy /= Z; // move in closer to the runners
       var next = 1 - cur;
       // pass 1: echo into the other target
       bind(progs.echo);

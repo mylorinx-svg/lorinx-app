@@ -623,7 +623,7 @@ html:not(.lx-scrolled) .lx-over-hero .lxh-ann { background: transparent; border-
 .lx-js .lx-hero__bg > img { opacity: 0; transition: opacity 1.8s var(--lx-ease); transition-delay: calc(var(--lx-d, 0ms) - 200ms); }
 .lx-js.lx-ready .lx-hero__bg > img { opacity: 1; }
 @keyframes lx-drift { from { transform: scale(1) translate3d(0, 0, 0); } to { transform: scale(1.07) translate3d(-1.2%, 0, 0); } }
-@media (min-width: 750px) { .lx-hero__bg > img, .lx-hero__bg > video { object-position: 100% 0%; } }
+@media (min-width: 750px) { .lx-hero__bg > img, .lx-hero__bg > video { object-position: 20% 0%; } }
 @media (max-width: 749px) { .lx-hero__bg > img { object-position: 60% 0%; } }
 @media (prefers-reduced-motion: reduce) { .lx-hero__bg > img { animation: none; opacity: 1 !important; } }
 

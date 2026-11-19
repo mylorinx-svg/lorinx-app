@@ -103,8 +103,19 @@ After seeing the GetLayers "Stride Nine" layer, the owner asked for that idea on
 - The owner generated a clip in Kling (image-to-video from the runners still) and supplied the file. It was 1280×720, 5 s, with audio and a "KlingAI 4.0" watermark in the bottom-right corner.
 - Processing: audio removed; trimmed to the first 3.7 s, because the runners leave the frame after that; re-encoded (H.264, 691 KB).
 - Hosting: uploaded to the store's Files through Shopify's video upload (staged upload + `fileCreate`). Shopify serves a 720p rendition from its CDN. This adds one file to Files; it does not touch the live theme.
-- Hero behaviour: the still image paints first; the clip is fetched only after the page has loaded, fades in over the still, dissolves back to it shortly before the end and restarts, so the loop is a cross-fade rather than a jump. No video under reduced motion or data-saver; paused off-screen and when the tab is hidden.
-- The "move to focus" blur was made lighter and its sharp window larger, so it does not hide the motion.
+- Hero behaviour (first version, replaced the same day, see below): the clip faded out and restarted in a loop. The owner found the loop transition unattractive.
 - TESTED in headless Chromium on the preview: the clip loads from the Shopify CDN, plays, fades out before the end and restarts. NOT TESTED: real phones, iOS Safari autoplay, mobile data cost.
 - Known limits: the clip is 720p, so it is soft on large screens; the watermark is still in the file — in the hero it falls in the cropped, darkened bottom edge, but it is not removed. For publishing, replace it with a watermark-free 1080p export (one field in the hero section settings).
 - One failed upload attempt (a generic file entry named `lx2-hero-runners.mp4`) is stuck in "processing" in Files and could not be deleted while pending; it can be removed from Content → Files.
+
+## Update, 19 November 2026 (later) — play once, hold, and drag the air
+
+The owner disliked the loop transition and asked for something closer to the "Stride Nine" layer on getlayers.ai, whose hero is one continuous picture where the air "catches and drags" with the pointer. What the reference page showed in this environment was a still preview and its description; its live interaction was not seen. This is an original interpretation, not a copy.
+
+- **No loop.** The clip (now 3.2 s, 638 KB, hosted in Shopify Files at 720p) plays once, its playback rate eases down over the last second, and it holds on the final frame, where both runners are mid-stride to the left of the headline. It never restarts.
+- **Air drag (desktop with a mouse).** The picture is drawn through a small WebGL shader. Moving the pointer pushes the image along the path of the cursor with a soft trail and a faint colour fringe, then it settles. It first-paints as the still, then switches to the shader once the clip can play. Touch screens get the plain video (plays once, holds); reduced motion and data-saver get the still.
+- The earlier blur veil ("move to focus") was removed.
+- Bug found and fixed while testing: two shaders in `lx2.js` shared the name `FRAG`, so the hero first rendered the ember shader and showed a black hero; the hero shader is now `DRAG_FRAG`.
+- **TESTED** (headless Chromium, software WebGL, preview URL): the clip plays once, slows from 1.0× to 0.1× and pauses without ending in a restart; the canvas is live; the pointer visibly changes the picture (about 14% of pixels differ during a drag) and it settles afterwards; no theme JavaScript errors. The mobile path (plain video) plays once and holds.
+- **NOT TESTED:** frame rate and battery on real hardware (the shader draws at most 1600 px wide with a 12-point trail, and redraws only while the clip plays or the pointer moves), Safari, iOS autoplay, a real mouse feel (all pointer movement in the tests was scripted).
+- Still open from before: the Kling watermark remains in the file (it sits in the bottom-right edge, under the dark scrim); a watermark-free 1080p export should replace it before publishing. The first, failed upload (`lx2-hero-runners.mp4`, a generic file stuck in "processing") should be deleted by hand in Content → Files.

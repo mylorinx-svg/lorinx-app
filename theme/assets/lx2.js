@@ -378,84 +378,169 @@
   setScrolled();
 
   /* ==========================================================================
-     Hero background video. The still image is the first paint; the clip is fetched only
-     after the page is ready, fades in over the still, and dissolves back to it shortly
-     before the end so each restart is a soft cross-fade rather than a jump. It is skipped
-     under reduced motion and on data-saver connections, and paused when off-screen.
+     Hero motion: the clip plays ONCE, slows as if time is being caught, and holds on its last
+     frame (no loop, no restart). On fine pointers the picture is drawn through an original
+     WebGL shader in which the pointer drags the "air": displacement and a slight colour split
+     trail behind the cursor and settle back. Touch screens, reduced motion and data-saver get
+     the plain video (or just the still) instead.
      ========================================================================== */
   var hv = q('video[data-lx-herovideo]');
   var saveData = navigator.connection && navigator.connection.saveData;
   if (hv && !reduce && !saveData) {
-    var hvVisible = true, hvStarted = false;
-    var hvPlay = function () {
-      var pr = hv.play();
-      if (pr && pr.then) pr.then(function () { hv.classList.add('is-on'); }).catch(function () {});
-      else hv.classList.add('is-on');
+    var heroEl = hv.closest('[data-lx-hero]') || hv.parentElement;
+    var bgEl = hv.parentElement;
+    var frozen = false, started = false, glOk = false;
+    var TRAIL = 24;
+
+    var plainFreeze = function () { frozen = true; };
+    var slowDown = function () {
+      // ease the playback rate down over the last second, then hold the final frame
+      if (frozen || hv.paused) return;
+      var rem = hv.duration - hv.currentTime;
+      if (rem < 1.15) hv.playbackRate = Math.max(0.1, rem / 1.15);
+      if (rem < 0.07) { hv.pause(); plainFreeze(); }
     };
-    hv.addEventListener('timeupdate', function () {
-      if (hv.duration && hv.duration - hv.currentTime < 0.75) hv.classList.remove('is-on');
-    });
-    hv.addEventListener('ended', function () {
-      hv.currentTime = 0;
-      setTimeout(function () { if (hvVisible && !d.hidden) hvPlay(); }, 450);
-    });
-    var hvStart = function () {
-      if (hvStarted) return;
-      hvStarted = true;
-      hv.muted = true;
+
+    /* ---- WebGL drag layer ---- */
+    var cv = null, gl = null, tex = null, U = {}, ring = [], pos = { x: 0.5, y: 0.5 }, raw = { x: 0.5, y: 0.5 };
+    var lastMove = 0, drawRaf = 0, energy = 0, haveFrame = false;
+    var VERT = 'attribute vec2 p;varying vec2 v;void main(){v=p*.5+.5;gl_Position=vec4(p,0.,1.);}';
+    var FRAG = [
+      'precision mediump float;',
+      'varying vec2 v; uniform sampler2D tex; uniform vec2 cov; uniform vec2 opos; uniform float asp;',
+      'uniform vec2 tp[' + TRAIL + ']; uniform vec2 tv[' + TRAIL + '];',
+      'void main(){',
+      ' vec2 d=vec2(0.);',
+      ' for(int i=0;i<' + TRAIL + ';i++){',
+      '  vec2 q=(v-tp[i])*vec2(asp,1.); float w=exp(-dot(q,q)*14.);',
+      '  d+=tv[i]*w;',
+      ' }',
+      ' vec2 s=v-d*.55;',
+      ' vec2 sc=vec2(s.x,1.-s.y);',
+      ' vec2 a=vec2(sc.x*cov.x+opos.x*(1.-cov.x), sc.y*cov.y+opos.y*(1.-cov.y));',
+      ' vec2 sh=d*.22; sh.y=-sh.y; sh*=vec2(cov.x,cov.y);',
+      ' float r=texture2D(tex,a+sh).r; float g=texture2D(tex,a).g; float b=texture2D(tex,a-sh).b;',
+      ' gl_FragColor=vec4(r,g,b,1.);',
+      '}'
+    ].join('\n');
+
+    var initGL = function () {
+      try {
+        cv = d.createElement('canvas');
+        cv.className = 'lx-hero__drag';
+        cv.setAttribute('aria-hidden', 'true');
+        gl = cv.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'low-power' });
+        if (!gl) return false;
+        var mk = function (t, src) { var sh = gl.createShader(t); gl.shaderSource(sh, src); gl.compileShader(sh); return sh; };
+        var prg = gl.createProgram();
+        gl.attachShader(prg, mk(gl.VERTEX_SHADER, VERT));
+        gl.attachShader(prg, mk(gl.FRAGMENT_SHADER, FRAG));
+        gl.linkProgram(prg);
+        if (!gl.getProgramParameter(prg, gl.LINK_STATUS)) return false;
+        gl.useProgram(prg);
+        gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+        var loc = gl.getAttribLocation(prg, 'p');
+        gl.enableVertexAttribArray(loc);
+        gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+        ['tex', 'cov', 'opos', 'asp', 'tp', 'tv'].forEach(function (n) { U[n] = gl.getUniformLocation(prg, n); });
+        tex = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.uniform1i(U.tex, 0);
+        for (var i = 0; i < TRAIL; i++) ring.push({ x: 0.5, y: 0.5, vx: 0, vy: 0 });
+        bgEl.appendChild(cv);
+        return true;
+      } catch (e) { return false; }
+    };
+    var sizeCanvas = function () {
+      var scale = Math.min(window.devicePixelRatio || 1, 1.25);
+      var w = Math.min(1600, Math.round(cv.clientWidth * scale)), h = Math.round(w * cv.clientHeight / Math.max(1, cv.clientWidth));
+      if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; gl.viewport(0, 0, w, h); }
+    };
+    var uploadFrame = function () {
+      try {
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, hv);
+        haveFrame = true;
+        return true;
+      } catch (e) { return false; }
+    };
+    var draw = function () {
+      sizeCanvas();
+      var ca = cv.width / cv.height, ia = (hv.videoWidth || 16) / (hv.videoHeight || 9);
+      var sx = ca > ia ? 1 : ca / ia, sy = ca > ia ? ia / ca : 1;
+      gl.uniform2f(U.cov, sx, sy);
+      gl.uniform2f(U.opos, window.innerWidth < 750 ? 0.6 : 0.5, 0);
+      gl.uniform1f(U.asp, ca);
+      var tp = new Float32Array(TRAIL * 2), tv = new Float32Array(TRAIL * 2);
+      for (var i = 0; i < TRAIL; i++) { tp[i * 2] = ring[i].x; tp[i * 2 + 1] = ring[i].y; tv[i * 2] = ring[i].vx; tv[i * 2 + 1] = ring[i].vy; }
+      gl.uniform2fv(U.tp, tp); gl.uniform2fv(U.tv, tv);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    };
+    var step = function () {
+      drawRaf = 0;
+      slowDown();
+      if (!hv.paused && !hv.ended) uploadFrame();
+      // pointer easing and the dragged-air trail
+      var px = pos.x, py = pos.y;
+      pos.x += (raw.x - pos.x) * 0.2; pos.y += (raw.y - pos.y) * 0.2;
+      var vx = pos.x - px, vy = pos.y - py;
+      energy = 0;
+      for (var i = ring.length - 1; i > 0; i--) { ring[i].x = ring[i - 1].x; ring[i].y = ring[i - 1].y; ring[i].vx = ring[i - 1].vx * 0.93; ring[i].vy = ring[i - 1].vy * 0.93; }
+      ring[0].x = pos.x; ring[0].y = pos.y; ring[0].vx = Math.max(-0.05, Math.min(0.05, vx * 2.4)); ring[0].vy = Math.max(-0.05, Math.min(0.05, vy * 2.4));
+      for (var j = 0; j < ring.length; j++) energy += Math.abs(ring[j].vx) + Math.abs(ring[j].vy);
+      if (haveFrame) draw();
+      var playing = !hv.paused && !hv.ended;
+      if ((playing || energy > 0.0008 || performance.now() - lastMove < 400) && !d.hidden) drawRaf = requestAnimationFrame(step);
+    };
+    var kick = function () { if (!drawRaf && glOk) drawRaf = requestAnimationFrame(step); };
+
+    /* ---- start: fetch after load, play once, then hold ---- */
+    var begin = function () {
+      if (started) return;
+      started = true;
+      hv.muted = true; hv.loop = false;
+      hv.crossOrigin = 'anonymous';
+      glOk = finePointer && initGL();
       hv.src = hv.getAttribute('data-src');
-      hv.addEventListener('canplay', function once() { hv.removeEventListener('canplay', once); hvPlay(); });
+      hv.addEventListener('canplay', function once() {
+        hv.removeEventListener('canplay', once);
+        var pr = hv.play();
+        var shown = function () {
+          if (glOk && uploadFrame()) { cv.classList.add('is-on'); kick(); }
+          else { glOk = false; hv.classList.add('is-on'); }
+        };
+        if (pr && pr.then) pr.then(shown).catch(function () {}); else shown();
+      });
+      hv.addEventListener('timeupdate', function () { if (!glOk) slowDown(); });
+      hv.addEventListener('ended', function () { plainFreeze(); if (glOk) { uploadFrame(); kick(); } });
       hv.load();
     };
-    window.addEventListener('load', function () { setTimeout(hvStart, 900); });
-    if (d.readyState === 'complete') setTimeout(hvStart, 900);
+    if (d.readyState === 'complete') setTimeout(begin, 700); else window.addEventListener('load', function () { setTimeout(begin, 700); });
+
+    if (finePointer) {
+      heroEl.addEventListener('pointermove', function (e) {
+        var r = heroEl.getBoundingClientRect();
+        raw.x = (e.clientX - r.left) / r.width; raw.y = 1 - (e.clientY - r.top) / r.height;
+        lastMove = performance.now();
+        kick();
+      }, { passive: true });
+    }
     if ('IntersectionObserver' in window) {
       new IntersectionObserver(function (es) {
-        hvVisible = es[0].isIntersecting;
-        if (!hvStarted) return;
-        if (hvVisible && !d.hidden) hvPlay(); else hv.pause();
-      }).observe(hv);
+        if (!started) return;
+        if (es[0].isIntersecting) { if (!frozen && hv.paused && !hv.ended) hv.play().catch(function () {}); kick(); }
+        else if (!frozen) hv.pause();
+      }).observe(heroEl);
     }
     d.addEventListener('visibilitychange', function () {
-      if (!hvStarted) return;
-      if (d.hidden) hv.pause(); else if (hvVisible) hvPlay();
+      if (!started) return;
+      if (d.hidden) { if (!frozen) hv.pause(); } else { if (!frozen && hv.paused) hv.play().catch(function () {}); kick(); }
     });
-  }
-
-  /* ==========================================================================
-     Motion 4b — "move to focus": the hero photograph sits under a soft blur and the
-     pointer opens a sharp window that trails behind it, so the picture seems to drag
-     with the movement. Fine pointers only; touch devices get the plain sharp image.
-     ========================================================================== */
-  var focus = q('[data-lx-focus]');
-  if (focus && finePointer && !reduce) {
-    var hero = focus.closest('[data-lx-hero]') || focus.parentElement;
-    var fx = 0.5, fy = 0.45, gx = 0.5, gy = 0.45, fr = 0, grow = 0, target = 0, live = false, idleAt = 0, fraf = 0;
-    var paint = function (now) {
-      fraf = 0;
-      if (now - idleAt > 2600) { // nobody moving: let the window wander slowly
-        gx = 0.5 + 0.28 * Math.sin(now / 5200);
-        gy = 0.46 + 0.14 * Math.cos(now / 4100);
-        target = 0.8;
-      }
-      fx += (gx - fx) * 0.075; fy += (gy - fy) * 0.075;
-      grow += (target - grow) * 0.06;
-      focus.style.setProperty('--fx', (fx * 100).toFixed(2) + '%');
-      focus.style.setProperty('--fy', (fy * 100).toFixed(2) + '%');
-      focus.style.setProperty('--fr', (240 + grow * 260).toFixed(0) + 'px');
-      if (live && !d.hidden) fraf = requestAnimationFrame(paint);
-    };
-    var kick = function () { if (!fraf && live) fraf = requestAnimationFrame(paint); };
-    hero.addEventListener('pointermove', function (e) {
-      var r = hero.getBoundingClientRect();
-      gx = (e.clientX - r.left) / r.width; gy = (e.clientY - r.top) / r.height;
-      target = 1; idleAt = performance.now();
-    }, { passive: true });
-    focus.classList.add('is-on');
-    if ('IntersectionObserver' in window) {
-      new IntersectionObserver(function (es) { live = es[0].isIntersecting; kick(); }).observe(hero);
-    } else { live = true; kick(); }
-    d.addEventListener('visibilitychange', kick);
   }
 
   /* ==========================================================================

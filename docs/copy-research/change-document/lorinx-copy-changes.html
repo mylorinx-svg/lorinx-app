@@ -1,0 +1,607 @@
+<title>LORINX — מסמך שינויי קופי</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column of change records; each record = screenshot evidence, then a current/proposed table, then the reason. */
+:root{
+  --bg:#F3F5F7; --surface:#FFFFFF; --ink:#14181F; --muted:#5B6573; --line:#D9DEE5;
+  --accent:#0B5E7A; --accent-soft:#E3F0F5;
+  --cur:#F7F3EE; --new:#EAF4EE; --new-ink:#0F4A2C;
+  --ph:#8A4B00; --ph-bg:#FFF1D6;
+  --crit:#A3162B; --high:#9A4A00; --med:#3C5A80; --low:#5B6573;
+  --shot:#0B0B0C;
+  --f-text:"Heebo","Arial Hebrew","Noto Sans Hebrew",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0F1318; --surface:#171C23; --ink:#E8ECF1; --muted:#9AA5B4; --line:#2B333E;
+  --accent:#6CC4E0; --accent-soft:#12303B;
+  --cur:#231F1A; --new:#14261C; --new-ink:#A6E3BF;
+  --ph:#FFC56B; --ph-bg:#3A2A0C;
+  --crit:#FF8D9B; --high:#FFB56B; --med:#9DB8DC; --low:#9AA5B4;
+  --shot:#000; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0F1318; --surface:#171C23; --ink:#E8ECF1; --muted:#9AA5B4; --line:#2B333E;
+  --accent:#6CC4E0; --accent-soft:#12303B;
+  --cur:#231F1A; --new:#14261C; --new-ink:#A6E3BF;
+  --ph:#FFC56B; --ph-bg:#3A2A0C;
+  --crit:#FF8D9B; --high:#FFB56B; --med:#9DB8DC; --low:#9AA5B4;
+  --shot:#000; color-scheme:dark }
+
+body{background:var(--bg);color:var(--ink);font-family:var(--f-text);font-size:16px;line-height:1.6}
+.wrap{max-width:1020px;margin-inline:auto;padding-block:40px 80px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:44px}
+h1,h2,h3{margin:0;text-wrap:balance;line-height:1.2}
+h1{font-size:clamp(34px,6vw,54px);font-weight:300;letter-spacing:-.01em}
+h2{font-size:26px;font-weight:500}
+h3{font-size:18px;font-weight:500}
+p{margin:0}
+a{color:var(--accent)}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.top{display:flex;flex-direction:column;gap:14px;border-bottom:1px solid var(--line);padding-bottom:28px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.06em;color:var(--accent)}
+.lede{max-width:62ch;color:var(--muted);font-size:18px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:1px;margin:10px 0 0;background:var(--line);border:1px solid var(--line)}
+.facts div{background:var(--surface);padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.facts dt{font-size:12px;color:var(--muted)}
+.facts dd{margin:0;font-family:var(--f-mono);font-size:20px;font-variant-numeric:tabular-nums}
+
+.how,.toc{display:flex;flex-direction:column;gap:12px}
+.legend{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.legend li{display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px;align-items:start;font-size:15px}
+.note{font-size:14px;color:var(--muted);max-width:75ch}
+.toc ol{margin:0;padding-inline-start:20px;display:grid;gap:4px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.toc .n{color:var(--muted);font-size:13px}
+
+.page{display:flex;flex-direction:column;gap:22px;scroll-margin-top:16px}
+.page>h2{padding-top:18px;border-top:2px solid var(--ink)}
+.intro{color:var(--muted);max-width:70ch}
+
+.item{background:var(--surface);border:1px solid var(--line);display:flex;flex-direction:column;gap:16px;padding:20px;scroll-margin-top:16px;min-width:0}
+.item>header{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 12px}
+.item>header h3{flex:1 1 220px;min-width:0}
+.id{font-family:var(--f-mono);font-size:13px;font-weight:500;color:var(--accent);background:var(--accent-soft);padding:2px 7px;text-decoration:none}
+.pr{font-size:12.5px;font-weight:500;white-space:nowrap}
+.pr-c{color:var(--crit)} .pr-h{color:var(--high)} .pr-m{color:var(--med)} .pr-l{color:var(--low)}
+
+.shot{margin:0;display:flex;flex-direction:column;gap:6px}
+.shot .frame{background:var(--shot);border:1px solid var(--line);max-height:560px;overflow:auto}
+.shot img{display:block;width:100%;height:auto}
+.shot.narrow .frame{max-width:400px}
+.shot figcaption{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);direction:ltr;text-align:right}
+
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{border:1px solid var(--line);padding:9px 11px;text-align:right;vertical-align:top}
+thead th{font-size:12.5px;font-weight:500;color:var(--muted);background:var(--bg)}
+tbody th{font-weight:500;width:15%;min-width:104px;font-size:14px}
+td.cur{background:var(--cur);width:36%;min-width:200px}
+td.new{background:var(--new);color:var(--new-ink);width:36%;min-width:200px;font-weight:500}
+td.new.same{background:transparent;color:var(--muted);font-weight:400}
+td.st{width:13%;min-width:104px}
+.k{display:inline-block;font-size:12px;font-weight:500;padding:1px 7px;border:1px solid currentColor;white-space:nowrap}
+.k-replace{color:var(--accent)} .k-add{color:var(--new-ink)} .k-keep{color:var(--muted)} .k-data{color:var(--ph)} .k-approve{color:var(--crit)} .k-remove{color:var(--high)}
+.ph{background:var(--ph-bg);color:var(--ph);padding:0 3px;font-weight:500}
+
+.why{max-width:78ch;font-size:15px}
+.why b,.before b{font-size:12.5px;font-weight:700;color:var(--muted);margin-inline-end:6px}
+.before{border-inline-start:3px solid var(--ph);padding-inline-start:12px;font-size:15px;display:flex;flex-direction:column;gap:4px}
+.before ul,.plain{margin:0;padding-inline-start:20px;display:grid;gap:5px}
+.plain{max-width:80ch}
+.need{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}
+.need>div{display:flex;flex-direction:column;gap:8px;min-width:0}
+.idx td,.idx th{font-size:14px}
+.idx td:nth-child(n+4){text-align:center;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.idx tbody td:nth-child(2){min-width:200px}
+
+@media (max-width:640px){
+  .item{padding:14px}
+  .legend li{grid-template-columns:1fr;gap:4px}
+  table:not(.idx) thead{display:none}
+  table:not(.idx), table:not(.idx) tbody, table:not(.idx) tr, table:not(.idx) th, table:not(.idx) td{display:block;width:auto;min-width:0}
+  table:not(.idx) tr{border:1px solid var(--line);margin-bottom:10px}
+  table:not(.idx) th, table:not(.idx) td{border:0;border-bottom:1px solid var(--line)}
+  table:not(.idx) td.cur::before{content:"קיים היום";display:block;font-size:11.5px;color:var(--muted);font-weight:400}
+  table:not(.idx) td.new::before{content:"מוצע";display:block;font-size:11.5px;color:var(--muted);font-weight:400}
+  table:not(.idx) td.st{border-bottom:0}
+}
+</style>
+
+<div class="wrap" dir="rtl" lang="he">
+<header class="top">
+<p class="eyebrow">LORINX Premium · טיוטה שלא פורסמה</p>
+<h1>מסמך שינויי קופי</h1>
+<p class="lede">כל אזור בטיוטה שאני מציע לגעת בו: צילום של מה שקיים היום, הטקסט הקיים מילה במילה, והטקסט המוצע במקומו. הכול כאן הצעה. שום דבר לא שונה באתר.</p>
+<dl class="facts">
+<div><dt>נבדק</dt><dd>19.11.2026</dd></div>
+<div><dt>אזורים</dt><dd>39</dd></div>
+<div><dt>שורות טקסט</dt><dd>136</dd></div>
+<div><dt>מחליפים</dt><dd>50</dd></div>
+<div><dt>מוסיפים</dt><dd>15</dd></div>
+<div><dt>מחכים לנתון</dt><dd>27</dd></div>
+<div><dt>דורשים אישור מיוחד</dt><dd>15</dd></div>
+<div><dt>נשארים</dt><dd>26</dd></div>
+</dl>
+</header>
+<section class="how"><h2>איך לקרוא</h2><ul class="legend">
+<li><span class="k k-replace">מחליפים</span><span>יש נוסח מוכן, ואפשר ליישם אחרי אישור רגיל.</span></li>
+<li><span class="k k-add">מוסיפים</span><span>טקסט חדש שלא קיים היום.</span></li>
+<li><span class="k k-remove">מורידים</span><span>טקסט או שורה שיורדים.</span></li>
+<li><span class="k k-data">מחכה לנתון</span><span>הנוסח תלוי במשהו שרק אתה יודע. מה שחסר מסומן כך: <span class="ph">[חסר]</span>. לא מפרסמים משפט עם סוגריים כאלה.</span></li>
+<li><span class="k k-approve">דורש אישור מיוחד</span><span>נמצא בנתוני המוצר ב-Shopify (שם, תיאור, כותרת דפדפן), ולכן נופל תחת הכלל "לא לשנות את דף המוצר".</span></li>
+<li><span class="k k-keep">נשאר</span><span>נשאר כמו שהוא. מופיע כדי שיהיה ברור שנבדק.</span></li>
+</ul><p class="note">כל הצילומים הם מהטיוטה, דרך התצוגה המקדימה, במחשב ברוחב 1200 פיקסלים (שלושה צילומים מנייד). הטקסט בעמודה "קיים היום" הועתק מהעמוד עצמו.</p></section>
+<nav class="toc" aria-label="תוכן"><h2>תוכן</h2><ol>
+<li><a href="#home">דף הבית</a> <span class="n">10 אזורים</span></li>
+<li><a href="#cup">עמוד כוס הרוח</a> <span class="n">13 אזורים</span></li>
+<li><a href="#others">שלושת המוצרים האחרים</a> <span class="n">3 אזורים</span></li>
+<li><a href="#cart">סל הקניות</a> <span class="n">2 אזורים</span></li>
+<li><a href="#about">קצת עלינו</a> <span class="n">3 אזורים</span></li>
+<li><a href="#service">צרו קשר וכמויות לחברות</a> <span class="n">2 אזורים</span></li>
+<li><a href="#nav">קולקציות וניווט</a> <span class="n">4 אזורים</span></li>
+<li><a href="#policy">מדיניות</a> <span class="n">2 אזורים</span></li>
+<li><a href="#keep">מה נשאר בלי שינוי</a></li><li><a href="#need">מה אני צריך ממך</a></li><li><a href="#index">טבלת כל השינויים</a></li><li><a href="#live">נספח: מה ראיתי באתר החי</a></li></ol></nav>
+<section class="page" id="home"><h2>דף הבית</h2>
+<p class="intro">לפי נתוני החנות, קונים כמעט לא מגיעים לדף הבית, ולכן רוב השינויים כאן בעדיפות בינונית. מה שחשוב כאן הוא שם המוצר והמחיר, שמופיעים בכל האתר.</p>
+<article class="item" id="h1"><header><span class="id">H1</span><h3>הירו: שורת על, כותרת ותת־כותרת</h3><span class="pr pr-m">עדיפות: בינוני</span></header>
+<figure class="shot"><div class="frame"><img src="img/h-hero.jpg" alt="צילום מהטיוטה: הירו: שורת על, כותרת ותת־כותרת" loading="lazy"></div><figcaption>צילום מהטיוטה · h-hero.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-replace"><th scope="row">שורת על</th><td class="cur">LORINX · התאוששות, כושר, ספורט</td><td class="new ">LORINX · כוס רוח חשמלית ומכשירי עיסוי לבית</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-keep"><th scope="row">כותרת</th><td class="cur">כל אימון<br>נגמר ברגע<br>של שחרור.</td><td class="new same">ללא שינוי</td><td class="st"><span class="k k-keep">נשאר</span></td></tr>
+<tr class="r-replace"><th scope="row">תת־כותרת</th><td class="cur">מכשירי התאוששות לבית: לפני האימון, אחריו, ובסוף יום ארוך.</td><td class="new ">אחרי אימון, אחרי משמרת, אחרי יום מול המחשב: רבע שעה של שאיבה וחום, בבית.</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-keep"><th scope="row">כפתורים</th><td class="cur">לכל המוצרים · איך זה עובד</td><td class="new same">ללא שינוי</td><td class="st"><span class="k k-keep">נשאר</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> הכותרת טובה ונבחרה יחד עם סרטון הרצים, אבל היא לא אומרת מה נמכר. שורת העל ותת־הכותרת עושות את זה, ומוסיפות את מי שלא מתאמן בלי להחליף קהל.</p>
+</article>
+<article class="item" id="h2"><header><span class="id">H2</span><h3>ארבעת נתוני האמון מתחת להירו</h3><span class="pr pr-h">עדיפות: גבוה</span></header>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-data"><th scope="row">נתון 1</th><td class="cur">משלוח חינם<br>לכל הארץ, 7–14 ימי עסקים</td><td class="new ">משלוח חינם<br>מגיע עד <span class="ph">[תאריך מחושב]</span></td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+<tr class="r-replace"><th scope="row">נתון 2</th><td class="cur">14 יום<br>להחזרה, בלי דמי ביטול</td><td class="new ">14 יום להחזרה<br>בלי דמי ביטול, משלוח ההחזרה עלינו</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-replace"><th scope="row">נתון 3</th><td class="cur">שנה<br>אחריות על כל מכשיר</td><td class="new ">אחריות לשנה<br>תיקון או החלפה</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-data"><th scope="row">נתון 4</th><td class="cur">בעברית<br>שירות לפני ואחרי הרכישה</td><td class="new ">עונים בווטסאפ<br>א׳–ה׳ 09:00–18:00</td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> לפי מדיניות המשלוחים, 7–14 ימי העסקים נספרים אחרי עיבוד של עד 4 ימי עסקים, כלומר עד 18 ימי עסקים מההזמנה. משלוח ההחזרה על חשבון החנות הוא ההצעה החזקה ביותר שיש, והיום הוא כתוב רק באקורדיון סגור.</p>
+<div class="before"><b>לפני שמיישמים</b><ul><li>נתון 1: צריך ימים בפועל מהזמנה עד מסירה. עד אז הנוסח: "7–14 ימי עסקים, אחרי עיבוד של עד 4 ימי עסקים".</li><li>נתון 4: רק אם באמת עונים בווטסאפ באותו יום. התקנון מתחייב ל-1–3 ימי עסקים.</li><li>נתוני האמון מופיעים היום שלוש פעמים בעמוד. מספיק פעם אחת כאן ופעם אחת לפני השאלות הנפוצות.</li></ul></div>
+</article>
+<article class="item" id="h3"><header><span class="id">H3</span><h3>"איך זה עובד"</h3><span class="pr pr-m">עדיפות: בינוני</span></header>
+<figure class="shot"><div class="frame"><img src="img/h-how.jpg" alt="צילום מהטיוטה: &quot;איך זה עובד&quot;" loading="lazy"></div><figcaption>צילום מהטיוטה · h-how.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-replace"><th scope="row">שורת על</th><td class="cur">איך זה עובד</td><td class="new ">כוס הרוח: איך זה עובד</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-keep"><th scope="row">כותרת</th><td class="cur">שלושה צעדים, רבע שעה.</td><td class="new same">ללא שינוי</td><td class="st"><span class="k k-keep">נשאר</span></td></tr>
+<tr class="r-replace"><th scope="row">משפט</th><td class="cur">בלי הכנות ובלי עזרה של אדם נוסף.</td><td class="new ">בלי הכנות.</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-keep"><th scope="row">צעד 01</th><td class="cur">מצמידים<br>מניחים את הכוס על האזור התפוס. היא נצמדת לבד.</td><td class="new same">ללא שינוי</td><td class="st"><span class="k k-keep">נשאר</span></td></tr>
+<tr class="r-keep"><th scope="row">צעד 02</th><td class="cur">בוחרים עוצמה<br>דרגת שאיבה וחימום בלחיצה אחת, לפי מה שנעים לכם.</td><td class="new same">ללא שינוי</td><td class="st"><span class="k k-keep">נשאר</span></td></tr>
+<tr class="r-replace"><th scope="row">צעד 03</th><td class="cur">משחררים<br>המכשיר נכבה מעצמו בסוף השימוש.</td><td class="new ">נחים<br>רבע שעה של חום ושאיבה. המכשיר נכבה לבד.</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-replace"><th scope="row">מיקום</th><td class="cur">מיד אחרי ההירו, לפני שהוצג מוצר</td><td class="new ">אחרי מקטע המוצר המוביל</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> המקטע מדבר על "הכוס" לפני שהגולש ראה שיש כוס רוח. "בלי עזרה של אדם נוסף" לא אומת לגבי כל אזור בגוף. הצעד השלישי צריך לתאר מה מרגישים.</p>
+</article>
+<article class="item" id="h4"><header><span class="id">H4</span><h3>המוצר המוביל: שם ומחיר</h3><span class="pr pr-c">עדיפות: קריטי</span></header>
+<figure class="shot"><div class="frame"><img src="img/h-featured.jpg" alt="צילום מהטיוטה: המוצר המוביל: שם ומחיר" loading="lazy"></div><figcaption>צילום מהטיוטה · h-featured.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-keep"><th scope="row">שורת על</th><td class="cur">המוצר המוביל שלנו</td><td class="new same">ללא שינוי</td><td class="st"><span class="k k-keep">נשאר</span></td></tr>
+<tr class="r-approve"><th scope="row">שם המוצר</th><td class="cur">כוס רוח חשמלית להפחתת כאבים</td><td class="new ">כוס רוח חשמלית עם חימום</td><td class="st"><span class="k k-approve">דורש אישור מיוחד</span></td></tr>
+<tr class="r-keep"><th scope="row">משפט</th><td class="cur">ואקום שמושך וחום שמרפה, במכשיר אחד שנכנס לכף היד.</td><td class="new same">ללא שינוי</td><td class="st"><span class="k k-keep">נשאר</span></td></tr>
+<tr class="r-data"><th scope="row">מחיר</th><td class="cur">₪240.13</td><td class="new "><span class="ph">[מחיר אחד שמחליטים עליו]</span></td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> "להפחתת כאבים" היא טענה בריאותית בשם המוצר, והיא סותרת את ההסתייגות שכתובה בעמוד עצמו ("אינו תחליף לטיפול רפואי"). השם מופיע גם בכרטיסים, בסל ובצ'קאאוט. המחיר 240.13 נראה כמו שארית של המרת מטבע, ובמסמך המותג ובהודעות האוטומטיות המחיר הוא 237.90.</p>
+<div class="before"><b>לפני שמיישמים</b><ul><li>שם המוצר נמצא בנתוני המוצר ב-Shopify ולא בעיצוב. לפי הכלל "לא לשנות את דף המוצר" זה דורש אישור מפורש ממך.</li><li>לא משנים את כתובת העמוד, רק את השם.</li></ul></div>
+</article>
+<article class="item" id="h5"><header><span class="id">H5</span><h3>הקולקציה בדף הבית</h3><span class="pr pr-m">עדיפות: בינוני</span></header>
+<figure class="shot"><div class="frame"><img src="img/h-collection.jpg" alt="צילום מהטיוטה: הקולקציה בדף הבית" loading="lazy"></div><figcaption>צילום מהטיוטה · h-collection.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-replace"><th scope="row">כותרת</th><td class="cur">ריקוברי ביתי, מכשיר לכל צורך.</td><td class="new ">עיסוי, חום ואימון קצר. בבית.</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-approve"><th scope="row">כרטיס 1</th><td class="cur">כוס רוח חשמלית להפחתת כאבים</td><td class="new ">כוס רוח חשמלית עם חימום</td><td class="st"><span class="k k-approve">דורש אישור מיוחד</span></td></tr>
+<tr class="r-approve"><th scope="row">כרטיס 2</th><td class="cur">אקדח מסאג׳ לשחרור שרירים</td><td class="new ">אקדח עיסוי לשרירים</td><td class="st"><span class="k k-approve">דורש אישור מיוחד</span></td></tr>
+<tr class="r-approve"><th scope="row">כרטיס 3</th><td class="cur">מכשיר מסאג'ר חשמלי לרגליים</td><td class="new ">מכשיר עיסוי לרגליים</td><td class="st"><span class="k k-approve">דורש אישור מיוחד</span></td></tr>
+<tr class="r-approve"><th scope="row">כרטיס 4</th><td class="cur">מכשיר לחיזוק ועיצוב הירכיים</td><td class="new ">מאמן ירכיים ביתי</td><td class="st"><span class="k k-approve">דורש אישור מיוחד</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> "ריקוברי" היא מילה לועזית שלא נמצאה בשפת הלקוחות, ו"לכל צורך" לא נכון לארבעה מוצרים. אצל הקמעונאים בישראל (Zap, Bug) המונח הוא "אקדח עיסוי" ו"מכשיר עיסוי לרגליים". "מסאג'ר" לא נמצא אצל אף קמעונאי. מאמן הירכיים הוא מכשיר אימון ולא התאוששות.</p>
+<div class="before"><b>לפני שמיישמים</b><ul><li>להחלטתך: להוריד את מכשיר הרגליים ואת מאמן הירכיים מדף הבית עד שיש להם עמוד מלא. ב-90 הימים האחרונים הגיעו אליהם 27 ו-15 כניסות מרשתות, בלי אף הוספה לסל.</li></ul></div>
+</article>
+<article class="item" id="h6"><header><span class="id">H6</span><h3>הודעות מלקוחות</h3><span class="pr pr-h">עדיפות: גבוה</span></header>
+<figure class="shot"><div class="frame"><img src="img/h-reviews.jpg" alt="צילום מהטיוטה: הודעות מלקוחות" loading="lazy"></div><figcaption>צילום מהטיוטה · h-reviews.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-replace"><th scope="row">כותרת</th><td class="cur">מהלקוחות שלנו<br>הודעות שקיבלנו.</td><td class="new ">מהלקוחות שלנו<br>הודעות שקיבלנו בווטסאפ.</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-add"><th scope="row">תוכן</th><td class="cur">שישה צילומי מסך, בלי טקסט מתחתיהם</td><td class="new ">מתחת לכל צילום: עיקר ההודעה בטקסט, שם פרטי ואות, חודש ומוצר</td><td class="st"><span class="k k-add">מוסיפים</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> בנייד הטקסט בתוך הצילומים קטן מכדי לקרוא, וקוראי מסך ומנועי חיפוש לא רואים אותו. זו ההוכחה היחידה שיש באתר, ולכן כדאי שתיקרא.</p>
+<div class="before"><b>לפני שמיישמים</b><ul><li>אישור ממך שההודעות אמיתיות, מלקוחות ששילמו, ושניתנה הסכמה לפרסם.</li><li>לא מוסיפים דירוג כוכבים או מספר ביקורות בלי מקור.</li></ul></div>
+</article>
+<article class="item" id="h7"><header><span class="id">H7</span><h3>"הסיפור שלנו" בדף הבית</h3><span class="pr pr-m">עדיפות: בינוני</span></header>
+<figure class="shot"><div class="frame"><img src="img/h-story.jpg" alt="צילום מהטיוטה: &quot;הסיפור שלנו&quot; בדף הבית" loading="lazy"></div><figcaption>צילום מהטיוטה · h-story.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-keep"><th scope="row">כותרת</th><td class="cur">לפעמים מותג לא מתחיל במוצר. הוא מתחיל בתחושה.</td><td class="new same">ללא שינוי</td><td class="st"><span class="k k-keep">נשאר</span></td></tr>
+<tr class="r-data"><th scope="row">טקסט</th><td class="cur">LORINX בוחרת כל מוצר אחד־אחד: שימושי באמת, איכותי מספיק כדי לעמוד מאחוריו, ונתמך בישראל.</td><td class="new ">מאחורי LORINX עומד <span class="ph">[שם]</span>. הוא בוחר כל מכשיר, והוא זה שקורא את ההודעות שלכם.</td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+<tr class="r-keep"><th scope="row">כפתורים</th><td class="cur">לסיפור המלא · כמויות לחברות</td><td class="new same">ללא שינוי</td><td class="st"><span class="k k-keep">נשאר</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> אין באתר אדם. משפט אחד עם שם נותן לגולש מישהו לסמוך עליו.</p>
+<div class="before"><b>לפני שמיישמים</b><ul><li>רק אם זה נכון: שאתה בוחר את המוצרים ושאתה קורא את ההודעות.</li></ul></div>
+</article>
+<article class="item" id="h8"><header><span class="id">H8</span><h3>שאלות נפוצות בדף הבית</h3><span class="pr pr-h">עדיפות: גבוה</span></header>
+<figure class="shot"><div class="frame"><img src="img/h-faq.jpg" alt="צילום מהטיוטה: שאלות נפוצות בדף הבית" loading="lazy"></div><figcaption>צילום מהטיוטה · h-faq.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-replace"><th scope="row">כמה זמן לוקח המשלוח?</th><td class="cur">המשלוח חינם. זמן האספקה המשוער הוא 7–14 ימי עסקים.</td><td class="new ">המשלוח חינם. ההזמנה יוצאת מהמחסן בחו"ל תוך עד 4 ימי עסקים, ומגיעה 7–14 ימי עסקים אחר כך. מספר מעקב נשלח במייל.</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-replace"><th scope="row">אפשר להחזיר מוצר?</th><td class="cur">כן. אפשר להחזיר תוך 14 יום מקבלת המוצר, בלי דמי ביטול. פנו אלינו ונלווה את התהליך.</td><td class="new ">כן. 14 יום מיום הקבלה, בלי דמי ביטול, ומשלוח ההחזרה עלינו. כותבים לנו ואנחנו מסבירים איך.</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-replace"><th scope="row">מה כוללת האחריות?</th><td class="cur">אחריות לשנה על המכשיר, כולל מענה ותמיכה בעברית.</td><td class="new ">שנה, על פגמי ייצור ותקלות במכשיר. שולחים לנו הודעה עם מספר ההזמנה, ואנחנו מתקנים או מחליפים.</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-keep"><th scope="row">יש הזמנות בכמויות?</th><td class="cur">כן. לחברות ולארגונים יש מחירים מיוחדים ושירות אישי, בעמוד כמויות לחברות.</td><td class="new same">ללא שינוי</td><td class="st"><span class="k k-keep">נשאר</span></td></tr>
+<tr class="r-add"><th scope="row">שאלה חדשה</th><td class="cur">—</td><td class="new ">זה כואב?<br>מרגישים משיכה חזקה וחום. מתחילים בדרגה 1. אם כואב, מורידים דרגה או מפסיקים.</td><td class="st"><span class="k k-add">מוסיפים</span></td></tr>
+<tr class="r-add"><th scope="row">שאלה חדשה</th><td class="cur">—</td><td class="new ">נשארים סימנים?<br>לפעמים. סימן עגול, אדום עד סגלגל, שדוהה עם הזמן.</td><td class="st"><span class="k k-add">מוסיפים</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> התשובה על האחריות לא אומרת היום מה היא מכסה, אף שהתנאים כתובים בתקנון (סעיף 6). השאלות על כאב וסימנים הן החששות שחוזרים בביקורות על מכשירים דומים.</p>
+<div class="before"><b>לפני שמיישמים</b><ul><li>התקנון אומר שהאחריות היא "ממועד רכישת המוצר". להחליט אם מהרכישה או מהקבלה, וליישר.</li></ul></div>
+</article>
+<article class="item" id="h9"><header><span class="id">H9</span><h3>פוטר ותפריט</h3><span class="pr pr-m">עדיפות: בינוני</span></header>
+<figure class="shot"><div class="frame"><img src="img/h-footer.jpg" alt="צילום מהטיוטה: פוטר ותפריט" loading="lazy"></div><figcaption>צילום מהטיוטה · h-footer.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-replace"><th scope="row">טקסט מותג</th><td class="cur">מכשירי ריקוברי ורווחה לבית. נבחרים אחד־אחד, עם אחריות ושירות בעברית.</td><td class="new ">מכשירי עיסוי ורווחה לבית. נבחרים אחד־אחד, עם אחריות ושירות בעברית.</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-add"><th scope="row">שורת זהות</th><td class="cur">אין</td><td class="new ">LORINX · <span class="ph">[הכתובת שכתובה בתקנון]</span></td><td class="st"><span class="k k-add">מוסיפים</span></td></tr>
+<tr class="r-replace"><th scope="row">תפריט עליון</th><td class="cur">צור קשר</td><td class="new ">צרו קשר</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-keep"><th scope="row">ניוזלטר</th><td class="cur">עדכונים שקטים, רק כשיש מה לספר<br>מוצרים חדשים וטיפים לשימוש נכון. בלי הצפה.</td><td class="new same">ללא שינוי</td><td class="st"><span class="k k-keep">נשאר</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> שם העסק, הכתובת והטלפונים כתובים היום רק בסוף התקנון. כל האתר פונה ברבים ("צרו קשר" בפוטר ובעמוד עצמו), ורק בתפריט כתוב "צור קשר".</p>
+<div class="before"><b>לפני שמיישמים</b><ul><li>אם להציג גם את מספר העוסק בפוטר זו החלטה שלך.</li></ul></div>
+</article>
+<article class="item" id="h10"><header><span class="id">H10</span><h3>כותרת הדפדפן ותיאור החיפוש</h3><span class="pr pr-h">עדיפות: גבוה</span></header>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-replace"><th scope="row">כותרת (title)</th><td class="cur">LORINX</td><td class="new ">LORINX | כוס רוח חשמלית ומכשירי עיסוי לבית</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-replace"><th scope="row">תיאור (meta)</th><td class="cur">LORINX — מכשירי ריקוברי ורווחה לבית: כוס רוח חשמלית, אקדח עיסוי ועוד. משלוח חינם, 14 יום להחזרה ואחריות לשנה.</td><td class="new ">LORINX: כוס רוח חשמלית עם חימום, אקדח עיסוי, מכשיר עיסוי לרגליים ומאמן ירכיים. משלוח חינם לכל הארץ, 14 יום להחזרה ואחריות לשנה.</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> מי שמחפש בגוגל רואה היום רק "LORINX". הכותרת המוצעת אומרת מה נמכר.</p>
+</article>
+</section>
+<section class="page" id="cup"><h2>עמוד כוס הרוח</h2>
+<p class="intro">זה העמוד שהקונים רואים: ב-90 הימים האחרונים 7 רכישות הגיעו מרשתות חברתיות ישר לכאן (530 כניסות). לכן השינויים כאן הם החשובים ביותר.</p>
+<article class="item" id="p1"><header><span class="id">P1</span><h3>קופסת הקנייה: שם, משפט ונקודות</h3><span class="pr pr-c">עדיפות: קריטי</span></header>
+<figure class="shot narrow"><div class="frame"><img src="img/p-buybox.jpg" alt="צילום מהטיוטה: קופסת הקנייה: שם, משפט ונקודות" loading="lazy"></div><figcaption>צילום מהטיוטה · p-buybox.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-approve"><th scope="row">שם המוצר</th><td class="cur">כוס רוח חשמלית להפחתת כאבים</td><td class="new ">כוס רוח חשמלית עם חימום</td><td class="st"><span class="k k-approve">דורש אישור מיוחד</span></td></tr>
+<tr class="r-replace"><th scope="row">משפט</th><td class="cur">ואקום שמושך וחום שמרפה. רבע שעה לאזור, בבית, בזמן שנוח לכם.</td><td class="new ">ואקום שמושך וחום שמרפה, על הכתפיים או על הגב התפוס. רבע שעה, בבית, בזמן שנוח לכם.</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-replace"><th scope="row">נקודה 1</th><td class="cur">12 דרגות עוצמה, מתחילים נמוך ועולים בהדרגה</td><td class="new ">12 דרגות שאיבה. מתחילים ב-1 ועולים רק אם נעים</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-replace"><th scope="row">נקודה 2</th><td class="cur">חימום מבוקר ואור אדום</td><td class="new ">חימום ואור אדום, בלחיצה אחת</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-data"><th scope="row">נקודה 3</th><td class="cur">אלחוטית ונטענת</td><td class="new ">ללא שינוי. אם יש נתון מהיצרן: כמה שימושים בין טעינות</td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+<tr class="r-replace"><th scope="row">נקודה 4</th><td class="cur">כיבוי אוטומטי אחרי 15 דקות</td><td class="new ">נכבית לבד אחרי 15 דקות</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> המשפט הקיים טוב. התוספת היחידה היא האזור, מתוך האזורים שהעמוד עצמו מתיר (גב, כתפיים, שוקיים, ירכיים). צוואר לא מוזכר עד שבודקים מול הוראות היצרן.</p>
+<div class="before"><b>לפני שמיישמים</b><ul><li>12 דרגות, אור אדום והכיבוי אחרי 15 דקות: לאמת מול המכשיר או דף היצרן.</li></ul></div>
+</article>
+<article class="item" id="p2"><header><span class="id">P2</span><h3>בחירת הכמות</h3><span class="pr pr-h">עדיפות: גבוה</span></header>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-replace"><th scope="row">כותרת</th><td class="cur">בחרו כמות<br>המחיר ליחידה יורד ככל שמוסיפים</td><td class="new ">כמה כוסות?</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-replace"><th scope="row">1 יחידה</th><td class="cur">מחיר מלא ליחידה</td><td class="new ">אחת · לשימוש אישי</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-replace"><th scope="row">2 יחידות</th><td class="cur">₪189.95 ליחידה<br>חוסכים ₪100.36</td><td class="new ">שתיים · אחת לכם, אחת לבן או לבת הזוג<br>₪189.95 ליחידה · חוסכים ₪100.36</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-replace"><th scope="row">3 יחידות</th><td class="cur">הכי משתלם ליחידה<br>₪166.63 ליחידה<br>חוסכים ₪220.49</td><td class="new ">שלוש · לכל הבית, או שתיים לכם ואחת במתנה<br>₪166.63 ליחידה · חוסכים ₪220.49</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> היום כתוב כמה חוסכים, ולא למה לקנות יותר מאחת. החבילות הן מקור הרווח העיקרי, ולכן כדאי לתת להן סיבה. החשבון של החיסכון נכון ונשאר.</p>
+</article>
+<article class="item" id="p3"><header><span class="id">P3</span><h3>שלוש השורות מתחת לכפתור</h3><span class="pr pr-h">עדיפות: גבוה</span></header>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-data"><th scope="row">שורה 1</th><td class="cur">משלוח חינם לכל הארץ · אספקה משוערת 7–14 ימי עסקים. מדיניות משלוחים</td><td class="new ">מגיע עד <span class="ph">[תאריך מחושב]</span>, ישירות מהמחסן בחו"ל, עם מספר מעקב במייל. מדיניות משלוחים</td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+<tr class="r-replace"><th scope="row">שורה 2</th><td class="cur">14 יום להחזרה מרגע קבלת המוצר, בלי דמי ביטול. מדיניות החזרות</td><td class="new ">14 יום להחזרה מיום הקבלה. בלי דמי ביטול, ומשלוח ההחזרה עלינו. מדיניות החזרות</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-replace"><th scope="row">שורה 3</th><td class="cur">אחריות לשנה על המכשיר, ושירות בעברית לפני ואחרי הרכישה.</td><td class="new ">אחריות לשנה. תיקון או החלפה.</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-add"><th scope="row">שורה חדשה</th><td class="cur">—</td><td class="new ">מידע בטיחות: למי המכשיר לא מתאים ›</td><td class="st"><span class="k k-add">מוסיפים</span></td></tr>
+<tr class="r-keep"><th scope="row">כפתור</th><td class="cur">הוספה לסל · ₪240.13</td><td class="new same">ללא שינוי</td><td class="st"><span class="k k-keep">נשאר</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> זה המקום שבו מחליטים. היום לא כתוב כאן שמשלוח ההחזרה על חשבון החנות, ולא כתוב באף מקום חוץ מהמדיניות שהמשלוח יוצא מחו"ל. אזהרת הבטיחות היא קישור לרשימה המלאה, כי רשימה חלקית ליד הכפתור נראית מלאה ואינה כזו.</p>
+<div class="before"><b>לפני שמיישמים</b><ul><li>לא כותבים "נסו 14 יום": מדיניות ההחזרים לא אומרת מה קורה עם מכשיר שכבר השתמשו בו.</li><li>עד שיש תאריך מחושב: "7–14 ימי עסקים, אחרי עיבוד של עד 4 ימי עסקים. נשלח מחו"ל".</li></ul></div>
+</article>
+<article class="item" id="p4"><header><span class="id">P4</span><h3>תיאור המוצר (היום בתוך אקורדיון "על המוצר")</h3><span class="pr pr-h">עדיפות: גבוה</span></header>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-approve"><th scope="row">טקסט</th><td class="cur">מתעוררים עם צוואר תפוס? יושבים מול מחשב ובסוף היום הגב התחתון "נתקע"? כוס הרוח של LORINX משלבת ואקום שמושך את השריר וחום שמרפה אותו — 15 דקות לאזור בערב מול הטלוויזיה, בלי תור לפיזיותרפיה.</td><td class="new ">מתעוררים עם כתפיים תפוסות? יושבים מול מחשב, ובסוף היום הגב התחתון "נתקע"? הכוס נצמדת לעור, שואבת ומחממת. רבע שעה בערב, מול הטלוויזיה, בלי לקבוע תור ובלי לצאת מהבית.</td><td class="st"><span class="k k-approve">דורש אישור מיוחד</span></td></tr>
+<tr class="r-keep"><th scope="row">שורת מפרט</th><td class="cur">12 דרגות עוצמה · חימום מבוקר · אור אדום · אלחוטית · משלוח חינם לכל הארץ · שנה אחריות.</td><td class="new same">ללא שינוי</td><td class="st"><span class="k k-keep">נשאר</span></td></tr>
+<tr class="r-replace"><th scope="row">מיקום</th><td class="cur">מקופל בתוך אקורדיון</td><td class="new ">גלוי, מעל האקורדיונים</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> זה הקטע היחיד בעמוד שמדבר על הבעיה בשפה של הלקוח, והוא מוסתר. "בלי תור לפיזיותרפיה" משווה את המכשיר לטיפול רפואי.</p>
+<div class="before"><b>לפני שמיישמים</b><ul><li>הטקסט נמצא בשדה התיאור ב-Shopify, ולכן גם זה דורש אישור מפורש.</li></ul></div>
+</article>
+<article class="item" id="p5"><header><span class="id">P5</span><h3>"מה יש בפנים": חמש התכונות</h3><span class="pr pr-m">עדיפות: בינוני</span></header>
+<figure class="shot"><div class="frame"><img src="img/p-features.jpg" alt="צילום מהטיוטה: &quot;מה יש בפנים&quot;: חמש התכונות" loading="lazy"></div><figcaption>צילום מהטיוטה · p-features.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-keep"><th scope="row">כותרת ומשפט</th><td class="cur">שגרה ביתית, בשליטה מלאה שלכם.<br>אחרי יום ארוך מול מחשב או על הרגליים: שאיבה מדורגת, חימום ואור אדום, לרבע שעה בבית.</td><td class="new same">ללא שינוי</td><td class="st"><span class="k k-keep">נשאר</span></td></tr>
+<tr class="r-data"><th scope="row">חמש התכונות</th><td class="cur">שאיבה דיגיטלית · חימום מבוקר · אור אדום · 12 דרגות עוצמה · אלחוטית ונטענת</td><td class="new ">אותן תכונות, עם מספר לכל אחת כשיש: טמפרטורה, זמן סוללה, משקל</td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+<tr class="r-add"><th scope="row">מקטע חדש</th><td class="cur">—</td><td class="new ">מה באריזה: <span class="ph">[רשימה מהיצרן]</span></td><td class="st"><span class="k k-add">מוסיפים</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> אין בעמוד אף נתון שאפשר להשוות. הניסוחים זהירים וזה נכון, אבל "חום הדרגתי ונעים" לא אומר ללקוח דבר.</p>
+<div class="before"><b>לפני שמיישמים</b><ul><li>בלי מפרט מהיצרן לא מוסיפים מספרים.</li></ul></div>
+</article>
+<article class="item" id="p6"><header><span class="id">P6</span><h3>"למי זה מתאים"</h3><span class="pr pr-l">עדיפות: נמוך</span></header>
+<figure class="shot"><div class="frame"><img src="img/p-who.jpg" alt="צילום מהטיוטה: &quot;למי זה מתאים&quot;" loading="lazy"></div><figcaption>צילום מהטיוטה · p-who.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-remove"><th scope="row">שש קוביות</th><td class="cur">עובדים מול מחשב · ספורטאים ומתאמנים · עבודה פיזית · הורים עסוקים · סוף יום ארוך · שגרה קבועה</td><td class="new ">ארבע קוביות: עובדים מול מחשב · ספורטאים ומתאמנים · עבודה פיזית · הורים עסוקים</td><td class="st"><span class="k k-remove">מורידים</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> "סוף יום ארוך" ו"שגרה קבועה" הן מצבים ולא אנשים, והן מדללות את המקטע.</p>
+</article>
+<article class="item" id="p7"><header><span class="id">P7</span><h3>"מה לצפות"</h3><span class="pr pr-h">עדיפות: גבוה</span></header>
+<figure class="shot"><div class="frame"><img src="img/p-expect.jpg" alt="צילום מהטיוטה: &quot;מה לצפות&quot;" loading="lazy"></div><figcaption>צילום מהטיוטה · p-expect.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-keep"><th scope="row">כותרת</th><td class="cur">מהשימוש הראשון ועד שזה הופך להרגל.</td><td class="new same">ללא שינוי</td><td class="st"><span class="k k-keep">נשאר</span></td></tr>
+<tr class="r-replace"><th scope="row">שימוש ראשון</th><td class="cur">מכירים את המכשיר בדרגה הנמוכה. ייתכן סימן עגול קל על העור במקום שבו הונחה הכוס.</td><td class="new ">בזמן השימוש: העור נמשך אל תוך הכוס ומתחמם. המשיכה מורגשת היטב. מתחילים בדרגה 1, ואם כואב, מורידים דרגה או מפסיקים.</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-replace"><th scope="row">השבוע הראשון</th><td class="cur">מוצאים את דרגת העוצמה והחום שנוחות לכם, ואת האזורים שבהם הכי נעים להשתמש.</td><td class="new ">אחרי השימוש: ייתכן סימן עגול, אדום עד סגלגל, כמו בכוסות רוח רגילות. הוא דוהה עם הזמן, ואצל חלק מהאנשים זה לוקח יותר משבוע. לפני אירוע או ים, עדיף לא להשתמש על אזור גלוי.</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-keep"><th scope="row">שבוע שני ואילך</th><td class="cur">השימוש נכנס לשגרה: רבע שעה בערב, בלי להתארגן.</td><td class="new same">ללא שינוי</td><td class="st"><span class="k k-keep">נשאר</span></td></tr>
+<tr class="r-keep"><th scope="row">הסתייגות</th><td class="cur">התחושה משתנה מאדם לאדם. המוצר מיועד לרווחה כללית ואינו תחליף לייעוץ או לטיפול רפואי.</td><td class="new same">ללא שינוי</td><td class="st"><span class="k k-keep">נשאר</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> זה המקטע הכי מבדל בעמוד, והוא לא אומר מה מרגישים ולא מה קורה עם הסימנים. הסימנים הם החשש שחוזר הכי הרבה בביקורות על מכשירים דומים.</p>
+<div class="before"><b>לפני שמיישמים</b><ul><li>הקטע על הסימנים צריך אישור מול הוראות היצרן.</li></ul></div>
+</article>
+<article class="item" id="p8"><header><span class="id">P8</span><h3>"למה LORINX"</h3><span class="pr pr-h">עדיפות: גבוה</span></header>
+<figure class="shot"><div class="frame"><img src="img/p-why.jpg" alt="צילום מהטיוטה: &quot;למה LORINX&quot;" loading="lazy"></div><figcaption>צילום מהטיוטה · p-why.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-replace"><th scope="row">כותרת</th><td class="cur">מכשיר אחד, ומישהו שעומד מאחוריו.</td><td class="new ">מה מקבלים כשמזמינים מ-LORINX</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-replace"><th scope="row">נקודות</th><td class="cur">שאיבה דיגיטלית עם 12 דרגות<br>חימום ואור אדום משולבים<br>שקטה ונוחה לשימוש בסלון<br>כיבוי אוטומטי בסוף השימוש<br>אחריות לשנה, ישירות מ־LORINX<br>שירות ותמיכה בעברית</td><td class="new ">מוכר ישראלי עם שם, טלפון וכתובת.<br>הוראות בעברית באריזה <span class="ph">[לאימות]</span>.<br>14 יום להחזרה, ומשלוח ההחזרה עלינו.<br>אחריות לשנה, ואדם שעונה כשמשהו לא עובד.</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> ארבע מתוך שש הנקודות הן תכונות של המכשיר, שכבר כתובות למעלה. מכשירים דומים מאוד נמכרים בישראל במחיר נמוך יותר (₪198 אצל Goodest, ₪119 אצל Velarixs), ולכן המקטע צריך לומר מה מקבלים מ-LORINX עצמה. בלי להשוות למוכרים אחרים בעמוד.</p>
+<div class="before"><b>לפני שמיישמים</b><ul><li>"שקטה": רק אם יש נתון. אחרת לא טוענים.</li></ul></div>
+</article>
+<article class="item" id="p9"><header><span class="id">P9</span><h3>"שימוש נכון" ואזהרות</h3><span class="pr pr-m">עדיפות: בינוני</span></header>
+<figure class="shot"><div class="frame"><img src="img/p-rules.jpg" alt="צילום מהטיוטה: &quot;שימוש נכון&quot; ואזהרות" loading="lazy"></div><figcaption>צילום מהטיוטה · p-rules.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-keep"><th scope="row">כדאי / להימנע</th><td class="cur">שתי רשימות של חמש נקודות</td><td class="new same">ללא שינוי</td><td class="st"><span class="k k-keep">נשאר</span></td></tr>
+<tr class="r-data"><th scope="row">למי לא מתאים</th><td class="cur">המכשיר אינו מתאים לנשים בהריון, לאנשים עם קוצב לב, עם בעיות קרישה או עם רגישות לחום, ללא ייעוץ רפואי.</td><td class="new ">הרשימה המלאה מהוראות היצרן: <span class="ph">[רשימה]</span></td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> הרשימה הקיימת חלקית. חסרים בה, למשל, מחלות עור ותרופות לדילול דם, שמופיעים ברשימות של מותגים מובילים.</p>
+</article>
+<article class="item" id="p10"><header><span class="id">P10</span><h3>שאלות נפוצות בעמוד המוצר</h3><span class="pr pr-h">עדיפות: גבוה</span></header>
+<figure class="shot"><div class="frame"><img src="img/p-faq.jpg" alt="צילום מהטיוטה: שאלות נפוצות בעמוד המוצר" loading="lazy"></div><figcaption>צילום מהטיוטה · p-faq.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-replace"><th scope="row">מתי מרגישים את ההשפעה?</th><td class="cur">התחושה משתנה מאדם לאדם. מומלץ להתחיל בדרגה נמוכה ולמצוא את השגרה שנוחה לכם.</td><td class="new ">מה מרגישים בזמן השימוש?<br>חום ומשיכה, מהדקה הראשונה. איך הגוף מרגיש אחר כך משתנה מאדם לאדם.</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-keep"><th scope="row">האם השימוש בטוח?</th><td class="cur">המכשיר תוכנן לשימוש ביתי פשוט. אתם בוחרים את עוצמת הוואקום ואת רמת החימום, כך שאפשר להתחיל נמוך ולעלות בהדרגה. קראו את הוראות השימוש לפני ההפעלה, והימנעו משימוש על עור פצוע או מגורה ובאזורים רגישים.</td><td class="new ">ללא שינוי, בתוספת קישור לרשימת "למי לא מתאים"</td><td class="st"><span class="k k-keep">נשאר</span></td></tr>
+<tr class="r-replace"><th scope="row">כמה זמן לוקח המשלוח?</th><td class="cur">המשלוח חינם. זמן האספקה המשוער הוא 7–14 ימי עסקים.</td><td class="new ">כמו בדף הבית (H8)</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-add"><th scope="row">שאלה חדשה</th><td class="cur">—</td><td class="new ">זה כואב? · נשארים סימנים? (כמו ב-H8)</td><td class="st"><span class="k k-add">מוסיפים</span></td></tr>
+<tr class="r-data"><th scope="row">שאלה חדשה</th><td class="cur">—</td><td class="new ">כמה חזקה השאיבה ביחס לכוס רוח רגילה?<br><span class="ph">[תשובה אחרי בדיקה מול המכשיר]</span></td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+<tr class="r-add"><th scope="row">שאלה חדשה</th><td class="cur">—</td><td class="new ">מה כוללת האחריות? (כמו ב-H8)</td><td class="st"><span class="k k-add">מוסיפים</span></td></tr>
+<tr class="r-keep"><th scope="row">למי המוצר מתאים? · כמה זמן נמשך שימוש?</th><td class="cur">שתי תשובות קיימות</td><td class="new same">ללא שינוי</td><td class="st"><span class="k k-keep">נשאר</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> "התחושה משתנה מאדם לאדם" לא עונה על השאלה. השאלה על עוצמת השאיבה חשובה למי שמכיר כוסות רוח מטיפול.</p>
+</article>
+<article class="item" id="p11"><header><span class="id">P11</span><h3>הקריאה האחרונה</h3><span class="pr pr-l">עדיפות: נמוך</span></header>
+<figure class="shot"><div class="frame"><img src="img/p-final.jpg" alt="צילום מהטיוטה: הקריאה האחרונה" loading="lazy"></div><figcaption>צילום מהטיוטה · p-final.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-replace"><th scope="row">כותרת</th><td class="cur">מוכנים לנסות?</td><td class="new ">רבע שעה בשבילכם.</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-replace"><th scope="row">משפט</th><td class="cur">משלוח חינם, 14 יום להחזרה ואחריות לשנה.</td><td class="new ">משלוח חינם, ו-14 יום להחזרה.</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-keep"><th scope="row">כפתור</th><td class="cur">חזרה לבחירת הכמות</td><td class="new same">ללא שינוי</td><td class="st"><span class="k k-keep">נשאר</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> "לנסות" מרמז על תקופת ניסיון שהמדיניות לא מבטיחה במפורש.</p>
+</article>
+<article class="item" id="p12"><header><span class="id">P12</span><h3>כותרת הדפדפן ותיאור החיפוש</h3><span class="pr pr-h">עדיפות: גבוה</span></header>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-approve"><th scope="row">כותרת (title)</th><td class="cur">כוס רוח חשמלית להפחתת כאבים מבית — ™LORINX</td><td class="new ">כוס רוח חשמלית עם חימום ואור אדום | LORINX</td><td class="st"><span class="k k-approve">דורש אישור מיוחד</span></td></tr>
+<tr class="r-approve"><th scope="row">תיאור (meta)</th><td class="cur">כוס רוח חשמלית עם ואקום, חום ואור אדום להרפיית צוואר תפוס, כתפיים וגב תחתון בבית. 12 דרגות עוצמה, אלחוטית, משלוח חינם ושנה אחריות.</td><td class="new ">כוס רוח חשמלית אלחוטית עם ואקום, חימום ואור אדום. 12 דרגות עוצמה וכיבוי אוטומטי אחרי 15 דקות. כוסות רוח בבית, משלוח חינם ואחריות לשנה.</td><td class="st"><span class="k k-approve">דורש אישור מיוחד</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> "כוס רוח חשמלית" היא השאילתה שבה מופיעות רק חנויות קטנות, ולכן היא היעד הריאלי היחיד בטווח הקצר. התיאור המוצע מכניס גם את צורת הרבים "כוסות רוח".</p>
+</article>
+<article class="item" id="p13"><header><span class="id">P13</span><h3>העמוד בנייד</h3><span class="pr pr-m">עדיפות: בינוני</span></header>
+<figure class="shot narrow"><div class="frame"><img src="img/m-cup-fold.jpg" alt="צילום מהטיוטה: העמוד בנייד" loading="lazy"></div><figcaption>צילום מהטיוטה · m-cup-fold.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-data"><th scope="row">מסך ראשון</th><td class="cur">פס הודעות, תפריט, פירורי לחם ותמונה. השם, המחיר והכפתור מתחת לקפל</td><td class="new ">ללא שינוי במבנה. לוודא שהשורה הראשונה מתחת לתמונה תואמת את המודעה</td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> מי שמגיע ממודעה רואה קודם תמונה. צריך שהמשפט הראשון שהוא קורא ימשיך את מה שהמודעה אמרה.</p>
+<div class="before"><b>לפני שמיישמים</b><ul><li>לא ראיתי את המודעות. צריך לשלוח אותן כדי להתאים.</li></ul></div>
+</article>
+</section>
+<section class="page" id="others"><h2>שלושת המוצרים האחרים</h2>
+<p class="intro">בשלושתם שדה התיאור ב-Shopify ריק, ולכן האקורדיון "על המוצר" נפתח בלי תוכן.</p>
+<article class="item" id="g1"><header><span class="id">G1</span><h3>אקדח עיסוי</h3><span class="pr pr-m">עדיפות: בינוני</span></header>
+<figure class="shot narrow"><div class="frame"><img src="img/g-buybox.jpg" alt="צילום מהטיוטה: אקדח עיסוי" loading="lazy"></div><figcaption>צילום מהטיוטה · g-buybox.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-approve"><th scope="row">שם</th><td class="cur">אקדח מסאג׳ לשחרור שרירים</td><td class="new ">אקדח עיסוי לשרירים</td><td class="st"><span class="k k-approve">דורש אישור מיוחד</span></td></tr>
+<tr class="r-replace"><th scope="row">משפט</th><td class="cur">עיסוי ממוקד לכל קבוצת שריר, בכמה דקות, בבית או בחדר הכושר.</td><td class="new ">דקה־שתיים על השריר שעבד: לפני אימון, אחריו, או על הכתפיים בסוף יום.</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-data"><th scope="row">נקודות</th><td class="cur">30 דרגות עוצמה · 6 ראשים מתחלפים · מנוע שקט, טעינת USB-C · 1–2 דקות לכל אזור</td><td class="new ">ללא שינוי, אחרי אימות</td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+<tr class="r-add"><th scope="row">"על המוצר"</th><td class="cur">ריק</td><td class="new "><span class="ph">[תיאור של שתיים־שלוש שורות, אחרי שיש מפרט]</span></td><td class="st"><span class="k k-add">מוסיפים</span></td></tr>
+<tr class="r-data"><th scope="row">האם השימוש בטוח?</th><td class="cur">בשימוש נכון ובהתאם להוראות היצרן, האקדח מיועד לשימוש ביתי נוח.</td><td class="new ">למי לא מתאים: <span class="ph">[רשימה מהיצרן]</span>. אם מרגישים כאב חד, מפסיקים.</td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+<tr class="r-replace"><th scope="row">כתיב</th><td class="cur">מסאג׳ (שם) · מסאז׳ (שאלות נפוצות) · עיסוי (תיאור דף הבית)</td><td class="new ">עיסוי בכל מקום</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-approve"><th scope="row">כותרת דפדפן</th><td class="cur">אקדח מסאג׳ לשחרור שרירים – LORINX</td><td class="new ">אקדח עיסוי לשרירים | LORINX</td><td class="st"><span class="k k-approve">דורש אישור מיוחד</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> "אקדח עיסוי" הוא המונח אצל הקמעונאים בישראל. אותו מוצר נקרא באתר בשלושה כתיבים.</p>
+<div class="before"><b>לפני שמיישמים</b><ul><li>מספר הראשים: העמוד אומר 6, ותיאור תמונה שנשאר מהספק אומר 8. לבדוק מה נכון.</li><li>אין סיבה נראית לעין לחבילה של שלושה אקדחים. להחלטתך.</li></ul></div>
+</article>
+<article class="item" id="f1"><header><span class="id">F1</span><h3>מכשיר עיסוי לרגליים (₪799.90)</h3><span class="pr pr-h">עדיפות: גבוה</span></header>
+<figure class="shot narrow"><div class="frame"><img src="img/f-buybox.jpg" alt="צילום מהטיוטה: מכשיר עיסוי לרגליים (₪799.90)" loading="lazy"></div><figcaption>צילום מהטיוטה · f-buybox.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-approve"><th scope="row">שם</th><td class="cur">מכשיר מסאג'ר חשמלי לרגליים</td><td class="new ">מכשיר עיסוי לרגליים</td><td class="st"><span class="k k-approve">דורש אישור מיוחד</span></td></tr>
+<tr class="r-data"><th scope="row">משפט</th><td class="cur">לחץ אוויר, עיסוי נקודתי וחימום עדין. עשרים דקות בכורסה בסוף היום.</td><td class="new ">אחרי יום שלם על הרגליים: עשרים דקות בכורסה, עם לחץ אוויר וחום.</td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+<tr class="r-add"><th scope="row">"על המוצר"</th><td class="cur">ריק</td><td class="new "><span class="ph">[תיאור, מידות, משקל, לאיזו מידת נעל מתאים]</span></td><td class="st"><span class="k k-add">מוסיפים</span></td></tr>
+<tr class="r-remove"><th scope="row">חבילה של 3</th><td class="cur">3 יחידות · ₪1,679.90 · חוסכים ₪719.80</td><td class="new ">להוריד את השורה</td><td class="st"><span class="k k-remove">מורידים</span></td></tr>
+<tr class="r-data"><th scope="row">מתחת למחיר</th><td class="cur">—</td><td class="new ">עד <span class="ph">[X]</span> תשלומים</td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+<tr class="r-approve"><th scope="row">כותרת דפדפן</th><td class="cur">מכשיר מסאג'ר חשמלי לרגליים מבית - ™LORINX</td><td class="new ">מכשיר עיסוי לרגליים עם חימום ולחץ אוויר | LORINX</td><td class="st"><span class="k k-approve">דורש אישור מיוחד</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> זה המוצר היקר ביותר עם העמוד הדל ביותר, והוא מתחרה במוצר ממותג עם מלאי בארץ (Carbon ב-₪749 אצל Bug). שלושה מכשירים כאלה אינם רכישה סבירה למשק בית.</p>
+<div class="before"><b>לפני שמיישמים</b><ul><li>חשד לאי־התאמה: התמונה מראה שרוולי לחץ לכל הרגל, והטקסט מדבר על "עיסוי ממוקד לכף הרגל ולעקב" ועל "כיסוי פנימי נשלף לכביסה". לבדוק מול המוצר לפני כל שינוי בטקסט.</li><li>האם יש תשלומים בצ'קאאוט.</li></ul></div>
+</article>
+<article class="item" id="t1"><header><span class="id">T1</span><h3>מאמן ירכיים</h3><span class="pr pr-m">עדיפות: בינוני</span></header>
+<figure class="shot narrow"><div class="frame"><img src="img/t-buybox.jpg" alt="צילום מהטיוטה: מאמן ירכיים" loading="lazy"></div><figcaption>צילום מהטיוטה · t-buybox.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-approve"><th scope="row">שם</th><td class="cur">מכשיר לחיזוק ועיצוב הירכיים</td><td class="new ">מאמן ירכיים ביתי</td><td class="st"><span class="k k-approve">דורש אישור מיוחד</span></td></tr>
+<tr class="r-keep"><th scope="row">משפט</th><td class="cur">אימון התנגדות ממוקד לירכיים ולישבן, בכמה דקות ביום, בסלון.</td><td class="new same">ללא שינוי</td><td class="st"><span class="k k-keep">נשאר</span></td></tr>
+<tr class="r-add"><th scope="row">"על המוצר"</th><td class="cur">ריק</td><td class="new "><span class="ph">[תיאור קצר, והאם ההתנגדות מתכווננת]</span></td><td class="st"><span class="k k-add">מוסיפים</span></td></tr>
+<tr class="r-data"><th scope="row">אחריות</th><td class="cur">אחריות לשנה על המכשיר</td><td class="new ">אחריות לשנה, כולל הקפיץ <span class="ph">[אם נכון]</span></td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+<tr class="r-approve"><th scope="row">כותרת דפדפן</th><td class="cur">מכשיר לחיזוק ועיצוב הירכיים מבית - ™LORINX</td><td class="new ">מכשיר לחיזוק ירכיים – מאמן ירכיים ביתי | LORINX</td><td class="st"><span class="k k-approve">דורש אישור מיוחד</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> "עיצוב" מרמז על תוצאה חזותית. המשפט הקיים טוב ונשאר. זה מכשיר אימון, ולכן הוא לא שייך תחת הכותרת "התאוששות".</p>
+</article>
+</section>
+<section class="page" id="cart"><h2>סל הקניות</h2>
+<p class="intro">לפי נתוני החנות, חצי מהמגיעים לצ'קאאוט לא משלימים. את שלבי המשלוח והתשלום לא בדקתי, כי הם דורשים מילוי פרטים.</p>
+<article class="item" id="s1"><header><span class="id">S1</span><h3>מגירת הסל</h3><span class="pr pr-m">עדיפות: בינוני</span></header>
+<figure class="shot"><div class="frame"><img src="img/cart-drawer.jpg" alt="צילום מהטיוטה: מגירת הסל" loading="lazy"></div><figcaption>צילום מהטיוטה · cart-drawer.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-replace"><th scope="row">שורת מוצר</th><td class="cur">כוס רוח חשמלית להפחתת כאבים<br>2 יחידות<br>כמות: 1</td><td class="new ">כוס רוח חשמלית עם חימום<br>מארז של 2 כוסות<br>כמות: 1</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-replace"><th scope="row">מתחת לסכום</th><td class="cur">משלוח חינם. הסכום הסופי מוצג בעמוד התשלום.</td><td class="new ">משלוח חינם.</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-keep"><th scope="row">כפתור</th><td class="cur">מעבר לתשלום מאובטח</td><td class="new same">ללא שינוי</td><td class="st"><span class="k k-keep">נשאר</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> "2 יחידות" ליד מונה כמות "1" מבלבל: לחיצה על פלוס מוסיפה עוד מארז של שתיים. "הסכום הסופי מוצג בעמוד התשלום" פותח חשש מתוספת.</p>
+<div class="before"><b>לפני שמיישמים</b><ul><li>לא כותבים "זה המחיר הסופי" עד שמבררים אם לקוח יכול להתחייב במס בקבלת החבילה.</li></ul></div>
+</article>
+<article class="item" id="s2"><header><span class="id">S2</span><h3>עמוד הסל</h3><span class="pr pr-m">עדיפות: בינוני</span></header>
+<figure class="shot"><div class="frame"><img src="img/cart-page.jpg" alt="צילום מהטיוטה: עמוד הסל" loading="lazy"></div><figcaption>צילום מהטיוטה · cart-page.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-data"><th scope="row">מתחת לכפתור</th><td class="cur">אספקה משוערת 7–14 ימי עסקים<br>14 יום להחזרה, בלי דמי ביטול<br>אחריות לשנה</td><td class="new ">מגיע עד <span class="ph">[תאריך]</span><br>14 יום להחזרה, משלוח ההחזרה עלינו</td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+<tr class="r-data"><th scope="row">ליד הכפתור</th><td class="cur">—</td><td class="new ">סמלי אמצעי התשלום, ו"עד <span class="ph">[X]</span> תשלומים" אם יש</td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> מתחרה ישיר (Goodest) מציג "4 x ₪49" על מוצר של ₪198.</p>
+</article>
+</section>
+<section class="page" id="about"><h2>קצת עלינו</h2>
+<p class="intro">העמוד כתוב היטב ואין בו אף עובדה שאפשר לבדוק: לא מי, לא מאיפה, לא ממתי.</p>
+<article class="item" id="a1"><header><span class="id">A1</span><h3>פתיחה</h3><span class="pr pr-h">עדיפות: גבוה</span></header>
+<figure class="shot"><div class="frame"><img src="img/a-top.jpg" alt="צילום מהטיוטה: פתיחה" loading="lazy"></div><figcaption>צילום מהטיוטה · a-top.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-keep"><th scope="row">כותרת</th><td class="cur">לפעמים מותג לא מתחיל במוצר. הוא מתחיל בתחושה.</td><td class="new same">ללא שינוי</td><td class="st"><span class="k k-keep">נשאר</span></td></tr>
+<tr class="r-data"><th scope="row">משפט</th><td class="cur">לפני ש־LORINX הייתה אתר, לוגו, אריזות או הזמנות, היה רעיון.</td><td class="new ">מי עומד מאחורי LORINX<br>אני <span class="ph">[שם]</span>, ואני מפעיל את LORINX מ<span class="ph">[עיר]</span> מאז <span class="ph">[שנה]</span>. <span class="ph">[משפט אחד אמיתי על איך הגעתי לזה]</span>.</td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> גולש שלא מכיר את החנות מחפש כאן אדם.</p>
+</article>
+<article class="item" id="a2"><header><span class="id">A2</span><h3>הרעיון וארבע השאלות</h3><span class="pr pr-m">עדיפות: בינוני</span></header>
+<figure class="shot"><div class="frame"><img src="img/a-idea.jpg" alt="צילום מהטיוטה: הרעיון וארבע השאלות" loading="lazy"></div><figcaption>צילום מהטיוטה · a-idea.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-replace"><th scope="row">כותרת</th><td class="cur">לא רצינו להקים עוד חנות. רצינו לבנות מותג עם אופי.</td><td class="new ">איך אני בוחר מוצר</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-data"><th scope="row">ארבע השאלות</th><td class="cur">האם הוא באמת שימושי? · האם הוא הופך את היום לנוח יותר? · האם האיכות מספיקה כדי לעמוד מאחוריו? · היינו שמחים לקבל אותו הביתה?</td><td class="new ">ללא שינוי, בתוספת משפט אחד: <span class="ph">[מה נבדק בפועל לפני שמוצר נכנס]</span></td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+<tr class="r-add"><th scope="row">מקטע חדש</th><td class="cur">—</td><td class="new ">מה אני מוכר, ומה לא<br>ארבעה מכשירים לבית. הם אינם מכשירים רפואיים. הם נותנים חום, שאיבה ועיסוי, לרבע שעה של שקט בסוף היום.</td><td class="st"><span class="k k-add">מוסיפים</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> ארבע השאלות הן רעיון טוב שנשאר מופשט. משפט אחד על מה שנבדק בפועל הופך אותו לעובדה.</p>
+<div class="before"><b>לפני שמיישמים</b><ul><li>"שנים של עבודה, ניסיון והיכרות עם עולם המוצרים": להחליף בעובדה, או להוריד.</li></ul></div>
+</article>
+<article class="item" id="a3"><header><span class="id">A3</span><h3>אמון וסיום</h3><span class="pr pr-h">עדיפות: גבוה</span></header>
+<figure class="shot"><div class="frame"><img src="img/a-trust.jpg" alt="צילום מהטיוטה: אמון וסיום" loading="lazy"></div><figcaption>צילום מהטיוטה · a-trust.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-data"><th scope="row">טקסט</th><td class="cur">אמון שהמוצר שווה את הכסף, שהוא באמת כמו שתיארנו אותו, ושנהיה שם אם תצטרכו אותנו. מבחינתנו, זו אחריות.</td><td class="new ">מה חשוב לדעת לפני שמזמינים<br>המכשירים נשלחים אליכם מחו"ל, ולכן המשלוח לוקח <span class="ph">[טווח אמיתי]</span>. יש 14 יום להחזרה, ומשלוח ההחזרה עליי. תקלה בשנה הראשונה: תיקון או החלפה.</td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+<tr class="r-add"><th scope="row">מקטע חדש</th><td class="cur">—</td><td class="new ">איך מדברים איתי<br>ווטסאפ <span class="ph">[מספר]</span>, מייל <span class="ph">[כתובת]</span>, א׳–ה׳ 09:00–18:00. אני קורא כל הודעה.</td><td class="st"><span class="k k-add">מוסיפים</span></td></tr>
+<tr class="r-replace"><th scope="row">כותרת דפדפן</th><td class="cur">קצת עלינו – LORINX</td><td class="new ">מי אנחנו: הסיפור והשירות של LORINX</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> עמוד שאומר מיוזמתו מאיפה המשלוח יוצא ומה קורה כשמשהו לא עובד עונה על השאלות שהגולש בא איתן.</p>
+<div class="before"><b>לפני שמיישמים</b><ul><li>כל העמוד בגוף אחד. אם בוחרים "אני", אז לאורך כל העמוד.</li></ul></div>
+</article>
+</section>
+<section class="page" id="service"><h2>צרו קשר וכמויות לחברות</h2>
+<article class="item" id="c1"><header><span class="id">C1</span><h3>צרו קשר</h3><span class="pr pr-l">עדיפות: נמוך</span></header>
+<figure class="shot"><div class="frame"><img src="img/c-main.jpg" alt="צילום מהטיוטה: צרו קשר" loading="lazy"></div><figcaption>צילום מהטיוטה · c-main.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-keep"><th scope="row">כותרת ומשפט</th><td class="cur">יש לכם שאלה? אנחנו כאן.<br>מלאו את הטופס ונחזור אליכם בהקדם. נשמח לעזור בבחירת המכשיר, בשימוש נכון ובכל בקשת אחריות.</td><td class="new same">ללא שינוי</td><td class="st"><span class="k k-keep">נשאר</span></td></tr>
+<tr class="r-data"><th scope="row">ווטסאפ</th><td class="cur">מענה מהיר בשעות הפעילות.</td><td class="new ">עונים בדרך כלל תוך <span class="ph">[זמן אמיתי]</span>.</td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+<tr class="r-data"><th scope="row">אימייל</th><td class="cur">mylorinx@gmail.com</td><td class="new ">כתובת בדומיין החנות, אם אפשר</td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+<tr class="r-replace"><th scope="row">טלפון</th><td class="cur">מספר אחד (בעמוד "פרטי התקשרות" ובתקנון: שניים)</td><td class="new ">אותם מספרים בכל מקום</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> "מענה מהיר" מול "1–3 ימי עסקים" בתקנון ובעמוד פרטי ההתקשרות. צריך התחייבות אחת שעומדים בה.</p>
+</article>
+<article class="item" id="b1"><header><span class="id">B1</span><h3>כמויות לחברות</h3><span class="pr pr-m">עדיפות: בינוני</span></header>
+<figure class="shot"><div class="frame"><img src="img/b-who.jpg" alt="צילום מהטיוטה: כמויות לחברות" loading="lazy"></div><figcaption>צילום מהטיוטה · b-who.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-data"><th scope="row">כותרת ופתיחה</th><td class="cur">הזמנות בכמויות גדולות לעסקים.<br>מחפשים מתנה איכותית ושימושית לעובדים, ללקוחות או לשותפים עסקיים? נבנה לכם הצעה מותאמת, כולל מיתוג ואספקה מרוכזת.</td><td class="new ">ללא שינוי, אחרי אימות ש"מיתוג" אכן אפשרי</td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+<tr class="r-data"><th scope="row">ארבע קוביות</th><td class="cur">מחירים מיוחדים · שירות אישי · הזמנה מרוכזת · התאמה לכמות</td><td class="new ">מ-<span class="ph">[X]</span> יחידות · הצעת מחיר תוך <span class="ph">[זמן]</span> · אספקה תוך <span class="ph">[זמן]</span> · מיתוג מ-<span class="ph">[X]</span> יחידות</td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> ארבע הקוביות אומרות אותו דבר. לקוח עסקי רוצה לדעת מינימום, זמן ומחיר.</p>
+<div class="before"><b>לפני שמיישמים</b><ul><li>העסק רשום כעוסק פטור, שאינו מוציא חשבונית מס. לבדוק עם רואה חשבון לפני שמקדמים את העמוד ללקוחות עסקיים.</li></ul></div>
+</article>
+</section>
+<section class="page" id="nav"><h2>קולקציות וניווט</h2>
+<p class="intro">ארבעה מוצרים מוצגים היום בחמש כתובות שונות, ויש שאריות באנגלית.</p>
+<article class="item" id="n1"><header><span class="id">N1</span><h3>קולקציה בשם "Home page"</h3><span class="pr pr-m">עדיפות: בינוני</span></header>
+<figure class="shot"><div class="frame"><img src="img/col-front.jpg" alt="צילום מהטיוטה: קולקציה בשם &quot;Home page&quot;" loading="lazy"></div><figcaption>צילום מהטיוטה · col-front.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-replace"><th scope="row">שם</th><td class="cur">Home page</td><td class="new ">להסתיר, או לשנות ל"המוצר המוביל"</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> שם ברירת מחדל של Shopify שנשאר גלוי, עם מוצר אחד.</p>
+</article>
+<article class="item" id="n2"><header><span class="id">N2</span><h3>קולקציית האקדח</h3><span class="pr pr-m">עדיפות: בינוני</span></header>
+<figure class="shot"><div class="frame"><img src="img/col-gun.jpg" alt="צילום מהטיוטה: קולקציית האקדח" loading="lazy"></div><figcaption>צילום מהטיוטה · col-gun.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-remove"><th scope="row">שם</th><td class="cur">אקדח מסאג לשיחרור שרירים מבית - ™LORINX</td><td class="new ">להסתיר ולהפנות לעמוד המוצר</td><td class="st"><span class="k k-remove">מורידים</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> שגיאת כתיב ("לשיחרור"), ומוצר אחד בלבד.</p>
+</article>
+<article class="item" id="n3"><header><span class="id">N3</span><h3>קולקציה ראשית</h3><span class="pr pr-m">עדיפות: בינוני</span></header>
+<figure class="shot"><div class="frame"><img src="img/col-all.jpg" alt="צילום מהטיוטה: קולקציה ראשית" loading="lazy"></div><figcaption>צילום מהטיוטה · col-all.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-replace"><th scope="row">כותרת</th><td class="cur">ריקוברי ביתי, מכשיר לכל צורך.</td><td class="new ">מכשירי עיסוי והתאוששות לבית</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-keep"><th scope="row">משפט</th><td class="cur">מכשירים לשחרור שרירים ולהרפיה בבית, עם אחריות לשנה ושירות בעברית.</td><td class="new same">ללא שינוי</td><td class="st"><span class="k k-keep">נשאר</span></td></tr>
+<tr class="r-replace"><th scope="row">כפילות</th><td class="cur">אותם מוצרים גם ב"המוצרים שלנו" (עמוד) וגם בקולקציה "המוצרים שלנו"</td><td class="new ">כתובת אחת, והשאר מפנות אליה</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> חמש כתובות לאותם ארבעה מוצרים מבלבלות גם את הגולש וגם את גוגל.</p>
+</article>
+<article class="item" id="n4"><header><span class="id">N4</span><h3>הבלוג</h3><span class="pr pr-l">עדיפות: נמוך</span></header>
+<figure class="shot"><div class="frame"><img src="img/blog.jpg" alt="צילום מהטיוטה: הבלוג" loading="lazy"></div><figcaption>צילום מהטיוטה · blog.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-replace"><th scope="row">שם ותוכן</th><td class="cur">News · ריק</td><td class="new ">להסתיר עד שיש מאמר ראשון. אחר כך: "המדריך של LORINX"</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> עמוד ריק באנגלית.</p>
+</article>
+</section>
+<section class="page" id="policy"><h2>מדיניות</h2>
+<p class="intro">עמודי המדיניות כתובים בשפה משפטית, בניגוד לשאר האתר. הנוסח המשפטי נשאר. מוסיפים רק סיכום קצר ומיישרים סתירות.</p>
+<article class="item" id="m1"><header><span class="id">M1</span><h3>מדיניות משלוחים</h3><span class="pr pr-h">עדיפות: גבוה</span></header>
+<figure class="shot"><div class="frame"><img src="img/pol-ship.jpg" alt="צילום מהטיוטה: מדיניות משלוחים" loading="lazy"></div><figcaption>צילום מהטיוטה · pol-ship.jpg</figcaption></figure>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-add"><th scope="row">ראש העמוד</th><td class="cur">אנו עושים את מירב המאמצים כדי לספק את הזמנתכם במהירות וביעילות.</td><td class="new ">בקיצור: המשלוח חינם. ההזמנה יוצאת מהמחסן בחו"ל תוך עד 4 ימי עסקים, ומגיעה 7–14 ימי עסקים אחר כך. מספר מעקב נשלח במייל.</td><td class="st"><span class="k k-add">מוסיפים</span></td></tr>
+<tr class="r-replace"><th scope="row">"מהמחסן שלנו בחו"ל"</th><td class="cur">המוצר יישלח מהמחסן שלנו בחו"ל</td><td class="new ">מהמחסן בחו"ל</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-data"><th scope="row">מיסים ומכס</th><td class="cur">ככל שיחולו על ההזמנה מיסי יבוא, מכס, מע"מ או עמלות אחרות… LORINX אינה יכולה להתחייב מראש</td><td class="new "><span class="ph">[נוסח אחרי שמבררים מי משלם]</span></td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> הסעיף על מיסים משאיר פתח לחיוב הלקוח, מול "משלוח חינם" ומול "מחירי המוצרים הם מחירים סופיים" בתקנון. אם המחסן הוא של ספק, "שלנו" אינו מדויק.</p>
+<div class="before"><b>לפני שמיישמים</b><ul><li>שלוש שאלות: מה הספק מצהיר על החבילה, האם לקוח חויב אי־פעם במס או בעמלה בקבלה, ומי סופג אם כן.</li></ul></div>
+</article>
+<article class="item" id="m2"><header><span class="id">M2</span><h3>סתירות בין עמודי המדיניות</h3><span class="pr pr-m">עדיפות: בינוני</span></header>
+<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>
+<tr class="r-replace"><th scope="row">החלפת מוצר</th><td class="cur">מדיניות החזרים: "LORINX אינה מציעה החלפת מוצר". פרטי התקשרות: "החזרה, החלפה או כל עניין אחר"</td><td class="new ">נוסח אחד בשני העמודים</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-replace"><th scope="row">זמן תגובה</th><td class="cur">צרו קשר: "מענה מהיר". תקנון ופרטי התקשרות: "1–3 ימי עסקים"</td><td class="new ">התחייבות אחת</td><td class="st"><span class="k k-replace">מחליפים</span></td></tr>
+<tr class="r-data"><th scope="row">תחילת האחריות</th><td class="cur">תקנון: "ממועד רכישת המוצר"</td><td class="new ">להחליט: מהרכישה או מהקבלה</td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+<tr class="r-data"><th scope="row">משלוח לתיקון באחריות</th><td class="cur">תקנון: "עלות משלוח המוצר לבדיקה תיקבע בהתאם למקרה"</td><td class="new ">להחליט מי משלם, ולכתוב</td><td class="st"><span class="k k-data">מחכה לנתון</span></td></tr>
+<tr class="r-add"><th scope="row">הודעות משפטיות</th><td class="cur">פסקה אחת, בלי פרטי העסק</td><td class="new ">להוסיף את שם העסק והכתובת שכתובים בתקנון</td><td class="st"><span class="k k-add">מוסיפים</span></td></tr>
+</tbody></table></div>
+<p class="why"><b>למה</b> כשההבטחות באתר ובמדיניות לא זהות, הלקוח מקבל שתי תשובות לאותה שאלה.</p>
+</article>
+</section>
+<section class="page" id="keep"><h2>מה נשאר בלי שינוי</h2><p class="intro">דברים שבדקתי ואני ממליץ לא לגעת בהם.</p><ul class="plain"><li>הכותרת הראשית "כל אימון נגמר ברגע של שחרור." וסרטון הרצים.</li><li>המקטע "מתי משתמשים" בדף הבית ובעמוד המוצר ("בבוקר, על הגב התחתון…", "אחרי יום מול המחשב, על הכתפיים, מול הטלוויזיה").</li><li>המשפט "ואקום שמושך וחום שמרפה" (עם תוספת האזור).</li><li>רשימות "כדאי / להימנע" בכל ארבעת המוצרים.</li><li>ההסתייגות "המוצר מיועד לרווחה כללית ואינו תחליף לייעוץ או לטיפול רפואי".</li><li>הפס העליון: "משלוח חינם לכל הארץ · 14 יום להחזרה · אחריות לשנה".</li><li>הניוזלטר: "עדכונים שקטים, רק כשיש מה לספר".</li><li>הכפתורים: "הוספה לסל · ₪…", "מעבר לתשלום מאובטח", "לכל המוצרים".</li><li>הודעות המערכת: סל ריק, חיפוש בלי תוצאות, עמוד 404.</li><li>הטון הכללי: בלי טיימרים, בלי "נשארו 3", בלי מחיר מחוק ובלי דירוג כוכבים. מכל העמודים שבדקתי, כולל של מתחרים, הטיוטה היא היחידה בלי אלה.</li></ul></section>
+<section class="page" id="need"><h2>מה אני צריך ממך</h2><p class="intro">בלי אלה, השורות שמסומנות "מחכה לנתון" נשארות פתוחות.</p><div class="need">
+<div><h3>החלטות</h3><ul class="plain"><li>שם המוצר הראשי בלי "להפחתת כאבים", ושמות שלושת המוצרים האחרים.</li><li>מחיר אחד לכוס הרוח: 240.13 או 237.90.</li><li>האם להוריד מדף הבית את מכשיר הרגליים ואת מאמן הירכיים.</li><li>האחריות: מהרכישה או מהקבלה, ומי משלם על המשלוח לתיקון.</li><li>האם להציג את פרטי העסק בפוטר.</li></ul></div>
+<div><h3>נתונים</h3><ul class="plain"><li>ימים בפועל מהזמנה עד מסירה, מההזמנות שנשלחו.</li><li>מפרט והוראות יצרן לכל מוצר: דרגות, טמפרטורה, סוללה, משקל, מה באריזה, למי לא מתאים.</li><li>מספר הראשים באקדח: 6 או 8.</li><li>האם התיאור של מכשיר הרגליים תואם את המוצר שבתמונה.</li><li>האם יש תשלומים בצ'קאאוט, ואילו אמצעי תשלום.</li><li>האם לקוח חויב אי־פעם במס או בעמלה בקבלת חבילה.</li></ul></div>
+<div><h3>אישורים</h3><ul class="plain"><li>שצילומי הווטסאפ אמיתיים ושניתנה הסכמה לפרסם.</li><li>שאתה בוחר את המוצרים וקורא את ההודעות בעצמך.</li><li>השם, העיר והשנה לעמוד "קצת עלינו".</li></ul></div>
+<div><h3>חומרים שלא ראיתי</h3><ul class="plain"><li>המודעות הפעילות במטא.</li><li>שלושת מיילי העגלה הנטושה, מייל ברוכים הבאים ובקשת הביקורת.</li><li>התשובות האוטומטיות ב-ManyChat.</li></ul></div>
+</div></section>
+<section class="page" id="index"><h2>טבלת כל השינויים</h2><div class="tbl"><table class="idx"><thead><tr><th>מזהה</th><th>אזור</th><th>עדיפות</th><th>מחליפים</th><th>מוסיפים</th><th>מורידים</th><th>מחכים לנתון</th><th>אישור מיוחד</th></tr></thead><tbody>
+<tr><td><a href="#h4" class="id">H4</a></td><td>המוצר המוביל: שם ומחיר</td><td><span class="pr pr-c">קריטי</span></td><td>·</td><td>·</td><td>·</td><td>1</td><td>1</td></tr>
+<tr><td><a href="#p1" class="id">P1</a></td><td>קופסת הקנייה: שם, משפט ונקודות</td><td><span class="pr pr-c">קריטי</span></td><td>4</td><td>·</td><td>·</td><td>1</td><td>1</td></tr>
+<tr><td><a href="#h2" class="id">H2</a></td><td>ארבעת נתוני האמון מתחת להירו</td><td><span class="pr pr-h">גבוה</span></td><td>2</td><td>·</td><td>·</td><td>2</td><td>·</td></tr>
+<tr><td><a href="#h6" class="id">H6</a></td><td>הודעות מלקוחות</td><td><span class="pr pr-h">גבוה</span></td><td>1</td><td>1</td><td>·</td><td>·</td><td>·</td></tr>
+<tr><td><a href="#h8" class="id">H8</a></td><td>שאלות נפוצות בדף הבית</td><td><span class="pr pr-h">גבוה</span></td><td>3</td><td>2</td><td>·</td><td>·</td><td>·</td></tr>
+<tr><td><a href="#h10" class="id">H10</a></td><td>כותרת הדפדפן ותיאור החיפוש</td><td><span class="pr pr-h">גבוה</span></td><td>2</td><td>·</td><td>·</td><td>·</td><td>·</td></tr>
+<tr><td><a href="#p2" class="id">P2</a></td><td>בחירת הכמות</td><td><span class="pr pr-h">גבוה</span></td><td>4</td><td>·</td><td>·</td><td>·</td><td>·</td></tr>
+<tr><td><a href="#p3" class="id">P3</a></td><td>שלוש השורות מתחת לכפתור</td><td><span class="pr pr-h">גבוה</span></td><td>2</td><td>1</td><td>·</td><td>1</td><td>·</td></tr>
+<tr><td><a href="#p4" class="id">P4</a></td><td>תיאור המוצר (היום בתוך אקורדיון "על המוצר")</td><td><span class="pr pr-h">גבוה</span></td><td>1</td><td>·</td><td>·</td><td>·</td><td>1</td></tr>
+<tr><td><a href="#p7" class="id">P7</a></td><td>"מה לצפות"</td><td><span class="pr pr-h">גבוה</span></td><td>2</td><td>·</td><td>·</td><td>·</td><td>·</td></tr>
+<tr><td><a href="#p8" class="id">P8</a></td><td>"למה LORINX"</td><td><span class="pr pr-h">גבוה</span></td><td>2</td><td>·</td><td>·</td><td>·</td><td>·</td></tr>
+<tr><td><a href="#p10" class="id">P10</a></td><td>שאלות נפוצות בעמוד המוצר</td><td><span class="pr pr-h">גבוה</span></td><td>2</td><td>2</td><td>·</td><td>1</td><td>·</td></tr>
+<tr><td><a href="#p12" class="id">P12</a></td><td>כותרת הדפדפן ותיאור החיפוש</td><td><span class="pr pr-h">גבוה</span></td><td>·</td><td>·</td><td>·</td><td>·</td><td>2</td></tr>
+<tr><td><a href="#f1" class="id">F1</a></td><td>מכשיר עיסוי לרגליים (₪799.90)</td><td><span class="pr pr-h">גבוה</span></td><td>·</td><td>1</td><td>1</td><td>2</td><td>2</td></tr>
+<tr><td><a href="#a1" class="id">A1</a></td><td>פתיחה</td><td><span class="pr pr-h">גבוה</span></td><td>·</td><td>·</td><td>·</td><td>1</td><td>·</td></tr>
+<tr><td><a href="#a3" class="id">A3</a></td><td>אמון וסיום</td><td><span class="pr pr-h">גבוה</span></td><td>1</td><td>1</td><td>·</td><td>1</td><td>·</td></tr>
+<tr><td><a href="#m1" class="id">M1</a></td><td>מדיניות משלוחים</td><td><span class="pr pr-h">גבוה</span></td><td>1</td><td>1</td><td>·</td><td>1</td><td>·</td></tr>
+<tr><td><a href="#h1" class="id">H1</a></td><td>הירו: שורת על, כותרת ותת־כותרת</td><td><span class="pr pr-m">בינוני</span></td><td>2</td><td>·</td><td>·</td><td>·</td><td>·</td></tr>
+<tr><td><a href="#h3" class="id">H3</a></td><td>"איך זה עובד"</td><td><span class="pr pr-m">בינוני</span></td><td>4</td><td>·</td><td>·</td><td>·</td><td>·</td></tr>
+<tr><td><a href="#h5" class="id">H5</a></td><td>הקולקציה בדף הבית</td><td><span class="pr pr-m">בינוני</span></td><td>1</td><td>·</td><td>·</td><td>·</td><td>4</td></tr>
+<tr><td><a href="#h7" class="id">H7</a></td><td>"הסיפור שלנו" בדף הבית</td><td><span class="pr pr-m">בינוני</span></td><td>·</td><td>·</td><td>·</td><td>1</td><td>·</td></tr>
+<tr><td><a href="#h9" class="id">H9</a></td><td>פוטר ותפריט</td><td><span class="pr pr-m">בינוני</span></td><td>2</td><td>1</td><td>·</td><td>·</td><td>·</td></tr>
+<tr><td><a href="#p5" class="id">P5</a></td><td>"מה יש בפנים": חמש התכונות</td><td><span class="pr pr-m">בינוני</span></td><td>·</td><td>1</td><td>·</td><td>1</td><td>·</td></tr>
+<tr><td><a href="#p9" class="id">P9</a></td><td>"שימוש נכון" ואזהרות</td><td><span class="pr pr-m">בינוני</span></td><td>·</td><td>·</td><td>·</td><td>1</td><td>·</td></tr>
+<tr><td><a href="#p13" class="id">P13</a></td><td>העמוד בנייד</td><td><span class="pr pr-m">בינוני</span></td><td>·</td><td>·</td><td>·</td><td>1</td><td>·</td></tr>
+<tr><td><a href="#g1" class="id">G1</a></td><td>אקדח עיסוי</td><td><span class="pr pr-m">בינוני</span></td><td>2</td><td>1</td><td>·</td><td>2</td><td>2</td></tr>
+<tr><td><a href="#t1" class="id">T1</a></td><td>מאמן ירכיים</td><td><span class="pr pr-m">בינוני</span></td><td>·</td><td>1</td><td>·</td><td>1</td><td>2</td></tr>
+<tr><td><a href="#s1" class="id">S1</a></td><td>מגירת הסל</td><td><span class="pr pr-m">בינוני</span></td><td>2</td><td>·</td><td>·</td><td>·</td><td>·</td></tr>
+<tr><td><a href="#s2" class="id">S2</a></td><td>עמוד הסל</td><td><span class="pr pr-m">בינוני</span></td><td>·</td><td>·</td><td>·</td><td>2</td><td>·</td></tr>
+<tr><td><a href="#a2" class="id">A2</a></td><td>הרעיון וארבע השאלות</td><td><span class="pr pr-m">בינוני</span></td><td>1</td><td>1</td><td>·</td><td>1</td><td>·</td></tr>
+<tr><td><a href="#b1" class="id">B1</a></td><td>כמויות לחברות</td><td><span class="pr pr-m">בינוני</span></td><td>·</td><td>·</td><td>·</td><td>2</td><td>·</td></tr>
+<tr><td><a href="#n1" class="id">N1</a></td><td>קולקציה בשם "Home page"</td><td><span class="pr pr-m">בינוני</span></td><td>1</td><td>·</td><td>·</td><td>·</td><td>·</td></tr>
+<tr><td><a href="#n2" class="id">N2</a></td><td>קולקציית האקדח</td><td><span class="pr pr-m">בינוני</span></td><td>·</td><td>·</td><td>1</td><td>·</td><td>·</td></tr>
+<tr><td><a href="#n3" class="id">N3</a></td><td>קולקציה ראשית</td><td><span class="pr pr-m">בינוני</span></td><td>2</td><td>·</td><td>·</td><td>·</td><td>·</td></tr>
+<tr><td><a href="#m2" class="id">M2</a></td><td>סתירות בין עמודי המדיניות</td><td><span class="pr pr-m">בינוני</span></td><td>2</td><td>1</td><td>·</td><td>2</td><td>·</td></tr>
+<tr><td><a href="#p6" class="id">P6</a></td><td>"למי זה מתאים"</td><td><span class="pr pr-l">נמוך</span></td><td>·</td><td>·</td><td>1</td><td>·</td><td>·</td></tr>
+<tr><td><a href="#p11" class="id">P11</a></td><td>הקריאה האחרונה</td><td><span class="pr pr-l">נמוך</span></td><td>2</td><td>·</td><td>·</td><td>·</td><td>·</td></tr>
+<tr><td><a href="#c1" class="id">C1</a></td><td>צרו קשר</td><td><span class="pr pr-l">נמוך</span></td><td>1</td><td>·</td><td>·</td><td>2</td><td>·</td></tr>
+<tr><td><a href="#n4" class="id">N4</a></td><td>הבלוג</td><td><span class="pr pr-l">נמוך</span></td><td>1</td><td>·</td><td>·</td><td>·</td><td>·</td></tr>
+</tbody></table></div></section>
+<section class="page" id="live"><h2>נספח: מה ראיתי באתר החי</h2>
+<p class="intro">המסמך עוסק בטיוטה בלבד. בזמן ההשוואה לאתר החי ראיתי שני דברים שלא קיימים בטיוטה, ואני מציין אותם כדי שתדע. לא נגעתי באתר החי.</p>
+<ul class="plain">
+<li>באתר החי מוצג "4.9 · 46+ ביקורות מאומתות" עם שש ביקורות בשמות כלליים. לפי Shopify נרשמו בחנות 17 הזמנות בסך הכול. בטיוטה הדירוג והביקורות האלה כבר לא מופיעים.</li>
+<li>בדף הבית החי כתוב "הזמינו עכשיו · ₪237.90", ועמוד המוצר גובה ₪240.13. בטיוטה המחיר אחיד: ₪240.13.</li>
+</ul>
+<p class="note">מקורות למספרים במסמך: נתוני מכירות וכניסות מ-Shopify (נבדקו 19.11.2026); מחירי מתחרים מהעמודים שלהם, שנפתחו ישירות באותו יום (Goodest, Velarixs, Bug, Zap). המחקר המלא נמצא בתיקייה docs/copy-research בענף claude/kind-ride-7pzs23.</p>
+</section>
+</div>

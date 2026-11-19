@@ -378,6 +378,51 @@
   setScrolled();
 
   /* ==========================================================================
+     Hero background video. The still image is the first paint; the clip is fetched only
+     after the page is ready, fades in over the still, and dissolves back to it shortly
+     before the end so each restart is a soft cross-fade rather than a jump. It is skipped
+     under reduced motion and on data-saver connections, and paused when off-screen.
+     ========================================================================== */
+  var hv = q('video[data-lx-herovideo]');
+  var saveData = navigator.connection && navigator.connection.saveData;
+  if (hv && !reduce && !saveData) {
+    var hvVisible = true, hvStarted = false;
+    var hvPlay = function () {
+      var pr = hv.play();
+      if (pr && pr.then) pr.then(function () { hv.classList.add('is-on'); }).catch(function () {});
+      else hv.classList.add('is-on');
+    };
+    hv.addEventListener('timeupdate', function () {
+      if (hv.duration && hv.duration - hv.currentTime < 0.75) hv.classList.remove('is-on');
+    });
+    hv.addEventListener('ended', function () {
+      hv.currentTime = 0;
+      setTimeout(function () { if (hvVisible && !d.hidden) hvPlay(); }, 450);
+    });
+    var hvStart = function () {
+      if (hvStarted) return;
+      hvStarted = true;
+      hv.muted = true;
+      hv.src = hv.getAttribute('data-src');
+      hv.addEventListener('canplay', function once() { hv.removeEventListener('canplay', once); hvPlay(); });
+      hv.load();
+    };
+    window.addEventListener('load', function () { setTimeout(hvStart, 900); });
+    if (d.readyState === 'complete') setTimeout(hvStart, 900);
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (es) {
+        hvVisible = es[0].isIntersecting;
+        if (!hvStarted) return;
+        if (hvVisible && !d.hidden) hvPlay(); else hv.pause();
+      }).observe(hv);
+    }
+    d.addEventListener('visibilitychange', function () {
+      if (!hvStarted) return;
+      if (d.hidden) hv.pause(); else if (hvVisible) hvPlay();
+    });
+  }
+
+  /* ==========================================================================
      Motion 4b — "move to focus": the hero photograph sits under a soft blur and the
      pointer opens a sharp window that trails behind it, so the picture seems to drag
      with the movement. Fine pointers only; touch devices get the plain sharp image.

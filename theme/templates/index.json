@@ -40,6 +40,7 @@
       ],
       "settings": {
         "bg_asset": "lx2-hero-runners.jpg",
+        "bg_video": "lx2-hero-runners.mp4",
         "aura": 0,
         "focus": true,
         "focus_hint": "הזיזו כדי למקד",

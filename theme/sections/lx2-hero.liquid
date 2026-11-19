@@ -22,6 +22,10 @@
           srcset="{{ section.settings.bg_asset | asset_img_url: '800x' }} 800w, {{ section.settings.bg_asset | asset_img_url: '1200x' }} 1200w, {{ section.settings.bg_asset | asset_img_url: '1600x' }} 1600w, {{ section.settings.bg_asset | asset_img_url: '2400x' }} 2400w"
           sizes="100vw" width="1600" height="900" alt="" loading="eager" fetchpriority="high">
       {%- endif -%}
+      {%- if section.settings.bg_video != blank -%}
+        {%- if section.settings.bg_video contains '://' -%}{%- assign hero_video = section.settings.bg_video -%}{%- else -%}{%- assign hero_video = section.settings.bg_video | asset_url -%}{%- endif -%}
+        <video class="lx-hero__vid" muted playsinline preload="none" tabindex="-1" data-lx-herovideo data-src="{{ hero_video }}"></video>
+      {%- endif -%}
     </div>
     {%- if section.settings.focus -%}<div class="lx-hero__focus" data-lx-focus aria-hidden="true"></div>{%- endif -%}
   {%- endif -%}
@@ -72,6 +76,7 @@
     { "type": "text", "id": "bg_asset", "label": "או שם קובץ תמונה מנכסי התבנית", "info": "משמש רק אם לא נבחרה תמונת רקע למעלה" },
     { "type": "checkbox", "id": "focus", "label": "אפקט מיקוד שעוקב אחרי העכבר", "default": true },
     { "type": "text", "id": "focus_hint", "label": "רמז קטן לאפקט", "default": "הזיזו כדי למקד" },
+    { "type": "text", "id": "bg_video", "label": "וידאו רקע (שם קובץ בנכסי התבנית או כתובת MP4 מלאה)", "info": "קליפ קצר בלי סאונד. התמונה למעלה מוצגת עד שהוידאו נטען, ובמכשירים עם הפחתת תנועה." },
     { "type": "header", "content": "מוצר צף (אופציונלי)" },
     { "type": "image_picker", "id": "image", "label": "תמונת מוצר (רקע כהה)" },
     { "type": "range", "id": "aura", "label": "עוצמת הזוהר ברקע", "min": 0, "max": 140, "step": 10, "unit": "%", "default": 0 },

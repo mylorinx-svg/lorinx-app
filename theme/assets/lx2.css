@@ -636,3 +636,9 @@ html:not(.lx-scrolled) .lx-over-hero .lxh-ann { background: transparent; border-
 .lx-hero__hint::before { content: ''; width: 9px; height: 9px; border-radius: 50%; border: 1px solid currentColor; box-shadow: 0 0 0 3px rgba(244, 241, 234, 0.12); }
 @media (hover: hover) and (pointer: fine) { .lx-hero__hint { display: inline-flex; } }
 @media (prefers-reduced-motion: reduce) { .lx-hero__focus, .lx-hero__hint { display: none !important; } }
+
+/* Hero background video: fades in over the still, dissolves back to it before each restart */
+.lx-hero__bg > video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 0%; translate: 0 var(--lx-py, 0px); scale: 1.06; opacity: 0; transition: opacity 0.7s var(--lx-ease); animation: lx-drift 22s ease-in-out infinite alternate; }
+.lx-hero__bg > video.is-on { opacity: 1; }
+@media (max-width: 749px) { .lx-hero__bg > video { object-position: 60% 0%; } }
+@media (prefers-reduced-motion: reduce) { .lx-hero__bg > video { display: none; } }

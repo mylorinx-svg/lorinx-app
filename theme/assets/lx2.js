@@ -415,10 +415,10 @@
       '  vec2 q=(v-tp[i])*vec2(asp,1.); float w=exp(-dot(q,q)*14.);',
       '  d+=tv[i]*w;',
       ' }',
-      ' vec2 s=v-d*.55;',
+      ' vec2 s=v-d*.4;',
       ' vec2 sc=vec2(s.x,1.-s.y);',
       ' vec2 a=vec2(sc.x*cov.x+opos.x*(1.-cov.x), sc.y*cov.y+opos.y*(1.-cov.y));',
-      ' vec2 sh=d*.22; sh.y=-sh.y; sh*=vec2(cov.x,cov.y);',
+      ' vec2 sh=d*.05; sh.y=-sh.y; sh*=vec2(cov.x,cov.y);',
       ' float r=texture2D(tex,a+sh).r; float g=texture2D(tex,a).g; float b=texture2D(tex,a-sh).b;',
       ' gl_FragColor=vec4(r,g,b,1.);',
       '}'
@@ -474,7 +474,7 @@
       var ca = cv.width / cv.height, ia = (hv.videoWidth || 16) / (hv.videoHeight || 9);
       var sx = ca > ia ? 1 : ca / ia, sy = ca > ia ? ia / ca : 1;
       gl.uniform2f(U.cov, sx, sy);
-      gl.uniform2f(U.opos, window.innerWidth < 750 ? 0.6 : 0.5, 0);
+      gl.uniform2f(U.opos, window.innerWidth < 750 ? 0.6 : 1.0, 0);
       gl.uniform1f(U.asp, ca);
       var tp = new Float32Array(TRAIL * 2), tv = new Float32Array(TRAIL * 2);
       for (var i = 0; i < TRAIL; i++) { tp[i * 2] = ring[i].x; tp[i * 2 + 1] = ring[i].y; tv[i * 2] = ring[i].vx; tv[i * 2 + 1] = ring[i].vy; }
@@ -491,7 +491,7 @@
       var vx = pos.x - px, vy = pos.y - py;
       energy = 0;
       for (var i = ring.length - 1; i > 0; i--) { ring[i].x = ring[i - 1].x; ring[i].y = ring[i - 1].y; ring[i].vx = ring[i - 1].vx * 0.93; ring[i].vy = ring[i - 1].vy * 0.93; }
-      ring[0].x = pos.x; ring[0].y = pos.y; ring[0].vx = Math.max(-0.05, Math.min(0.05, vx * 2.4)); ring[0].vy = Math.max(-0.05, Math.min(0.05, vy * 2.4));
+      ring[0].x = pos.x; ring[0].y = pos.y; ring[0].vx = Math.max(-0.05, Math.min(0.05, vx * 2.0)); ring[0].vy = Math.max(-0.05, Math.min(0.05, vy * 2.0));
       for (var j = 0; j < ring.length; j++) energy += Math.abs(ring[j].vx) + Math.abs(ring[j].vy);
       if (haveFrame) draw();
       var playing = !hv.paused && !hv.ended;

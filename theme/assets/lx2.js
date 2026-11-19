@@ -378,8 +378,8 @@
   setScrolled();
 
   /* ==========================================================================
-     Hero motion: a one-second clip of the runners loops forever (its seam is blended inside
-     the file). It is drawn through a small WebGL pipeline: pass 1 keeps a short per-channel
+     Hero motion: the 3.2 s clip of the runners loops forever and cuts straight back to the
+     start when it ends (no fade, and the echo is reset so no ghost carries over). It is drawn through a small WebGL pipeline: pass 1 keeps a short per-channel
      "echo" of the previous frames, so moving things leave a soft colour smear (red lags most,
      blue least) while the still background stays sharp; pass 2 adds a gentle blur that grows
      toward the edges. Nothing reacts to the pointer. Without WebGL the plain looping video is
@@ -390,7 +390,7 @@
   if (hv && !reduce && !saveData) {
     var heroEl = hv.closest('[data-lx-hero]') || hv.parentElement;
     var bgEl = hv.parentElement;
-    var started = false, glOk = false, drawRaf = 0, lastDraw = 0, first = true, vis = true;
+    var started = false, glOk = false, drawRaf = 0, lastDraw = 0, first = true, vis = true, lastT = 0;
     // smear strength per channel, expressed per 1/60 s (higher = longer trail)
     var KEEP = [0.94, 0.9, 0.84];
     var BLUR_BASE = 0.7, BLUR_EDGE = 4.0;
@@ -525,6 +525,9 @@
       drawRaf = 0;
       if (!vis || d.hidden) return;
       if (now - lastDraw >= 30 && hv.readyState >= 2) {
+        // the clip wrapped around: cut straight back to the start with no ghost of the last frames
+        if (hv.currentTime < lastT - 0.4) first = true;
+        lastT = hv.currentTime;
         if (!upload()) { glOk = false; cv.parentNode && cv.parentNode.removeChild(cv); hv.classList.add('is-on'); return; }
         draw(now);
         if (!cv.classList.contains('is-on')) cv.classList.add('is-on');

@@ -115,7 +115,7 @@ footer.dump('sections/footer-group.json', OrderedDict(type='footer', name='Foote
 # --------------------------------------------------------------------------- home
 home = Template()
 home.add('hero', 'lx2-hero', {
-    'bg_asset': 'lx2-hero-runners.jpg', 'bg_video': 'https://cdn.shopify.com/videos/c/vp/3f86baa1fc304784bf8d04c347c87244/3f86baa1fc304784bf8d04c347c87244.HD-720p-1.6Mbps-102023327.mp4', 'aura': 0, 'focus': True, 'focus_hint': 'הזיזו את העכבר',
+    'bg_asset': 'lx2-hero-runners.jpg', 'bg_video': 'https://cdn.shopify.com/videos/c/vp/9a7d46ce455345088a5f554b4d302155/9a7d46ce455345088a5f554b4d302155.HD-720p-2.1Mbps-102023941.mp4', 'aura': 0,
     'eyebrow': 'LORINX · התאוששות, כושר, ספורט',
     'heading': 'כל אימון\nנגמר ברגע\nשל שחרור.',
     'text': 'מכשירי התאוששות לבית: לפני האימון, אחריו, ובסוף יום ארוך.',

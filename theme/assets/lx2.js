@@ -378,52 +378,80 @@
   setScrolled();
 
   /* ==========================================================================
-     Hero motion: the clip plays ONCE, slows as if time is being caught, and holds on its last
-     frame (no loop, no restart). On fine pointers the picture is drawn through an original
-     WebGL shader in which the pointer drags the "air": displacement and a slight colour split
-     trail behind the cursor and settle back. Touch screens, reduced motion and data-saver get
-     the plain video (or just the still) instead.
+     Hero motion: a one-second clip of the runners loops forever (its seam is blended inside
+     the file). It is drawn through a small WebGL pipeline: pass 1 keeps a short per-channel
+     "echo" of the previous frames, so moving things leave a soft colour smear (red lags most,
+     blue least) while the still background stays sharp; pass 2 adds a gentle blur that grows
+     toward the edges. Nothing reacts to the pointer. Without WebGL the plain looping video is
+     shown; reduced motion and data-saver get the still image.
      ========================================================================== */
   var hv = q('video[data-lx-herovideo]');
   var saveData = navigator.connection && navigator.connection.saveData;
   if (hv && !reduce && !saveData) {
     var heroEl = hv.closest('[data-lx-hero]') || hv.parentElement;
     var bgEl = hv.parentElement;
-    var frozen = false, started = false, glOk = false;
-    var TRAIL = 12;
-
-    var plainFreeze = function () { frozen = true; };
-    var slowDown = function () {
-      // ease the playback rate down over the last second, then hold the final frame
-      if (frozen || hv.paused) return;
-      var rem = hv.duration - hv.currentTime;
-      if (rem < 1.15) hv.playbackRate = Math.max(0.1, rem / 1.15);
-      if (rem < 0.07) { hv.pause(); plainFreeze(); }
-    };
-
-    /* ---- WebGL drag layer ---- */
-    var cv = null, gl = null, tex = null, U = {}, ring = [], pos = { x: 0.5, y: 0.5 }, raw = { x: 0.5, y: 0.5 };
-    var lastMove = 0, drawRaf = 0, energy = 0, haveFrame = false;
+    var started = false, glOk = false, drawRaf = 0, lastDraw = 0, first = true, vis = true;
+    // smear strength per channel, expressed per 1/60 s (higher = longer trail)
+    var KEEP = [0.86, 0.81, 0.75];
+    var BLUR_BASE = 0.7, BLUR_EDGE = 4.0;
+    var cv = null, gl = null, vtex = null, ptex = [null, null], pfb = [null, null], progs = {}, buf = null, cur = 0, fw = 0, fh = 0;
     var DRAG_VERT = 'attribute vec2 p;varying vec2 v;void main(){v=p*.5+.5;gl_Position=vec4(p,0.,1.);}';
-    var DRAG_FRAG = [
+    var ECHO_FRAG = [
       'precision mediump float;',
-      'varying vec2 v; uniform sampler2D tex; uniform vec2 cov; uniform vec2 opos; uniform float asp;',
-      'uniform vec2 tp[' + TRAIL + ']; uniform vec2 tv[' + TRAIL + '];',
+      'varying vec2 v; uniform sampler2D vid; uniform sampler2D prev; uniform vec2 cov; uniform vec2 opos; uniform vec3 keep;',
       'void main(){',
-      ' vec2 d=vec2(0.);',
-      ' for(int i=0;i<' + TRAIL + ';i++){',
-      '  vec2 q=(v-tp[i])*vec2(asp,1.); float w=exp(-dot(q,q)*14.);',
-      '  d+=tv[i]*w;',
-      ' }',
-      ' vec2 s=v-d*.4;',
-      ' vec2 sc=vec2(s.x,1.-s.y);',
+      ' vec2 sc=vec2(v.x,1.-v.y);',
       ' vec2 a=vec2(sc.x*cov.x+opos.x*(1.-cov.x), sc.y*cov.y+opos.y*(1.-cov.y));',
-      ' vec2 sh=d*.05; sh.y=-sh.y; sh*=vec2(cov.x,cov.y);',
-      ' float r=texture2D(tex,a+sh).r; float g=texture2D(tex,a).g; float b=texture2D(tex,a-sh).b;',
-      ' gl_FragColor=vec4(r,g,b,1.);',
+      ' vec3 c=texture2D(vid,a).rgb; vec3 p=texture2D(prev,v).rgb;',
+      ' gl_FragColor=vec4(mix(c,p,keep),1.);',
+      '}'
+    ].join('\n');
+    var BLUR_FRAG = [
+      'precision mediump float;',
+      'varying vec2 v; uniform sampler2D img; uniform vec2 px; uniform float asp; uniform vec2 fc; uniform vec2 br;',
+      'void main(){',
+      ' float dd=length((v-fc)*vec2(asp,1.));',
+      ' float r=br.x+br.y*smoothstep(.28,1.,dd);',
+      ' vec2 o=px*r;',
+      ' vec3 c=texture2D(img,v).rgb*.2;',
+      ' c+=(texture2D(img,v+vec2(o.x,0.)).rgb+texture2D(img,v-vec2(o.x,0.)).rgb+texture2D(img,v+vec2(0.,o.y)).rgb+texture2D(img,v-vec2(0.,o.y)).rgb)*.1;',
+      ' c+=(texture2D(img,v+o*.7).rgb+texture2D(img,v-o*.7).rgb+texture2D(img,v+vec2(o.x,-o.y)*.7).rgb+texture2D(img,v+vec2(-o.x,o.y)*.7).rgb)*.1;',
+      ' gl_FragColor=vec4(c,1.);',
       '}'
     ].join('\n');
 
+    var mkProg = function (fs) {
+      var mk = function (t, src) { var sh = gl.createShader(t); gl.shaderSource(sh, src); gl.compileShader(sh); return sh; };
+      var pr = gl.createProgram();
+      gl.attachShader(pr, mk(gl.VERTEX_SHADER, DRAG_VERT));
+      gl.attachShader(pr, mk(gl.FRAGMENT_SHADER, fs));
+      gl.linkProgram(pr);
+      if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) throw new Error('link');
+      var o = { pr: pr, u: {} };
+      var n = gl.getProgramParameter(pr, gl.ACTIVE_UNIFORMS);
+      for (var i = 0; i < n; i++) { var nm = gl.getActiveUniform(pr, i).name; o.u[nm] = gl.getUniformLocation(pr, nm); }
+      return o;
+    };
+    var newTex = function () {
+      var t = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, t);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      return t;
+    };
+    var allocTargets = function (w, h) {
+      for (var i = 0; i < 2; i++) {
+        if (!ptex[i]) { ptex[i] = newTex(); pfb[i] = gl.createFramebuffer(); }
+        gl.bindTexture(gl.TEXTURE_2D, ptex[i]);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, pfb[i]);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, ptex[i], 0);
+      }
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      fw = w; fh = h; first = true;
+    };
     var initGL = function () {
       try {
         cv = d.createElement('canvas');
@@ -431,115 +459,107 @@
         cv.setAttribute('aria-hidden', 'true');
         gl = cv.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'low-power' });
         if (!gl) return false;
-        var mk = function (t, src) { var sh = gl.createShader(t); gl.shaderSource(sh, src); gl.compileShader(sh); return sh; };
-        var prg = gl.createProgram();
-        gl.attachShader(prg, mk(gl.VERTEX_SHADER, DRAG_VERT));
-        gl.attachShader(prg, mk(gl.FRAGMENT_SHADER, DRAG_FRAG));
-        gl.linkProgram(prg);
-        if (!gl.getProgramParameter(prg, gl.LINK_STATUS)) return false;
-        gl.useProgram(prg);
-        gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+        progs.echo = mkProg(ECHO_FRAG);
+        progs.blur = mkProg(BLUR_FRAG);
+        buf = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-        var loc = gl.getAttribLocation(prg, 'p');
-        gl.enableVertexAttribArray(loc);
-        gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-        ['tex', 'cov', 'opos', 'asp', 'tp', 'tv'].forEach(function (n) { U[n] = gl.getUniformLocation(prg, n); });
-        tex = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, tex);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.uniform1i(U.tex, 0);
-        for (var i = 0; i < TRAIL; i++) ring.push({ x: 0.5, y: 0.5, vx: 0, vy: 0 });
+        vtex = newTex();
         bgEl.appendChild(cv);
         return true;
       } catch (e) { return false; }
     };
-    var sizeCanvas = function () {
-      var scale = Math.min(window.devicePixelRatio || 1, 1.25);
-      var w = Math.min(1600, Math.round(cv.clientWidth * scale)), h = Math.round(w * cv.clientHeight / Math.max(1, cv.clientWidth));
-      if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; gl.viewport(0, 0, w, h); }
+    var bind = function (prog) {
+      gl.useProgram(prog.pr);
+      var loc = gl.getAttribLocation(prog.pr, 'p');
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     };
-    var uploadFrame = function () {
+    var upload = function () {
       try {
-        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, vtex);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, hv);
-        haveFrame = true;
         return true;
       } catch (e) { return false; }
     };
-    var draw = function () {
-      sizeCanvas();
-      var ca = cv.width / cv.height, ia = (hv.videoWidth || 16) / (hv.videoHeight || 9);
+    var draw = function (now) {
+      var small = window.innerWidth < 750;
+      var scale = Math.min(window.devicePixelRatio || 1, 1.25);
+      var w = Math.min(small ? 900 : 1600, Math.round(cv.clientWidth * scale));
+      var h = Math.round(w * cv.clientHeight / Math.max(1, cv.clientWidth));
+      if (w < 2 || h < 2) return;
+      if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+      if (w !== fw || h !== fh) allocTargets(w, h);
+      var dt = Math.min(0.1, Math.max(0.008, (now - (lastDraw || now - 16)) / 1000));
+      lastDraw = now;
+      var ca = w / h, ia = (hv.videoWidth || 16) / (hv.videoHeight || 9);
       var sx = ca > ia ? 1 : ca / ia, sy = ca > ia ? ia / ca : 1;
-      gl.uniform2f(U.cov, sx, sy);
-      gl.uniform2f(U.opos, window.innerWidth < 750 ? 0.6 : 1.0, 0);
-      gl.uniform1f(U.asp, ca);
-      var tp = new Float32Array(TRAIL * 2), tv = new Float32Array(TRAIL * 2);
-      for (var i = 0; i < TRAIL; i++) { tp[i * 2] = ring[i].x; tp[i * 2 + 1] = ring[i].y; tv[i * 2] = ring[i].vx; tv[i * 2 + 1] = ring[i].vy; }
-      gl.uniform2fv(U.tp, tp); gl.uniform2fv(U.tv, tv);
+      var next = 1 - cur;
+      // pass 1: echo into the other target
+      bind(progs.echo);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, pfb[next]);
+      gl.viewport(0, 0, w, h);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, vtex); gl.uniform1i(progs.echo.u.vid, 0);
+      gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, ptex[cur]); gl.uniform1i(progs.echo.u.prev, 1);
+      gl.uniform2f(progs.echo.u.cov, sx, sy);
+      gl.uniform2f(progs.echo.u.opos, small ? 0.6 : 1.0, 0);
+      var f = dt * 60;
+      var k = first ? [0, 0, 0] : [Math.pow(KEEP[0], f), Math.pow(KEEP[1], f), Math.pow(KEEP[2], f)];
+      gl.uniform3f(progs.echo.u.keep, k[0], k[1], k[2]);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
+      // pass 2: soft blur to the screen
+      bind(progs.blur);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(0, 0, w, h);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, ptex[next]); gl.uniform1i(progs.blur.u.img, 0);
+      gl.uniform2f(progs.blur.u.px, 1 / w, 1 / h);
+      gl.uniform1f(progs.blur.u.asp, ca);
+      gl.uniform2f(progs.blur.u.fc, 0.36, 0.5);
+      gl.uniform2f(progs.blur.u.br, BLUR_BASE * (w / 1440), BLUR_EDGE * (w / 1440));
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      cur = next; first = false;
     };
-    var step = function () {
+    var frame = function (now) {
       drawRaf = 0;
-      slowDown();
-      if (!hv.paused && !hv.ended) uploadFrame();
-      // pointer easing and the dragged-air trail
-      var px = pos.x, py = pos.y;
-      pos.x += (raw.x - pos.x) * 0.2; pos.y += (raw.y - pos.y) * 0.2;
-      var vx = pos.x - px, vy = pos.y - py;
-      energy = 0;
-      for (var i = ring.length - 1; i > 0; i--) { ring[i].x = ring[i - 1].x; ring[i].y = ring[i - 1].y; ring[i].vx = ring[i - 1].vx * 0.93; ring[i].vy = ring[i - 1].vy * 0.93; }
-      ring[0].x = pos.x; ring[0].y = pos.y; ring[0].vx = Math.max(-0.05, Math.min(0.05, vx * 2.0)); ring[0].vy = Math.max(-0.05, Math.min(0.05, vy * 2.0));
-      for (var j = 0; j < ring.length; j++) energy += Math.abs(ring[j].vx) + Math.abs(ring[j].vy);
-      if (haveFrame) draw();
-      var playing = !hv.paused && !hv.ended;
-      if ((playing || energy > 0.0008 || performance.now() - lastMove < 400) && !d.hidden) drawRaf = requestAnimationFrame(step);
+      if (!vis || d.hidden) return;
+      if (now - lastDraw >= 30 && hv.readyState >= 2) {
+        if (!upload()) { glOk = false; cv.parentNode && cv.parentNode.removeChild(cv); hv.classList.add('is-on'); return; }
+        draw(now);
+        if (!cv.classList.contains('is-on')) cv.classList.add('is-on');
+      }
+      drawRaf = requestAnimationFrame(frame);
     };
-    var kick = function () { if (!drawRaf && glOk) drawRaf = requestAnimationFrame(step); };
+    var kick = function () { if (!drawRaf && glOk) drawRaf = requestAnimationFrame(frame); };
 
-    /* ---- start: fetch after load, play once, then hold ---- */
     var begin = function () {
       if (started) return;
       started = true;
-      hv.muted = true; hv.loop = false;
+      hv.muted = true; hv.loop = true;
       hv.crossOrigin = 'anonymous';
-      glOk = finePointer && initGL();
+      glOk = initGL();
       hv.src = hv.getAttribute('data-src');
       hv.addEventListener('canplay', function once() {
         hv.removeEventListener('canplay', once);
         var pr = hv.play();
-        var shown = function () {
-          if (glOk && uploadFrame()) { cv.classList.add('is-on'); kick(); }
-          else { glOk = false; hv.classList.add('is-on'); }
-        };
+        var shown = function () { if (glOk) kick(); else hv.classList.add('is-on'); };
         if (pr && pr.then) pr.then(shown).catch(function () {}); else shown();
       });
-      hv.addEventListener('timeupdate', function () { if (!glOk) slowDown(); });
-      hv.addEventListener('ended', function () { plainFreeze(); if (glOk) { uploadFrame(); kick(); } });
       hv.load();
     };
     if (d.readyState === 'complete') setTimeout(begin, 700); else window.addEventListener('load', function () { setTimeout(begin, 700); });
 
-    if (finePointer) {
-      heroEl.addEventListener('pointermove', function (e) {
-        var r = heroEl.getBoundingClientRect();
-        raw.x = (e.clientX - r.left) / r.width; raw.y = 1 - (e.clientY - r.top) / r.height;
-        lastMove = performance.now();
-        kick();
-      }, { passive: true });
-    }
     if ('IntersectionObserver' in window) {
       new IntersectionObserver(function (es) {
+        vis = es[0].isIntersecting;
         if (!started) return;
-        if (es[0].isIntersecting) { if (!frozen && hv.paused && !hv.ended) hv.play().catch(function () {}); kick(); }
-        else if (!frozen) hv.pause();
+        if (vis) { if (hv.paused) hv.play().catch(function () {}); lastDraw = 0; first = true; kick(); } else { hv.pause(); }
       }).observe(heroEl);
     }
     d.addEventListener('visibilitychange', function () {
       if (!started) return;
-      if (d.hidden) { if (!frozen) hv.pause(); } else { if (!frozen && hv.paused) hv.play().catch(function () {}); kick(); }
+      if (d.hidden) hv.pause(); else if (vis) { hv.play().catch(function () {}); lastDraw = 0; first = true; kick(); }
     });
   }
 

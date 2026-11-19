@@ -35,7 +35,6 @@
     <div class="lx-hero__meta" data-lx-in style="--s:0">
       {%- if section.settings.eyebrow != blank -%}<span class="lx-eyebrow">{{ section.settings.eyebrow | escape }}</span>{%- endif -%}
       {%- if section.settings.index != blank -%}<span>{{ section.settings.index | escape }}</span>{%- endif -%}
-      {%- if has_bg and section.settings.focus and section.settings.focus_hint != blank -%}<span class="lx-hero__hint">{{ section.settings.focus_hint | escape }}</span>{%- endif -%}
     </div>
     <div class="lx-hero__stage">
       {%- if section.settings.image -%}
@@ -73,9 +72,7 @@
     { "type": "header", "content": "תמונת רקע על כל ההירו" },
     { "type": "image_picker", "id": "bg_image", "label": "תמונת רקע (מומלץ 2400×1350)" },
     { "type": "text", "id": "bg_asset", "label": "או שם קובץ תמונה מנכסי התבנית", "info": "משמש רק אם לא נבחרה תמונת רקע למעלה" },
-    { "type": "checkbox", "id": "focus", "label": "רמז לאפקט גרירת האוויר (בדסקטופ)", "default": true },
-    { "type": "text", "id": "focus_hint", "label": "טקסט הרמז", "default": "הזיזו את העכבר" },
-    { "type": "text", "id": "bg_video", "label": "וידאו רקע (שם קובץ בנכסי התבנית או כתובת MP4 מלאה)", "info": "קליפ קצר בלי סאונד. התמונה למעלה מוצגת עד שהוידאו נטען, ובמכשירים עם הפחתת תנועה." },
+    { "type": "text", "id": "bg_video", "label": "וידאו רקע (שם קובץ בנכסי התבנית או כתובת MP4 מלאה)", "info": "קליפ לופ קצר בלי סאונד (רצוי שנייה עד שלוש, עם קצה שמתחבר בעצמו). התמונה למעלה מוצגת עד שהוידאו נטען, ובמכשירים עם הפחתת תנועה." },
     { "type": "header", "content": "מוצר צף (אופציונלי)" },
     { "type": "image_picker", "id": "image", "label": "תמונת מוצר (רקע כהה)" },
     { "type": "range", "id": "aura", "label": "עוצמת הזוהר ברקע", "min": 0, "max": 140, "step": 10, "unit": "%", "default": 0 },

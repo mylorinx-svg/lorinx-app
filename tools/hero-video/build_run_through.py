@@ -26,7 +26,7 @@ def comps(F,thr=22):
     stay=((m>0)&(body==0))
     g=lambda a: cv2.GaussianBlur(a.astype(np.float32),(0,0),1.2)
     return g(body),g(stay),(int(np.where(body.any(0))[0].max()) if body.any() else 0)
-TE=1.7
+TE=2.0
 _,_,maxx=comps(F1); X0=-float(maxx+60); print('X0',X0,'right edge of runners at frame 1:',maxx)
 frames=[]; LAST=119; TEND=(LAST-1)/24.0
 for i in range(1,LAST+1):

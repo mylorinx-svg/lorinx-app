@@ -131,3 +131,12 @@ The owner liked the colour smear and softness of the drag effect but not that it
 - The picture is aligned (20% from the left) so the runners sit to the left of the headline.
 - **TESTED** in headless Chromium (software WebGL) on the preview: the loop period is about 3.4 s, the clip reaches 3.17 s before wrapping, the frame right after a wrap is sharp, mid-run frames show the colour smear, no theme JavaScript errors. **NOT TESTED:** frame rate and battery on real phones and laptops, Safari and iOS autoplay.
 - Still open: the Kling watermark remains in the clip (bottom-right, under the dark scrim); the failed first upload (`lx2-hero-runners.mp4`, generic file) remains in Content → Files.
+
+## Update, 19 November 2026 (night) — runners entering and exiting: tried, rejected, needs a new clip
+
+The owner asked for the runners to run out of the right edge and come back in from the left as a real entrance, not from the middle.
+
+- **What the Kling clip contains:** the runners are already in the middle of the frame at 0 s, run roughly in place for about 3.5 s, then sprint out to the right and the final frame is an empty track. There is no entrance.
+- **What was tried:** an entrance was built from the existing footage by separating the runners from the static track (difference against the empty last frame), sliding them in from beyond the left edge with a decelerating ease, and rejoining the exit, so the loop ran empty track → runners enter → run → exit → empty track (5 s, seamless). It worked technically (verified on the preview), but the owner judged it fake: the runners "slide" into the middle, because their feet cycle in place while the body is translated.
+- **Decision:** reverted. The draft theme is back on the 3.2 s loop that cuts straight back to the start (the version the owner preferred). The composite videos were removed from Files. The build script is kept at `tools/hero-video/build_run_through.py` for reference only.
+- **Next step:** a new Kling generation with an empty-track start and end frame and a prompt describing the entrance, the run and the exit (the prompt and the empty-track image were given to the owner in chat). When that clip exists, the existing hero code needs no change: a clip whose first and last frames are the same empty track loops invisibly.

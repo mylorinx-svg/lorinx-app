@@ -496,6 +496,7 @@
       lastDraw = now;
       var ca = w / h, ia = (hv.videoWidth || 16) / (hv.videoHeight || 9);
       var sx = ca > ia ? 1 : ca / ia, sy = ca > ia ? ia / ca : 1;
+      var Z = small ? 1.1 : 1.28; sx /= Z; sy /= Z; // move in closer to the runners
       var next = 1 - cur;
       // pass 1: echo into the other target
       bind(progs.echo);
@@ -504,7 +505,7 @@
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, vtex); gl.uniform1i(progs.echo.u.vid, 0);
       gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, ptex[cur]); gl.uniform1i(progs.echo.u.prev, 1);
       gl.uniform2f(progs.echo.u.cov, sx, sy);
-      gl.uniform2f(progs.echo.u.opos, small ? 0.2 : 0.2, 0);
+      gl.uniform2f(progs.echo.u.opos, small ? 0.3 : 0.25, small ? 0.3 : 0.4);
       var f = dt * 60;
       var k = first ? [0, 0, 0] : [Math.pow(KEEP[0], f), Math.pow(KEEP[1], f), Math.pow(KEEP[2], f)];
       gl.uniform3f(progs.echo.u.keep, k[0], k[1], k[2]);

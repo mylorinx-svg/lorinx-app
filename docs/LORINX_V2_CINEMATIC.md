@@ -97,3 +97,14 @@ After seeing the GetLayers "Stride Nine" layer, the owner asked for that idea on
 - The section accepts a background image from the theme editor, so the picture can be replaced without code.
 
 **Not done:** a moving video background. The reference uses real video; this version animates a still image. A 6–10 second looping clip of the same scene would be the next step. It needs a video generator (the owner offered Kling access) or the Canva video tool, which requires the owner's explicit approval because it uses the account's AI limit and outputs 720p at most.
+
+## Update, 19 November 2026 — moving hero
+
+- The owner generated a clip in Kling (image-to-video from the runners still) and supplied the file. It was 1280×720, 5 s, with audio and a "KlingAI 4.0" watermark in the bottom-right corner.
+- Processing: audio removed; trimmed to the first 3.7 s, because the runners leave the frame after that; re-encoded (H.264, 691 KB).
+- Hosting: uploaded to the store's Files through Shopify's video upload (staged upload + `fileCreate`). Shopify serves a 720p rendition from its CDN. This adds one file to Files; it does not touch the live theme.
+- Hero behaviour: the still image paints first; the clip is fetched only after the page has loaded, fades in over the still, dissolves back to it shortly before the end and restarts, so the loop is a cross-fade rather than a jump. No video under reduced motion or data-saver; paused off-screen and when the tab is hidden.
+- The "move to focus" blur was made lighter and its sharp window larger, so it does not hide the motion.
+- TESTED in headless Chromium on the preview: the clip loads from the Shopify CDN, plays, fades out before the end and restarts. NOT TESTED: real phones, iOS Safari autoplay, mobile data cost.
+- Known limits: the clip is 720p, so it is soft on large screens; the watermark is still in the file — in the hero it falls in the cropped, darkened bottom edge, but it is not removed. For publishing, replace it with a watermark-free 1080p export (one field in the hero section settings).
+- One failed upload attempt (a generic file entry named `lx2-hero-runners.mp4`) is stuck in "processing" in Files and could not be deleted while pending; it can be removed from Content → Files.

@@ -442,7 +442,7 @@
       grow += (target - grow) * 0.06;
       focus.style.setProperty('--fx', (fx * 100).toFixed(2) + '%');
       focus.style.setProperty('--fy', (fy * 100).toFixed(2) + '%');
-      focus.style.setProperty('--fr', (150 + grow * 190).toFixed(0) + 'px');
+      focus.style.setProperty('--fr', (240 + grow * 260).toFixed(0) + 'px');
       if (live && !d.hidden) fraf = requestAnimationFrame(paint);
     };
     var kick = function () { if (!fraf && live) fraf = requestAnimationFrame(paint); };

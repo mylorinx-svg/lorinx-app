@@ -313,6 +313,7 @@ rows_total = sum(cnt.values())
 
 o = []
 A = o.append
+ROWDATA = {}
 A('<title>LORINX — מסמך שינויי קופי</title>\n<meta name="claude:viewport-fit-sides" content="cover">')
 A('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">')
 A(open(sys.argv[2]).read())
@@ -334,6 +335,7 @@ A(f'''<header class="top">
 </header>''')
 
 A('<section class="how"><div class="before"><b>עודכן: אתר כללי עם מותג כנישה</b><ul><li>המסמך עבר על כל אזור שהיה קשור לכוס הרוח והפך אותו לכללי. כל דף הבית (H1–H11), הקולקציה, הפוטר ותיאורי החיפוש מנוסחים עכשיו ברמת המותג.</li><li><b>מה השתנה בדף הבית:</b> "איך זה עובד" הפך ל"איך אנחנו עובדים" (H3); קופסת הקנייה של הכוס הוחלפה ברשימת "איך בוחרים" לארבעת המכשירים (H4); "מתי משתמשים" מחולק בין כל המכשירים (H5); השאלות הנפוצות עוסקות בבחירה ובבטיחות כלליות (H9).</li><li><b>מה לא השתנה:</b> עמוד כוס הרוח (P1–P13), עמודי שלושת המוצרים האחרים, הסל והמדיניות. עמוד הכוס הוא הערוץ היחיד שמכר עד היום, ולכן נוגעים בו רק בתיקוני אמינות.</li><li>ההסבר המלא והסיכונים: <code>docs/copy-research/13-brand-led-revision.md</code>.</li></ul></div></section>')
+A('<section class="how" id="lx-edit"><h2>איך עורכים ומחזירים</h2><ol class="steps"><li>בכל שורה יש ארבעה כפתורים: <b>מאשר</b> (לבצע כמו שהצעתי), <b>לא לשנות</b> (להשאיר את הקיים), <b>ערוך</b> (לכתוב נוסח משלך, ושורה שערכת נחשבת מאושרת) ו<b>הערה</b>.</li><li>בכל אזור אפשר <b>להוסיף שורה חדשה</b>, לכתוב הערה לאזור כולו, או לאשר בבת אחת את כל השורות שיש להן נוסח מוכן.</li><li>הכול נשמר אוטומטית. אין צורך לשלוח קובץ.</li><li>כשסיימת, לחץ <b>"סיימתי, המסמך מוכן"</b> בשורה התחתונה וכתוב לי בצ\'אט שהמסמך מוכן. אז אעבור על הכול ואבצע רק מה שסימנת, ערכת או הוספת.</li></ol><p class="note">שורה בלי סימון לא תבוצע. שורות שמסומנות "מחכה לנתון" צריכות שתכתוב את הנתון החסר (דרך "ערוך"). שורות שמסומנות "דורש אישור מיוחד" הן נתוני מוצר ב-Shopify, ואגע בהן רק אם סימנת "מאשר" במפורש. הביצוע יהיה בטיוטה בלבד, לא באתר החי.</p><p id="lx-warn" class="warnbox" hidden></p></section>\n<section class="how" id="lx-general-wrap"><h2>הערות כלליות</h2><textarea id="lx-general" rows="4" placeholder="כל דבר שלא קשור לשורה מסוימת: כיוון, סגנון, דברים להוסיף, דברים שפספסתי" aria-label="הערות כלליות"></textarea></section>')
 A('<section class="how"><h2>איך לקרוא</h2><ul class="legend">')
 for k, d in [('replace', 'יש נוסח מוכן, ואפשר ליישם אחרי אישור רגיל.'), ('add', 'טקסט חדש שלא קיים היום.'), ('remove', 'טקסט או שורה שיורדים.'), ('data', 'הנוסח תלוי במשהו שרק אתה יודע. מה שחסר מסומן כך: <span class="ph">[חסר]</span>. לא מפרסמים משפט עם סוגריים כאלה.'), ('approve', 'נמצא בנתוני המוצר ב-Shopify (שם, תיאור, כותרת דפדפן), ולכן נופל תחת הכלל "לא לשנות את דף המוצר".'), ('keep', 'נשאר כמו שהוא. מופיע כדי שיהיה ברור שנבדק.')]:
     A(f'<li>{kind_tag(k)}<span>{d}</span></li>')
@@ -353,9 +355,11 @@ for sid, sname, sintro, its in SECTIONS:
             cls = 'shot narrow' if it.get('narrow') else 'shot'
             A(f'<figure class="{cls}"><div class="frame"><img src="img/{it["img"]}" alt="צילום מהטיוטה: {html.escape(it["title"])}" loading="lazy"></div><figcaption>צילום מהטיוטה · {it["img"]}</figcaption></figure>')
         A('<div class="tbl"><table><thead><tr><th>מה</th><th>קיים היום</th><th>מוצע</th><th>סטטוס</th></tr></thead><tbody>')
-        for lab, cur, new, k in it['rows']:
+        for ri, (lab, cur, new, k) in enumerate(it['rows']):
             newc = 'same' if new == 'ללא שינוי' else ''
-            A(f'<tr class="r-{k}"><th scope="row">{t(lab)}</th><td class="cur">{t(cur)}</td><td class="new {newc}">{t(new)}</td><td class="st">{kind_tag(k)}</td></tr>')
+            rid = f"{it['id']}-{ri}"
+            ROWDATA[rid] = dict(item=it['id'], itemTitle=it['title'], label=lab, cur=cur, nw=new, kind=k)
+            A(f'<tr class="r-{k}" data-rid="{rid}"><th scope="row">{t(lab)}</th><td class="cur">{t(cur)}</td><td class="new {newc}">{t(new)}</td><td class="st">{kind_tag(k)}</td></tr>')
         A('</tbody></table></div>')
         A(f'<p class="why"><b>למה</b> {t(it["why"])}</p>')
         if it.get('before'):
@@ -386,6 +390,11 @@ A('''<section class="page" id="live"><h2>נספח: מה ראיתי באתר הח
 </ul>
 <p class="note">מקורות למספרים במסמך: נתוני מכירות וכניסות מ-Shopify (נבדקו 19.11.2026); מחירי מתחרים מהעמודים שלהם, שנפתחו ישירות באותו יום (Goodest, Velarixs, Bug, Zap). המחקר המלא נמצא בתיקייה docs/copy-research בענף claude/kind-ride-7pzs23.</p>
 </section>''')
+A('<div id="lx-bar" class="bar" role="region" aria-label="סטטוס העריכה"><span id="lx-count"></span><span id="lx-save"></span><span id="lx-ready-note" hidden>כתבו לי בצ\'אט: "המסמך מוכן"</span><button id="lx-export" class="btn" type="button">ייצוא ההערות</button><button id="lx-ready" class="btn main" type="button">סיימתי, המסמך מוכן</button></div>')
+import json
+payload = json.dumps({'rows': ROWDATA, 'items': {it['id']: it['title'] for it in items}}, ensure_ascii=False).replace('<', '\\u003c')
+A('<script type="application/json" id="lx-data">' + payload + '</script>')
+A('<script>' + open(sys.argv[3]).read() + '</script>')
 A('</div>')
 open(OUT, 'w').write('\n'.join(o))
 print('items', len(items), 'rows', rows_total, cnt)

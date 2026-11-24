@@ -681,3 +681,22 @@
     update();
   });
 })();
+
+/* statement rows: opacity follows the distance from the middle of the screen */
+(function () {
+  var list = document.querySelector('[data-stmt]');
+  if (!list || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+  var rows = Array.prototype.slice.call(list.children), ticking = false;
+  function paint() {
+    ticking = false;
+    var vh = window.innerHeight || 800, mid = vh / 2;
+    rows.forEach(function (r) {
+      var b = r.getBoundingClientRect(), c = b.top + b.height / 2, d = Math.abs(c - mid) / (vh * 0.42);
+      r.style.setProperty('--lx-p', String(Math.max(0.16, Math.min(1, 1.15 - d)).toFixed(3)));
+    });
+  }
+  function onScroll() { if (!ticking) { ticking = true; requestAnimationFrame(paint); } }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll);
+  paint();
+})();

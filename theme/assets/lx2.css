@@ -661,3 +661,13 @@ html:not(.lx-scrolled) .lx-over-hero .lxh-ann { background: transparent; border-
 .lx-rail__nav button svg { width: 18px; height: 18px; }
 .lx-rail__nav button[data-rail-dir="-1"] svg { transform: scaleX(-1); }
 .lx-rail__nav button:disabled { opacity: .35; cursor: default; }
+
+/* statement: giant words that light up one by one */
+.lx-stmt { padding-block: clamp(72px, 12vw, 160px); overflow: hidden; }
+.lx-stmt__list { list-style: none; margin: 0; padding: 0; }
+.lx-stmt__row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px 40px; align-items: baseline; padding-block: clamp(14px, 2.6vw, 34px); border-top: 1px solid var(--lx-line-dark, rgba(255, 255, 255, 0.14)); opacity: var(--lx-p, 1); transition: opacity 0.2s linear; }
+.lx-stmt__row:last-child { border-bottom: 1px solid var(--lx-line-dark, rgba(255, 255, 255, 0.14)); }
+.lx-stmt__word { --lx-ff: var(--lx-display); font-size: clamp(60px, 15vw, 210px); font-weight: 300; line-height: 0.98; letter-spacing: -0.04em; display: block; }
+.lx-stmt__line { font-size: clamp(22px, 3vw, 38px); font-weight: 300; line-height: 1.25; color: var(--lx-accent); }
+@media (min-width: 900px) { .lx-stmt__row { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); } .lx-stmt__line { text-align: start; } }
+@media (prefers-reduced-motion: reduce) { .lx-stmt__row { opacity: 1 !important; transition: none; } }

@@ -141,16 +141,14 @@ home.add('recovery', 'lx2-category', {
 home.add('training', 'lx2-category', {
     'product_type': 'אימון', 'tone': 'bg', 'eyebrow': 'קטגוריה', 'heading': 'אימון',
 })
-home.add('moments', 'lx2-list', {
-    'tone': 'surface', 'layout': 'timeline', 'numbered': False,
-    'eyebrow': 'מתי משתמשים', 'heading': 'לפני, אחרי ובסוף היום.',
-    'text': 'בלי לקבוע תור ובלי לצאת מהבית.',
-}, timeline([
-    ('לפני האימון', 'מתחילים מוכנים.'),
-    ('אחרי האימון', 'רגע לשחרר ולהאט.'),
-    ('בסוף יום ארוך', 'בבית, בלי להתארגן.'),
-    ('בבוקר', 'הרגל קטן שנכנס לשגרה.'),
-]))
+home.add('moments', 'lx2-statement', {
+    'tone': 'dark', 'eyebrow': 'מתי משתמשים',
+}, [('row', {'word': w, 'text': t}) for w, t in (
+    ('לפני.', 'מתחילים מוכנים.'),
+    ('אחרי.', 'רגע לשחרר ולהאט.'),
+    ('בסוף יום ארוך.', 'בבית, בלי להתארגן.'),
+    ('בבוקר.', 'הרגל קטן שנכנס לשגרה.'),
+)])
 home.add('messages', 'lx2-reviews', {
     'tone': 'bg', 'eyebrow': 'מהלקוחות שלנו', 'heading': 'הודעות שקיבלנו בווטסאפ.',
     'shots_heading': '',

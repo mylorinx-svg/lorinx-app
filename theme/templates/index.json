@@ -156,50 +156,46 @@
       }
     },
     "moments": {
-      "type": "lx2-list",
+      "type": "lx2-statement",
       "blocks": {
-        "item_1": {
-          "type": "item",
+        "row_1": {
+          "type": "row",
           "settings": {
-            "label": "לפני האימון",
+            "word": "לפני.",
             "text": "מתחילים מוכנים."
           }
         },
-        "item_2": {
-          "type": "item",
+        "row_2": {
+          "type": "row",
           "settings": {
-            "label": "אחרי האימון",
+            "word": "אחרי.",
             "text": "רגע לשחרר ולהאט."
           }
         },
-        "item_3": {
-          "type": "item",
+        "row_3": {
+          "type": "row",
           "settings": {
-            "label": "בסוף יום ארוך",
+            "word": "בסוף יום ארוך.",
             "text": "בבית, בלי להתארגן."
           }
         },
-        "item_4": {
-          "type": "item",
+        "row_4": {
+          "type": "row",
           "settings": {
-            "label": "בבוקר",
+            "word": "בבוקר.",
             "text": "הרגל קטן שנכנס לשגרה."
           }
         }
       },
       "block_order": [
-        "item_1",
-        "item_2",
-        "item_3",
-        "item_4"
+        "row_1",
+        "row_2",
+        "row_3",
+        "row_4"
       ],
       "settings": {
-        "tone": "surface",
-        "layout": "timeline",
-        "numbered": false,
-        "eyebrow": "מתי משתמשים",
-        "heading": "לפני, אחרי ובסוף היום.",
-        "text": "בלי לקבוע תור ובלי לצאת מהבית."
+        "tone": "dark",
+        "eyebrow": "מתי משתמשים"
       }
     },
     "messages": {

@@ -155,49 +155,6 @@
         "heading": "אימון"
       }
     },
-    "moments": {
-      "type": "lx2-statement",
-      "blocks": {
-        "row_1": {
-          "type": "row",
-          "settings": {
-            "word": "לפני.",
-            "text": "מתחילים מוכנים."
-          }
-        },
-        "row_2": {
-          "type": "row",
-          "settings": {
-            "word": "אחרי.",
-            "text": "רגע לשחרר ולהאט."
-          }
-        },
-        "row_3": {
-          "type": "row",
-          "settings": {
-            "word": "בסוף יום ארוך.",
-            "text": "בבית, בלי להתארגן."
-          }
-        },
-        "row_4": {
-          "type": "row",
-          "settings": {
-            "word": "בבוקר.",
-            "text": "הרגל קטן שנכנס לשגרה."
-          }
-        }
-      },
-      "block_order": [
-        "row_1",
-        "row_2",
-        "row_3",
-        "row_4"
-      ],
-      "settings": {
-        "tone": "dark",
-        "eyebrow": "מתי משתמשים"
-      }
-    },
     "messages": {
       "type": "lx2-reviews",
       "blocks": {
@@ -368,7 +325,6 @@
     "how",
     "recovery",
     "training",
-    "moments",
     "messages",
     "story",
     "assure",

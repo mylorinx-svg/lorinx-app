@@ -20,7 +20,7 @@
       if q < 1
         assign is_packs = false
       else
-        assign u = v.price | divided_by: q
+        assign u = v.price | times: 1.0 | divided_by: q | round
         if u < best_unit
           assign best_unit = u
         endif
@@ -42,7 +42,7 @@
       {%- for v in product.variants -%}
         {%- liquid
           assign q = v.title | split: ' ' | first | plus: 0
-          assign unit = v.price | divided_by: q
+          assign unit = v.price | times: 1.0 | divided_by: q | round
           assign saving = base_price | times: q | minus: v.price
         -%}
         <label class="lx-opt">

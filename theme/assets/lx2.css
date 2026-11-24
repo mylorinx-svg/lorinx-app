@@ -451,6 +451,7 @@ body.lx-has-sticky .lx2-footer { padding-bottom: 76px; }
 .lxf-brand { grid-column: 1 / -1; }
 .lxf-brand .lxh-logo { font-size: 22px; display: inline-block; }
 .lxf-brand p { color: var(--lx-on-dark-2); font-size: 14.5px; margin-top: 14px; max-width: 30em; }
+.lxf-brand p.lxf-id { font-size: 13px; margin-top: 8px; opacity: .8; }
 .lxf-col h3 { --lx-ff: var(--lx-body); font-size: 12px; font-weight: 500; letter-spacing: 0.14em; color: #8f887b; margin-bottom: 16px; }
 .lxf-col li + li { margin-top: 2px; }
 .lxf-col a { display: inline-block; padding: 7px 0; font-size: 15px; color: var(--lx-on-dark); }

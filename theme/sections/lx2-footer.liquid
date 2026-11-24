@@ -30,6 +30,7 @@
       <div class="lxf-brand">
         <a class="lxh-logo" href="{{ routes.root_url }}">LORINX</a>
         <p>{{ section.settings.about | escape }}</p>
+        {%- if section.settings.identity != blank -%}<p class="lxf-id">{{ section.settings.identity | escape }}</p>{%- endif -%}
       </div>
       {%- for block in section.blocks -%}
         <nav class="lxf-col" aria-label="{{ block.settings.heading | escape }}" {{ block.shopify_attributes }}>
@@ -37,7 +38,7 @@
           <ul>
             {%- case block.type -%}
               {%- when 'menu' -%}
-                {%- for link in block.settings.menu.links -%}<li><a href="{{ link.url }}">{{ link.title | escape }}</a></li>{%- endfor -%}
+                {%- for link in block.settings.menu.links -%}<li><a href="{{ link.url }}">{{ link.title | replace: 'צור קשר', 'צרו קשר' | escape }}</a></li>{%- endfor -%}
               {%- when 'policies' -%}
                 {%- for policy in shop.policies -%}<li><a href="{{ policy.url }}">{{ policy.title | escape }}</a></li>{%- endfor -%}
               {%- when 'links' -%}
@@ -67,7 +68,8 @@
   "name": "LORINX פוטר",
   "max_blocks": 3,
   "settings": [
-    { "type": "textarea", "id": "about", "label": "טקסט מותג", "default": "מכשירי ריקוברי ורווחה לבית. נבחרים אחד־אחד, עם אחריות ושירות בעברית." },
+    { "type": "textarea", "id": "about", "label": "טקסט מותג", "default": "מכשירי כושר והתאוששות לבית. אחריות, 14 יום להחזרה ושירות בעברית." },
+    { "type": "text", "id": "identity", "label": "שורת זהות העסק", "info": "שם העסק והכתובת, כפי שמופיעים בתקנון", "default": "LORINX · דרך הים 67, ראש הנקרה" },
     { "type": "checkbox", "id": "show_newsletter", "label": "הצגת הרשמה לניוזלטר", "default": true },
     { "type": "text", "id": "news_heading", "label": "כותרת ניוזלטר", "default": "עדכונים שקטים, רק כשיש מה לספר" },
     { "type": "textarea", "id": "news_text", "label": "טקסט ניוזלטר", "default": "מוצרים חדשים וטיפים לשימוש נכון. בלי הצפה." },

@@ -45,7 +45,7 @@
       <nav class="lxh-nav" aria-label="ניווט ראשי">
         {%- for link in menu.links -%}
           {%- unless link.url == routes.root_url -%}
-            <a href="{{ link.url }}" {% if link.current %}aria-current="page"{% endif %}>{{ link.title | escape }}</a>
+            <a href="{{ link.url }}" {% if link.current %}aria-current="page"{% endif %}>{{ link.title | replace: 'צור קשר', 'צרו קשר' | escape }}</a>
           {%- endunless -%}
         {%- endfor -%}
       </nav>
@@ -80,7 +80,7 @@
     <div class="lx-panel__body">
       <nav class="lxm-nav" aria-label="ניווט ראשי">
         {%- for link in menu.links -%}
-          <a href="{{ link.url }}" {% if link.current %}aria-current="page"{% endif %}>{{ link.title | escape }}{% render 'lx2-icon', name: 'arrow' %}</a>
+          <a href="{{ link.url }}" {% if link.current %}aria-current="page"{% endif %}>{{ link.title | replace: 'צור קשר', 'צרו קשר' | escape }}{% render 'lx2-icon', name: 'arrow' %}</a>
         {%- endfor -%}
       </nav>
       <div class="lxm-meta">

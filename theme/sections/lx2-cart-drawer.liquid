@@ -40,7 +40,7 @@
     </div>
     <div class="lx-panel__foot">
       <div class="lx-cart__sum"><span>סכום ביניים</span><span>{{ cart.total_price | money }}</span></div>
-      <p class="lx-cart__note">משלוח חינם. הסכום הסופי מוצג בעמוד התשלום.</p>
+      <p class="lx-cart__note">משלוח חינם.</p>
       <form action="{{ routes.cart_url }}" method="post">
         <button type="submit" name="checkout" class="lx-btn lx-btn--block">{% render 'lx2-icon', name: 'lock' %}מעבר לתשלום מאובטח</button>
       </form>

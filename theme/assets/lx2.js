@@ -654,3 +654,30 @@
 
   qa('form[data-lx-product-form]').forEach(function (f) { syncVariant(f, false); });
 })();
+
+/* category rows: arrows appear only when the row really scrolls */
+(function () {
+  var rows = document.querySelectorAll('[data-rail]');
+  if (!rows.length) return;
+  Array.prototype.forEach.call(rows, function (rail) {
+    var head = rail.closest('.lx-wrap'), nav = head && head.querySelector('[data-rail-nav]');
+    if (!nav) return;
+    var btns = nav.querySelectorAll('button');
+    function step() { var li = rail.firstElementChild; return li ? li.getBoundingClientRect().width + 24 : 300; }
+    function update() {
+      var max = rail.scrollWidth - rail.clientWidth, pos = Math.abs(rail.scrollLeft);
+      nav.hidden = max < 8;
+      if (btns[0]) btns[0].disabled = pos < 4;
+      if (btns[1]) btns[1].disabled = pos > max - 4;
+    }
+    Array.prototype.forEach.call(btns, function (b) {
+      b.addEventListener('click', function () {
+        var dir = Number(b.getAttribute('data-rail-dir')), rtl = getComputedStyle(rail).direction === 'rtl';
+        rail.scrollBy({ left: dir * step() * (rtl ? -1 : 1), behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      });
+    });
+    rail.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    update();
+  });
+})();

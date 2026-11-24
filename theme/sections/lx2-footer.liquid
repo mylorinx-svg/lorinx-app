@@ -38,7 +38,7 @@
           <ul>
             {%- case block.type -%}
               {%- when 'menu' -%}
-                {%- for link in block.settings.menu.links -%}<li><a href="{{ link.url }}">{{ link.title | replace: 'צור קשר', 'צרו קשר' | escape }}</a></li>{%- endfor -%}
+                {%- for link in block.settings.menu.links -%}<li><a href="{% if link.type == 'collection_link' %}{{ pages['המוצרים-שלנו'].url }}{% else %}{{ link.url }}{% endif %}">{{ link.title | replace: 'צור קשר', 'צרו קשר' | escape }}</a></li>{%- endfor -%}
               {%- when 'policies' -%}
                 {%- for policy in shop.policies -%}<li><a href="{{ policy.url }}">{{ policy.title | escape }}</a></li>{%- endfor -%}
               {%- when 'links' -%}

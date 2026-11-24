@@ -9,7 +9,7 @@
         "cta_label": "קבלו הצעת מחיר",
         "cta_url": "#contact-form",
         "link_label": "לכל המוצרים",
-        "link_url": "shopify://collections/all",
+        "link_url": "shopify://pages/המוצרים-שלנו",
         "show_content": false,
         "wide": true
       }

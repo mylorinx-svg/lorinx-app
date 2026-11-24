@@ -649,3 +649,15 @@ html:not(.lx-scrolled) .lx-over-hero .lxh-ann { background: transparent; border-
 
 /* hero: closer framing on the runners (fallback video / still; the WebGL canvas zooms inside the shader) */
 @media (min-width: 750px) { .lx-hero__bg > img, .lx-hero__bg > video { scale: 1.2; transform-origin: 18% 35%; } }
+
+/* category rows: scrollable, snap to cards */
+.lx-rail { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-flow: column; grid-auto-columns: min(70%, 290px); gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; margin-inline: calc(var(--lx-gutter) * -1); padding-inline: var(--lx-gutter); padding-bottom: 14px; scrollbar-width: thin; overscroll-behavior-x: contain; }
+.lx-rail > li { scroll-snap-align: start; min-width: 0; }
+@media (min-width: 750px) { .lx-rail { grid-auto-columns: calc((100% - 3 * 24px) / 4); gap: 24px; margin-inline: 0; padding-inline: 0; } }
+.lx-rail:focus-visible { outline: 2px solid var(--lx-accent, currentColor); outline-offset: 4px; }
+.lx-rail__nav { display: flex; gap: 8px; }
+.lx-rail__nav[hidden] { display: none; }
+.lx-rail__nav button { width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--lx-glass-line); background: var(--lx-glass); color: inherit; border-radius: 999px; cursor: pointer; }
+.lx-rail__nav button svg { width: 18px; height: 18px; }
+.lx-rail__nav button[data-rail-dir="-1"] svg { transform: scaleX(-1); }
+.lx-rail__nav button:disabled { opacity: .35; cursor: default; }

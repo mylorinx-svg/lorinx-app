@@ -46,7 +46,7 @@
         "heading": "כל אימון\nנגמר ברגע\nשל שחרור.",
         "text": "מכשירי התאוששות לבית: לפני האימון, אחריו, ובסוף יום ארוך.",
         "cta_label": "לכל המוצרים",
-        "cta_url": "shopify://collections/all",
+        "cta_url": "shopify://pages/המוצרים-שלנו",
         "link_label": "איך אנחנו עובדים",
         "link_url": "#how"
       }
@@ -136,62 +136,70 @@
         "text": "ככה אנחנו עובדים עם כל אחד מהמכשירים."
       }
     },
-    "featured": {
-      "type": "lx2-featured-product",
+    "recovery": {
+      "type": "lx2-category",
       "settings": {
-        "product": "כוס-רוח-חשמלית",
+        "product_type": "התאוששות",
+        "anchor": "categories",
         "tone": "surface",
-        "eyebrow": "המוצר המוביל שלנו",
-        "text": "ואקום שמושך וחום שמרפה, במכשיר אחד שנכנס לכף היד."
+        "eyebrow": "קטגוריה",
+        "heading": "התאוששות"
+      }
+    },
+    "training": {
+      "type": "lx2-category",
+      "settings": {
+        "product_type": "אימון",
+        "tone": "bg",
+        "eyebrow": "קטגוריה",
+        "heading": "אימון"
       }
     },
     "moments": {
-      "type": "lx2-media-text",
+      "type": "lx2-list",
       "blocks": {
-        "check_1": {
-          "type": "check",
+        "item_1": {
+          "type": "item",
           "settings": {
-            "text": "בבוקר, על הגב התחתון, לפני שהיום מתחיל."
+            "label": "לפני אימון",
+            "text": "אקדח עיסוי: שתי דקות על השריר העיקרי."
           }
         },
-        "check_2": {
-          "type": "check",
+        "item_2": {
+          "type": "item",
           "settings": {
-            "text": "אחרי יום מול המחשב, על הכתפיים, מול הטלוויזיה."
+            "label": "אחרי יום מול המחשב",
+            "text": "כוס רוח חשמלית על הכתפיים: רבע שעה בסלון."
           }
         },
-        "check_3": {
-          "type": "check",
+        "item_3": {
+          "type": "item",
           "settings": {
-            "text": "אחרי אימון או ריצה, על השוקיים והירכיים."
+            "label": "אחרי יום על הרגליים",
+            "text": "מכשיר עיסוי לרגליים: עשרים דקות בכורסה."
+          }
+        },
+        "item_4": {
+          "type": "item",
+          "settings": {
+            "label": "בבוקר, עם הקפה",
+            "text": "מאמן ירכיים: חמש דקות."
           }
         }
       },
       "block_order": [
-        "check_1",
-        "check_2",
-        "check_3"
+        "item_1",
+        "item_2",
+        "item_3",
+        "item_4"
       ],
       "settings": {
-        "image": "shopify://shop_images/ChatGPT_Image_Jul_28_2026_10_48_27_PM.png",
-        "ratio": "45",
-        "tone": "bg",
-        "eyebrow": "מתי משתמשים",
-        "heading": "רבע שעה שנכנסת לשגרה.",
-        "text": "<p>לא צריך להתארגן, לנסוע או לתאם. מניחים, בוחרים עוצמה וממשיכים בערב שלכם.</p>",
-        "link_label": "לכל הפרטים על כוס הרוח",
-        "link_url": "shopify://products/כוס-רוח-חשמלית"
-      }
-    },
-    "products": {
-      "type": "lx2-products",
-      "settings": {
-        "collection": "המוצר-שלנו",
         "tone": "surface",
-        "eyebrow": "הקולקציה",
-        "heading": "ריקוברי ביתי, מכשיר לכל צורך.",
-        "link_label": "לכל המוצרים",
-        "limit": 4
+        "layout": "timeline",
+        "numbered": false,
+        "eyebrow": "מתי משתמשים",
+        "heading": "לפני, אחרי ובסוף היום.",
+        "text": "בלי לקבוע תור ובלי לצאת מהבית."
       }
     },
     "messages": {
@@ -362,9 +370,9 @@
     "hero",
     "words",
     "how",
-    "featured",
+    "recovery",
+    "training",
     "moments",
-    "products",
     "messages",
     "story",
     "assure",

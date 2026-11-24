@@ -8,7 +8,7 @@
       <div class="lx-cart__empty" style="padding-bottom:var(--lx-sec)">
         <h2 class="lx-h3">הסל עדיין ריק</h2>
         <p>נראה שעוד לא הוספתם מוצרים.</p>
-        <a class="lx-btn" href="{{ routes.all_products_collection_url }}">לכל המוצרים</a>
+        <a class="lx-btn" href="{{ pages['המוצרים-שלנו'].url }}">לכל המוצרים</a>
       </div>
     {%- else -%}
       <form action="{{ routes.cart_url }}" method="post" class="lx-cartpage lx-cart" data-lx-cartpage style="padding-bottom:var(--lx-sec)">
@@ -54,7 +54,7 @@
           {%- if shop.enabled_payment_types.size > 0 -%}
             <div class="lx-pay" aria-label="אמצעי תשלום">{%- for type in shop.enabled_payment_types -%}{{ type | payment_type_svg_tag }}{%- endfor -%}</div>
           {%- endif -%}
-          <p style="margin-top:18px"><a class="lx-link" href="{{ routes.all_products_collection_url }}">המשך בקניות{% render 'lx2-icon', name: 'arrow' %}</a></p>
+          <p style="margin-top:18px"><a class="lx-link" href="{{ pages['המוצרים-שלנו'].url }}">המשך בקניות{% render 'lx2-icon', name: 'arrow' %}</a></p>
         </aside>
       </form>
     {%- endif -%}

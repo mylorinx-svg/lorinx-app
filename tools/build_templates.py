@@ -21,7 +21,7 @@ CUP_URL = 'shopify://products/' + CUP
 ABOUT_URL = 'shopify://pages/קצת-עלינו'
 B2B_URL = 'shopify://pages/כמויות-לחברות'
 CONTACT_URL = 'shopify://pages/contact'
-ALL_URL = 'shopify://collections/all'
+ALL_URL = 'shopify://pages/המוצרים-שלנו'
 SHIP_URL = 'shopify://policies/shipping-policy'
 REFUND_URL = 'shopify://policies/refund-policy'
 
@@ -135,24 +135,22 @@ home.add('how', 'lx2-list', {
     ('מחזירים בלי מאבק', '14 יום מיום הקבלה, בלי דמי ביטול, ומשלוח ההחזרה עלינו.'),
     ('עונים בעצמנו', 'בווטסאפ, א׳–ה׳ 09:00–18:00. אדם אחד, שקורא כל הודעה.'),
 ]))
-home.add('featured', 'lx2-featured-product', {
-    'product': CUP, 'tone': 'surface', 'eyebrow': 'המוצר המוביל שלנו',
-    'text': 'ואקום שמושך וחום שמרפה, במכשיר אחד שנכנס לכף היד.',
+home.add('recovery', 'lx2-category', {
+    'product_type': 'התאוששות', 'anchor': 'categories', 'tone': 'surface', 'eyebrow': 'קטגוריה', 'heading': 'התאוששות',
 })
-home.add('moments', 'lx2-media-text', {
-    'image': img('ChatGPT_Image_Jul_28_2026_10_48_27_PM.png'), 'ratio': '45', 'tone': 'bg',
-    'eyebrow': 'מתי משתמשים', 'heading': 'רבע שעה שנכנסת לשגרה.',
-    'text': p('לא צריך להתארגן, לנסוע או לתאם. מניחים, בוחרים עוצמה וממשיכים בערב שלכם.'),
-    'link_label': 'לכל הפרטים על כוס הרוח', 'link_url': CUP_URL,
-}, checks([
-    'בבוקר, על הגב התחתון, לפני שהיום מתחיל.',
-    'אחרי יום מול המחשב, על הכתפיים, מול הטלוויזיה.',
-    'אחרי אימון או ריצה, על השוקיים והירכיים.',
+home.add('training', 'lx2-category', {
+    'product_type': 'אימון', 'tone': 'bg', 'eyebrow': 'קטגוריה', 'heading': 'אימון',
+})
+home.add('moments', 'lx2-list', {
+    'tone': 'surface', 'layout': 'timeline', 'numbered': False,
+    'eyebrow': 'מתי משתמשים', 'heading': 'לפני, אחרי ובסוף היום.',
+    'text': 'בלי לקבוע תור ובלי לצאת מהבית.',
+}, timeline([
+    ('לפני אימון', 'אקדח עיסוי: שתי דקות על השריר העיקרי.'),
+    ('אחרי יום מול המחשב', 'כוס רוח חשמלית על הכתפיים: רבע שעה בסלון.'),
+    ('אחרי יום על הרגליים', 'מכשיר עיסוי לרגליים: עשרים דקות בכורסה.'),
+    ('בבוקר, עם הקפה', 'מאמן ירכיים: חמש דקות.'),
 ]))
-home.add('products', 'lx2-products', {
-    'collection': COLLECTION, 'tone': 'surface', 'eyebrow': 'הקולקציה',
-    'heading': 'ריקוברי ביתי, מכשיר לכל צורך.', 'link_label': 'לכל המוצרים', 'limit': 4,
-})
 home.add('messages', 'lx2-reviews', {
     'tone': 'bg', 'eyebrow': 'מהלקוחות שלנו', 'heading': 'הודעות שקיבלנו בווטסאפ.',
     'shots_heading': '',

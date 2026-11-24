@@ -1,0 +1,45 @@
+{%- comment -%}
+  lx2 category row: every product whose Shopify product type equals the setting, in a scrollable row.
+  Nothing is hardcoded: set the "Product type" on a product in Shopify admin and it appears here.
+{%- endcomment -%}
+{%- assign cat_type = section.settings.product_type -%}
+{%- assign cat_products = collections.all.products | where: 'type', cat_type -%}
+{%- if cat_type != blank and cat_products.size > 0 -%}
+<section class="lx2 lx-sec lx-tone-{{ section.settings.tone }}" {% if section.settings.anchor != blank %}id="{{ section.settings.anchor | handleize }}"{% endif %}>
+  <div class="lx-wrap">
+    <div class="lx-headrow">
+      <div class="lx-head" data-lx-reveal>
+        {%- if section.settings.eyebrow != blank -%}<span class="lx-eyebrow">{{ section.settings.eyebrow | escape }}</span>{%- endif -%}
+        <h2 class="lx-h2" data-lx-split>{{ section.settings.heading | escape }}</h2>
+        {%- if section.settings.text != blank -%}<p class="lx-lead">{{ section.settings.text | escape }}</p>{%- endif -%}
+      </div>
+      <div class="lx-rail__nav" data-rail-nav hidden>
+        <button type="button" data-rail-dir="-1" aria-label="הקודם">{% render 'lx2-icon', name: 'arrow' %}</button>
+        <button type="button" data-rail-dir="1" aria-label="הבא">{% render 'lx2-icon', name: 'arrow' %}</button>
+      </div>
+    </div>
+    <ul class="lx-rail" data-rail tabindex="0" aria-label="{{ section.settings.heading | escape }}">
+      {%- for p in cat_products -%}
+        <li data-lx-reveal>{% render 'lx2-card', product: p, sizes: '(min-width: 750px) 24vw, 70vw' %}</li>
+      {%- endfor -%}
+    </ul>
+  </div>
+</section>
+{%- elsif request.design_mode -%}
+<section class="lx2 lx-sec"><div class="lx-wrap"><p>אין מוצרים מסוג "{{ cat_type | escape }}". הגדירו "סוג מוצר" במוצר ב-Shopify.</p></div></section>
+{%- endif -%}
+{% schema %}
+{
+  "name": "LORINX קטגוריה",
+  "settings": [
+    { "type": "text", "id": "product_type", "label": "סוג מוצר (כפי שמוגדר ב-Shopify)", "info": "כל מוצר עם סוג מוצר זהה מופיע כאן אוטומטית" },
+    { "type": "text", "id": "anchor", "label": "מזהה עוגן (אנגלית)" },
+    { "type": "text", "id": "eyebrow", "label": "כותרת עליונה" },
+    { "type": "text", "id": "heading", "label": "כותרת", "default": "קטגוריה" },
+    { "type": "textarea", "id": "text", "label": "טקסט" },
+    { "type": "select", "id": "tone", "label": "רקע", "default": "bg", "options": [
+      { "value": "bg", "label": "בהיר" }, { "value": "surface", "label": "לבן חם" }, { "value": "sand", "label": "חול" }, { "value": "dark", "label": "כהה" } ] }
+  ],
+  "presets": [{ "name": "LORINX קטגוריה" }]
+}
+{% endschema %}
